@@ -30,8 +30,14 @@ const config = {
     port: Number(process.env.SMTP_PORT) || 465,
     from: process.env.MAIL_FROM || process.env.GMAIL_USER || process.env.SMTP_USER || '',
   },
-  jwtSecret: process.env.JWT_SECRET || 'dev-only-insecure-secret-change-in-production',
+  // Prefer an explicit JWT_SECRET (stable sessions across restarts/instances).
+  // If absent, generate a strong random one per process — secure, but sessions
+  // reset on restart, so setting JWT_SECRET is recommended in production.
+  jwtSecret: process.env.JWT_SECRET || require('crypto').randomBytes(32).toString('hex'),
+  jwtSecretFromEnv: !!process.env.JWT_SECRET,
   tokenTtl: process.env.TOKEN_TTL || '12h',
+  // Public origin (used for CORS allowlist and OAuth redirect derivation).
+  publicUrl: (process.env.PUBLIC_URL || '').trim().replace(/\/$/, ''),
 
   // MySQL (Hostinger: create the DB in hPanel, then set these). If any of host /
   // database / user is missing, the app falls back to a local JSON file store.

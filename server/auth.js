@@ -11,7 +11,7 @@ const config = require('./config')
 // Admin credentials live in the store (meta.adminAccount, bcrypt-hashed) and
 // are verified in routes/admin.js; this module only mints/validates tokens.
 function issueToken(username) {
-  return jwt.sign({ sub: username, role: 'admin' }, config.jwtSecret, { expiresIn: config.tokenTtl })
+  return jwt.sign({ sub: username, role: 'admin' }, config.jwtSecret, { algorithm: 'HS256', expiresIn: config.tokenTtl })
 }
 
 function readToken(req) {
@@ -23,7 +23,7 @@ function requireAuth(req, res, next) {
   const token = readToken(req)
   if (!token) return res.status(401).json({ error: 'Not authenticated' })
   try {
-    const payload = jwt.verify(token, config.jwtSecret)
+    const payload = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] })
     if (payload.role !== 'admin') return res.status(403).json({ error: 'Admin access required' })
     req.admin = payload
     next()
@@ -36,14 +36,14 @@ function requireAuth(req, res, next) {
 const USER_TOKEN_TTL = process.env.USER_TOKEN_TTL || '30d'
 
 function issueUserToken(user) {
-  return jwt.sign({ sub: user.id, role: 'customer' }, config.jwtSecret, { expiresIn: USER_TOKEN_TTL })
+  return jwt.sign({ sub: user.id, role: 'customer' }, config.jwtSecret, { algorithm: 'HS256', expiresIn: USER_TOKEN_TTL })
 }
 
 function requireUser(req, res, next) {
   const token = readToken(req)
   if (!token) return res.status(401).json({ error: 'Not signed in' })
   try {
-    const payload = jwt.verify(token, config.jwtSecret)
+    const payload = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] })
     if (payload.role !== 'customer') return res.status(403).json({ error: 'Customer account required' })
     req.userId = payload.sub
     next()
@@ -57,7 +57,7 @@ function optionalUser(req, res, next) {
   const token = readToken(req)
   if (token) {
     try {
-      const payload = jwt.verify(token, config.jwtSecret)
+      const payload = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] })
       if (payload.role === 'customer') req.userId = payload.sub
     } catch (_) { /* anonymous */ }
   }

@@ -128,7 +128,8 @@ router.post('/account/wishlist/toggle', async (req, res, next) => {
     const id = Number((req.body || {}).productId)
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'productId required' })
     const list = new Set(req.user.wishlist || [])
-    list.has(id) ? list.delete(id) : list.add(id)
+    if (list.has(id)) list.delete(id)
+    else if (list.size < 500) list.add(id) // cap to prevent unbounded growth
     const user = await store().updateUser(req.userId, { wishlist: [...list] })
     res.json({ items: user.wishlist })
   } catch (err) { next(err) }

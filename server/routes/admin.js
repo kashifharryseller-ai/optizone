@@ -263,8 +263,9 @@ const storage = multer.diskStorage({
 })
 const upload = multer({
   storage,
-  limits: { fileSize: config.maxUpload },
-  fileFilter: (req, file, cb) => cb(null, /^image\//.test(file.mimetype)),
+  limits: { fileSize: config.maxUpload, files: 1 },
+  // Only raster images — reject SVG (can carry scripts) and anything non-image.
+  fileFilter: (req, file, cb) => cb(null, /^image\/(png|jpe?g|gif|webp|avif|bmp)$/i.test(file.mimetype)),
 })
 
 router.post('/upload', upload.single('file'), (req, res) => {
