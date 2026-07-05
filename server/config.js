@@ -26,12 +26,17 @@ const config = {
     database: process.env.DB_NAME || '',
   },
 
-  paths: {
-    dist: path.join(__dirname, '..', 'dist'),
-    dataDir: path.join(__dirname, 'data'),
-    dataFile: path.join(__dirname, 'data', 'db.json'),
-    uploads: path.join(__dirname, 'data', 'uploads'),
-  },
+  paths: (() => {
+    // On Vercel (and other read-only serverless FS) only /tmp is writable.
+    const onServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
+    const dataDir = onServerless ? '/tmp/oz-data' : path.join(__dirname, 'data')
+    return {
+      dist: path.join(__dirname, '..', 'dist'),
+      dataDir,
+      dataFile: path.join(dataDir, 'db.json'),
+      uploads: path.join(dataDir, 'uploads'),
+    }
+  })(),
 
   // Max upload size for images (bytes).
   maxUpload: Number(process.env.MAX_UPLOAD_BYTES) || 6 * 1024 * 1024,
