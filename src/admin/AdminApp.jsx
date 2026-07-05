@@ -39,6 +39,14 @@ export default function AdminApp() {
     api.me().then(() => setAuthed(true)).catch(() => { setToken(null); setAuthed(false) })
   }, [])
 
+  // If any admin call 401s mid-session (expired/rotated token), drop straight
+  // back to the login screen instead of leaving dead "Not authenticated" panels.
+  useEffect(() => {
+    const onExpired = () => { setToken(null); setAuthed(false); setContentState(null) }
+    window.addEventListener('oz-admin-401', onExpired)
+    return () => window.removeEventListener('oz-admin-401', onExpired)
+  }, [])
+
   useEffect(() => {
     if (authed !== true) return
     api.getContent().then((c) => { setContentState(c); setOriginal(c) }).catch((e) => setMsg(e.message))

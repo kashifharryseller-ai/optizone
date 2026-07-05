@@ -64,6 +64,7 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
   const [addrResolved, setAddrResolved] = useState(null)   // normalized geocoded address
   const [addrMode, setAddrMode] = useState('loading')      // 'ready' | 'fallback' | 'loading'
   const [addrErr, setAddrErr] = useState('')
+  const [orderId, setOrderId] = useState('')               // real id returned by the server
   // Prefill contact details from the signed-in customer's profile.
   const [contact, setContact] = useState(() => {
     const parts = (user?.name || '').split(/\s+/)
@@ -107,6 +108,8 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
   }
 
   const placeOrder = () => {
+    // Show the REAL order id from the server on the confirmation screen so it
+    // matches what the admin panel and My Orders display.
     api.createOrder({
       customer: {
         name: `${contact.firstName} ${contact.lastName}`.trim(),
@@ -117,7 +120,7 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
       addressVerified: !!addrResolved,
       items: cart.map((it) => ({ id: it.id, name: it.name, brand: it.brand, amount: it.amount, qty: it.qty, customSize: it.customSize || undefined })),
       subtotal, shipping, total, payment: pay, fulfilment: ship,
-    }).catch(() => { /* still confirm to the shopper */ })
+    }).then((r) => setOrderId(r?.id || '')).catch(() => { /* still confirm to the shopper */ })
     setStep(3)
   }
 
@@ -129,7 +132,7 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
           <Icon name="check" size={36} color="var(--pine-700)" />
         </span>
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 32, color: 'var(--text-strong)', margin: '22px 0 6px' }}>{t.confirmedH1}</h1>
-        <p style={{ fontSize: 16, color: 'var(--text-body)', lineHeight: 1.6 }}>{t.confirmedP(total.toLocaleString('he-IL'))}<br />{t.confirmedNote}</p>
+        <p style={{ fontSize: 16, color: 'var(--text-body)', lineHeight: 1.6 }}>{t.confirmedP(total.toLocaleString('he-IL'), orderId)}<br />{t.confirmedNote}</p>
         <div style={{ margin: '22px auto', maxWidth: 280 }}><DiamondRule label={t.thankYou} /></div>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
           <Button variant="outline" onClick={() => go('account')}>{t.trackOrder}</Button>

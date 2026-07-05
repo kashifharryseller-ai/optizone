@@ -13,7 +13,11 @@ const googleRoutes = require('./routes/google')
 // Warn (don't crash) when no explicit signing secret is configured — a strong
 // random one is used per process, but sessions won't survive restarts.
 if (config.nodeEnv === 'production' && !config.jwtSecretFromEnv) {
-  console.warn('[security] JWT_SECRET is not set — using a random per-process secret. Set JWT_SECRET for stable sessions.')
+  if (config.jwtServerlessDerived) {
+    console.warn('[security] JWT_SECRET is not set — derived a deployment-stable secret so sign-ins keep working across serverless instances. Set JWT_SECRET in your host env for stronger security.')
+  } else {
+    console.warn('[security] JWT_SECRET is not set — using a random per-process secret. Set JWT_SECRET for stable sessions.')
+  }
 }
 
 function createApp({ serveStatic = true } = {}) {

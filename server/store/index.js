@@ -61,12 +61,15 @@ async function migrateContent(store) {
   }
 }
 
+let driverName = 'file'
+
 async function initStore() {
   if (config.useMysql) {
     try {
       const mysqlStore = require('./mysql')
       await mysqlStore.init()
       active = mysqlStore
+      driverName = 'mysql'
       console.log('[store] Using MySQL (%s/%s)', config.db.host, config.db.database)
       await ensureAdminAccount(active)
       await migrateContent(active)
@@ -78,6 +81,7 @@ async function initStore() {
   const fileStore = require('./jsonfile')
   await fileStore.init()
   active = fileStore
+  driverName = 'file'
   console.log('[store] Using JSON file store (%s)', config.paths.dataFile)
   await ensureAdminAccount(active)
   await migrateContent(active)
@@ -89,4 +93,11 @@ function store() {
   return active
 }
 
-module.exports = { initStore, store }
+// What the app is running on — surfaced in Admin -> Dashboard so the owner can
+// see when data lives in ephemeral serverless storage (i.e. connect MySQL).
+function storeInfo() {
+  const onServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
+  return { driver: driverName, ephemeral: driverName === 'file' && onServerless }
+}
+
+module.exports = { initStore, store, storeInfo }

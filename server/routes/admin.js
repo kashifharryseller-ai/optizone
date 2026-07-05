@@ -7,7 +7,7 @@ const crypto = require('crypto')
 const multer = require('multer')
 const { customAlphabet } = require('nanoid')
 const config = require('../config')
-const { store } = require('../store')
+const { store, storeInfo } = require('../store')
 const { issueToken, requireAuth, hashPassword, verifyPassword } = require('../auth')
 const { sendMail, mailEnabled, otpEmail } = require('../mailer')
 const { isLimited, recordFailure, clearKey } = require('../limiter')
@@ -171,6 +171,10 @@ router.get('/stats', async (req, res, next) => {
       newOrders: orders.filter((o) => o.status === 'New').length,
       newBookings: bookings.filter((b) => b.status === 'New').length,
       revenue,
+      // Deployment health — lets the dashboard warn about ephemeral storage
+      // (serverless without MySQL) and a missing JWT_SECRET.
+      store: storeInfo(),
+      security: { jwtFromEnv: config.jwtSecretFromEnv },
     })
   } catch (err) { next(err) }
 })

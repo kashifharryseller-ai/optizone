@@ -31,10 +31,31 @@ const config = {
     from: process.env.MAIL_FROM || process.env.GMAIL_USER || process.env.SMTP_USER || '',
   },
   // Prefer an explicit JWT_SECRET (stable sessions across restarts/instances).
-  // If absent, generate a strong random one per process — secure, but sessions
-  // reset on restart, so setting JWT_SECRET is recommended in production.
-  jwtSecret: process.env.JWT_SECRET || require('crypto').randomBytes(32).toString('hex'),
+  // If absent:
+  //  - long-lived servers: strong random per process (secure; sessions reset
+  //    only when the process restarts).
+  //  - serverless (Vercel/Lambda): every instance is a separate process, so a
+  //    random secret breaks ALL sign-ins the moment a request lands on another
+  //    instance ("Invalid or expired session", orders not linked to accounts).
+  //    Instead, derive a secret deterministically from stable deployment
+  //    identifiers so every instance of the SAME deployment agrees. Setting a
+  //    real JWT_SECRET env var is still strongly recommended and always wins.
+  jwtSecret: process.env.JWT_SECRET || (() => {
+    const crypto = require('crypto')
+    const onServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
+    if (!onServerless) return crypto.randomBytes(32).toString('hex')
+    const seed = [
+      'optizone-jwt-v1',
+      process.env.VERCEL_GIT_COMMIT_SHA || '',
+      process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || '',
+      process.env.VERCEL_GIT_REPO_ID || '',
+      process.env.VERCEL_DEPLOYMENT_ID || '',
+      process.env.AWS_LAMBDA_FUNCTION_NAME || '',
+    ].join('|')
+    return crypto.createHash('sha256').update(seed).digest('hex')
+  })(),
   jwtSecretFromEnv: !!process.env.JWT_SECRET,
+  jwtServerlessDerived: !process.env.JWT_SECRET && !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME),
   tokenTtl: process.env.TOKEN_TTL || '12h',
   // Public origin (used for CORS allowlist and OAuth redirect derivation).
   publicUrl: (process.env.PUBLIC_URL || '').trim().replace(/\/$/, ''),

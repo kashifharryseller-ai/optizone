@@ -21,7 +21,11 @@ async function req(path, { method = 'GET', body, auth = false, form = false } = 
   const ct = res.headers.get('content-type') || ''
   const data = ct.includes('application/json') ? await res.json() : await res.text()
   if (res.status === 401) {
-    if (auth === 'admin') setToken(null)
+    if (auth === 'admin') {
+      setToken(null)
+      // Tell the admin shell to return to the login screen immediately.
+      try { window.dispatchEvent(new Event('oz-admin-401')) } catch { /* tests */ }
+    }
     if (auth === 'user') setUserToken(null)
   }
   if (!res.ok) throw new Error((data && data.error) || `Request failed (${res.status})`)

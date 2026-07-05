@@ -147,17 +147,29 @@ router.put('/account/password', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// Orders belong to the account when linked by userId at checkout, OR when the
+// checkout email matches the account email (covers guest orders and orders
+// placed while the session token wasn't accepted) — so "My Orders" is complete.
 router.get('/account/orders', async (req, res, next) => {
   try {
     const all = await store().listOrders()
-    res.json(all.filter((o) => o.userId === req.userId))
+    const email = String(req.user?.email || '').trim().toLowerCase()
+    res.json(all.filter((o) =>
+      o.userId === req.userId ||
+      (email && String(o.customer?.email || '').trim().toLowerCase() === email),
+    ))
   } catch (err) { next(err) }
 })
 
+// Same idea for appointments: linked by userId, or by the account's phone.
 router.get('/account/bookings', async (req, res, next) => {
   try {
     const all = await store().listBookings()
-    res.json(all.filter((b) => b.userId === req.userId))
+    const phone = String(req.user?.phone || '').replace(/\D/g, '')
+    res.json(all.filter((b) =>
+      b.userId === req.userId ||
+      (phone && String(b.phone || '').replace(/\D/g, '') === phone),
+    ))
   } catch (err) { next(err) }
 })
 

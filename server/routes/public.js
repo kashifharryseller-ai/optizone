@@ -33,11 +33,21 @@ router.post('/orders', optionalUser, async (req, res, next) => {
   try {
     const b = req.body || {}
     const items = Array.isArray(b.items) ? b.items : []
+    // Link the order to an account: by session when signed in, otherwise by
+    // matching the checkout email to a registered account — so orders always
+    // show up under My Orders and against the right customer in the admin.
+    let userId = req.userId || null
+    if (!userId && b.customer?.email) {
+      try {
+        const u = await store().findUserByEmail(String(b.customer.email).trim().toLowerCase())
+        if (u) userId = u.id
+      } catch { /* keep as guest order */ }
+    }
     const order = {
       id: 'OZ-' + num(),
       createdAt: new Date().toISOString(),
       status: 'New',
-      userId: req.userId || null,
+      userId,
       customer: {
         name: String(b.customer?.name || '').slice(0, 120),
         email: String(b.customer?.email || '').slice(0, 160),
