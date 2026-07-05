@@ -26,6 +26,9 @@ function securityHeaders() {
         fontSrc: ["'self'", 'data:'],
         connectSrc: ["'self'", 'https://maps.googleapis.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com', 'https://storage.googleapis.com'],
         workerSrc: ["'self'", 'blob:'],
+        // blob: is required for Try Mirror's uploaded-video mode (object URLs);
+        // without an explicit media-src, default-src 'self' blocks them.
+        mediaSrc: ["'self'", 'blob:'],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],

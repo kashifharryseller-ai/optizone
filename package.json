@@ -10,7 +10,8 @@
     "build": "vite build",
     "start": "node app.js",
     "preview": "vite preview --host",
-    "seed": "node server/seed-cli.js"
+    "seed": "node server/seed-cli.js",
+    "test": "node tests/storefront.test.mjs && node tests/trymirror.test.mjs && node tests/trymirror-media.test.mjs"
   },
   "dependencies": {
     "@fontsource/assistant": "^5.2.9",
