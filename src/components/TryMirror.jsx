@@ -1,315 +1,425 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Button, Icon, IconButton } from '../ds/index.js'
+import { useFaceLandmarker } from './useFaceLandmarker.js'
 
 /**
- * TryMirror — per-product virtual try-on.
+ * TryMirror — per-product virtual try-on with three input modes:
+ *   1) Live camera   2) Upload photo   3) Upload video
  *
- * - Camera (getUserMedia, behind the PDP consent dialog) OR photo upload.
- * - Google MediaPipe Face Landmarker runs fully client-side (no API key, no
- *   uploads — frames are drawn on a local <canvas>; nothing leaves the browser).
- * - Overlays THIS product's frame only:
- *     · product.tryMirrorImg (transparent PNG uploaded in Admin → Products)
- *       is anchored between the eye landmarks, rotated with the head, or
- *     · a vector rendition derived from the product's shape + selected colour
- *       when no PNG asset has been uploaded yet.
- * - Size control (±) scales the frame; the chosen size is returned to the
- *   caller as a "custom size" (e.g. "110%") and follows the cart line.
- * - Download button saves the current canvas as PNG.
+ * All processing is in-browser (MediaPipe Face Landmarker, no key, no upload).
+ * The overlay is ALWAYS the opened product's transparent-PNG frame
+ * (`frameAsset` / product.tryMirrorImg); when a product has no PNG yet, a
+ * vector rendition derived from its shape + colours is used so the feature
+ * still works. The chosen frame size persists to the cart as a custom size.
+ *
+ * Props:
+ *   open, onClose        modal visibility
+ *   product              the opened product (id, brand, name, shape, colors…)
+ *   frameAsset           transparent PNG URL (defaults to product.tryMirrorImg)
+ *   strings              i18n bundle (root.product)
+ *   onAddToCart(pct)     called with e.g. "110%" — persisted as line customSize
  */
 
-// ---- MediaPipe loading (module-level cache; survives close/reopen) ----------
-const MP_VERSION = '0.10.20'
-const CDN_BASES = [
-  `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}`,
-  `https://unpkg.com/@mediapipe/tasks-vision@${MP_VERSION}`,
-]
-const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'
-const lmCache = {}
-let visionPromise = null
+const BASE_MULT = 2.15    // frame width ≈ 2.15 × outer-eye distance (see asset notes)
+const EMA_ALPHA = 0.5     // landmark smoothing factor for live/video (0..1)
+const MAX_IMG = 1600      // downscale uploaded photos to this max dimension
 
-async function loadVision() {
-  let lastErr
-  for (const base of CDN_BASES) {
-    try {
-      const mod = await import(/* @vite-ignore */ `${base}/vision_bundle.mjs`)
-      const fileset = await mod.FilesetResolver.forVisionTasks(`${base}/wasm`)
-      return { FaceLandmarker: mod.FaceLandmarker, fileset }
-    } catch (e) { lastErr = e }
-  }
-  throw lastErr || new Error('mediapipe-load-failed')
+// Head pose (yaw/pitch/roll) from MediaPipe's 4×4 column-major transform matrix.
+function headAngles(mat) {
+  if (!mat) return { yaw: 0, pitch: 0 }
+  const m = mat.data || mat
+  const r00 = m[0], r10 = m[1], r20 = m[2], r21 = m[6], r22 = m[10]
+  const sy = Math.hypot(r00, r10)
+  return { pitch: Math.atan2(r21, r22), yaw: Math.atan2(-r20, sy) }
 }
 
-async function getLandmarker(mode) {
-  if (lmCache[mode]) return lmCache[mode]
-  visionPromise = visionPromise || loadVision()
-  const { FaceLandmarker, fileset } = await visionPromise
-  const opts = (delegate) => ({
-    baseOptions: { modelAssetPath: MODEL_URL, delegate },
-    runningMode: mode,
-    numFaces: 1,
-  })
-  try { lmCache[mode] = await FaceLandmarker.createFromOptions(fileset, opts('GPU')) }
-  catch { lmCache[mode] = await FaceLandmarker.createFromOptions(fileset, opts('CPU')) }
-  return lmCache[mode]
-}
+const ema = (prev, cur, a) => (prev == null ? cur : { x: prev.x + a * (cur.x - prev.x), y: prev.y + a * (cur.y - prev.y) })
 
-// ---- Frame drawing -----------------------------------------------------------
-// Landmark indices: 33/263 outer eye corners, 133/362 inner, 234/454 temples.
-function eyeGeometry(landmarks, W, H) {
-  const P = (i) => ({ x: landmarks[i].x * W, y: landmarks[i].y * H })
-  const rO = P(33), lO = P(263), rIn = P(133), lIn = P(362)
-  const rEye = { x: (rO.x + rIn.x) / 2, y: (rO.y + rIn.y) / 2 }
-  const lEye = { x: (lO.x + lIn.x) / 2, y: (lO.y + lIn.y) / 2 }
-  const span = Math.hypot(lO.x - rO.x, lO.y - rO.y)
-  const ang = Math.atan2(lO.y - rO.y, lO.x - rO.x)
-  return { rEye, lEye, span, ang, rEar: P(234), lEar: P(454) }
-}
-
-// PNG mode — the product's transparent frame asset, anchored between the eyes.
-function drawPngFrame(ctx, img, geo, size) {
-  const { rEye, lEye, ang, span } = geo
-  const cx = (rEye.x + lEye.x) / 2
-  const cy = (rEye.y + lEye.y) / 2
-  const w = span * 2.35 * size
-  const h = w * (img.naturalHeight / img.naturalWidth)
-  ctx.save()
-  ctx.translate(cx, cy)
-  ctx.rotate(ang)
-  ctx.drawImage(img, -w / 2, -h * 0.5, w, h)
-  ctx.restore()
-}
-
-// Vector mode — style derived from the product's shape + selected colour.
+// Vector fallback style (only when a product has no transparent-PNG asset yet).
 function vectorStyle(product, color) {
   const shape = String(product?.shape || '').toLowerCase()
   if (shape.includes('aviator')) return { stroke: color || '#b8862f', lw: 0.05, rx: 0.30, ry: 0.25, tint: 'rgba(120,90,30,0.16)' }
   if (shape.includes('round') || shape.includes('oval')) return { stroke: color || '#2b2b2b', lw: 0.055, rx: 0.26, ry: 0.26, tint: 'rgba(20,20,25,0.10)' }
   return { stroke: color || '#141414', lw: 0.075, rx: 0.31, ry: 0.23, tint: null }
 }
-
-function drawVectorFrame(ctx, geo, st, size) {
-  const { rEye, lEye, ang, span, rEar, lEar } = geo
+function drawVector(ctx, landmarks, W, H, st, scale) {
+  const P = (i) => ({ x: landmarks[i].x * W, y: landmarks[i].y * H })
+  if (!landmarks[33] || !landmarks[263]) return
+  const rO = P(33), lO = P(263), rIn = P(133) || rO, lIn = P(362) || lO, rEar = P(234) || rO, lEar = P(454) || lO
+  const rEye = { x: (rO.x + rIn.x) / 2, y: (rO.y + rIn.y) / 2 }
+  const lEye = { x: (lO.x + lIn.x) / 2, y: (lO.y + lIn.y) / 2 }
+  const span = Math.hypot(lO.x - rO.x, lO.y - rO.y)
+  const ang = Math.atan2(lO.y - rO.y, lO.x - rO.x)
   const ux = Math.cos(ang), uy = Math.sin(ang)
-  const rx = span * st.rx * size, ry = span * st.ry * size
-  const lw = Math.max(1.5, span * st.lw * size)
-  ctx.save()
-  ctx.lineJoin = 'round'; ctx.lineCap = 'round'
-  ctx.strokeStyle = st.stroke; ctx.lineWidth = lw
-  for (const c of [rEye, lEye]) {
-    ctx.beginPath()
-    ctx.ellipse(c.x, c.y, rx, ry, ang, 0, Math.PI * 2)
-    if (st.tint) { ctx.fillStyle = st.tint; ctx.fill() }
-    ctx.stroke()
-  }
-  const rInner = { x: rEye.x + ux * rx, y: rEye.y + uy * rx }
-  const lInner = { x: lEye.x - ux * rx, y: lEye.y - uy * rx }
-  ctx.beginPath(); ctx.moveTo(rInner.x, rInner.y); ctx.lineTo(lInner.x, lInner.y); ctx.stroke()
-  const rOut = { x: rEye.x - ux * rx, y: rEye.y - uy * rx }
-  const lOut = { x: lEye.x + ux * rx, y: lEye.y + uy * rx }
-  ctx.beginPath(); ctx.moveTo(rOut.x, rOut.y); ctx.lineTo(rEar.x, rEar.y); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(lOut.x, lOut.y); ctx.lineTo(lEar.x, lEar.y); ctx.stroke()
+  const rx = span * st.rx * scale, ry = span * st.ry * scale, lw = Math.max(1.5, span * st.lw * scale)
+  ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = st.stroke; ctx.lineWidth = lw
+  for (const c of [rEye, lEye]) { ctx.beginPath(); ctx.ellipse(c.x, c.y, rx, ry, ang, 0, Math.PI * 2); if (st.tint) { ctx.fillStyle = st.tint; ctx.fill() } ctx.stroke() }
+  ctx.beginPath(); ctx.moveTo(rEye.x + ux * rx, rEye.y + uy * rx); ctx.lineTo(lEye.x - ux * rx, lEye.y - uy * rx); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(rEye.x - ux * rx, rEye.y - uy * rx); ctx.lineTo(rEar.x, rEar.y); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(lEye.x + ux * rx, lEye.y + uy * rx); ctx.lineTo(lEar.x, lEar.y); ctx.stroke()
   ctx.restore()
 }
 
-export function TryMirror({ open, onClose, product, strings, onAddToCart }) {
+// PNG overlay: centre on nose-bridge (168), rotate to eye tilt, scale by eye
+// distance × BASE_MULT × userSize, wrap with a yaw perspective squeeze.
+function drawPng(ctx, img, p33, p263, p168, mat, scale) {
+  const dx = p263.x - p33.x, dy = p263.y - p33.y
+  const eyeDist = Math.hypot(dx, dy)
+  const roll = Math.atan2(dy, dx)
+  const { yaw, pitch } = headAngles(mat)
+  const width = eyeDist * BASE_MULT * scale
+  const height = width * (img.naturalHeight / img.naturalWidth || 0.4)
+  const squeeze = Math.max(0.45, Math.cos(yaw))         // narrows as the head turns
+  const yawShift = Math.sin(yaw) * eyeDist * 0.15        // frame follows the nose
+  const pitchShift = Math.sin(pitch) * eyeDist * 0.12
+  ctx.save()
+  ctx.translate(p168.x + yawShift, p168.y + pitchShift)
+  ctx.rotate(roll)
+  ctx.scale(squeeze, 1)
+  ctx.drawImage(img, -width / 2, -height * 0.5, width, height)
+  ctx.restore()
+}
+
+const MODES = [
+  { key: 'live', icon: 'camera', label: 'modeLive' },
+  { key: 'photo', icon: 'user', label: 'modePhoto' },
+  { key: 'video', icon: 'smartphone', label: 'modeVideo' },
+]
+
+export function TryMirror({ open, onClose, product, frameAsset, strings, onAddToCart }) {
   const p = product || {}
   const t = strings
+  const asset = frameAsset || p.tryMirrorImg || ''
+
+  const { status, get: getEngine, setRunningMode, retry } = useFaceLandmarker(open)
+
+  const [mode, setMode] = useState('live')
+  const [size, setSize] = useState(1)
+  const [colorIdx, setColorIdx] = useState(0)
+  const [err, setErr] = useState('')
+  const [hasFace, setHasFace] = useState(true)
+  const [sourceLoaded, setSourceLoaded] = useState(false)
+  const [playing, setPlaying] = useState(false)
+  const [progress, setProgress] = useState(0)
+
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
-  const fileRef = useRef(null)
-  const stateRef = useRef({ running: false, raf: null, stream: null, photo: null, frameImg: null })
-  const [status, setStatus] = useState('')
-  const [camOn, setCamOn] = useState(false)
-  const [size, setSize] = useState(1)          // 1 = 100 %
-  const [colorIdx, setColorIdx] = useState(0)
+  const photoInputRef = useRef(null)
+  const videoInputRef = useRef(null)
+  const frameRef = useRef(null)          // loaded PNG Image (or null → vector)
+  const sourceRef = useRef(null)         // current drawable: <video> or <img>
+  const photoDetRef = useRef(null)       // { l, mat } for the static photo
+  const smoothRef = useRef({})
+  const rafRef = useRef(null)
+  const runningRef = useRef(false)
+  const streamRef = useRef(null)
+  const objUrlRef = useRef(null)
+  const lastTsRef = useRef(0)
+  const openRef = useRef(open)
   const sizeRef = useRef(1); sizeRef.current = size
   const colorRef = useRef(0); colorRef.current = colorIdx
+  const faceRef = useRef(true)
+
   const sizePct = `${Math.round(size * 100)}%`
+  useEffect(() => { openRef.current = open }, [open])
 
-  // Preload the product's transparent-PNG frame asset (if the admin set one).
+  const setFace = (v) => { if (faceRef.current !== v) { faceRef.current = v; setHasFace(v) } }
+  const smoothReset = () => { smoothRef.current = {} }
+  const prepCanvas = (w, h) => { const c = canvasRef.current; if (c) { c.width = w; c.height = h } }
+
+  // Load the product's transparent-PNG frame asset once per open.
   useEffect(() => {
-    if (!open || !p.tryMirrorImg) return
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => { stateRef.current.frameImg = img }
-    img.src = p.tryMirrorImg
-    return () => { stateRef.current.frameImg = null }
-  }, [open, p.tryMirrorImg])
+    if (!open) return
+    frameRef.current = null
+    if (!asset) return
+    const img = new Image(); img.crossOrigin = 'anonymous'
+    img.onload = () => { frameRef.current = img }
+    img.src = asset
+    return () => { frameRef.current = null }
+  }, [open, asset])
 
-  const drawFrame = useCallback((ctx, landmarks, W, H) => {
-    const geo = eyeGeometry(landmarks, W, H)
-    const img = stateRef.current.frameImg
-    if (img) drawPngFrame(ctx, img, geo, sizeRef.current)
-    else drawVectorFrame(ctx, geo, vectorStyle(p, (p.colors || [])[colorRef.current]), sizeRef.current)
+  // ── shared paint ───────────────────────────────────────────────────────────
+  const paint = useCallback((landmarks, mat, { smooth, detActive }) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const W = canvas.width, H = canvas.height
+    ctx.clearRect(0, 0, W, H)
+    if (sourceRef.current) { try { ctx.drawImage(sourceRef.current, 0, 0, W, H) } catch { /* not ready */ } }
+    if (detActive) setFace(!!landmarks)
+    if (!landmarks) return
+    const frameImg = frameRef.current
+    if (frameImg && landmarks[33] && landmarks[263] && landmarks[168]) {
+      let a = { x: landmarks[33].x * W, y: landmarks[33].y * H }
+      let b = { x: landmarks[263].x * W, y: landmarks[263].y * H }
+      let n = { x: landmarks[168].x * W, y: landmarks[168].y * H }
+      if (smooth) { const s = smoothRef.current; a = s.a = ema(s.a, a, EMA_ALPHA); b = s.b = ema(s.b, b, EMA_ALPHA); n = s.n = ema(s.n, n, EMA_ALPHA) }
+      drawPng(ctx, frameImg, a, b, n, mat, sizeRef.current)
+    } else if (!frameImg) {
+      drawVector(ctx, landmarks, W, H, vectorStyle(p, (p.colors || [])[colorRef.current]), sizeRef.current)
+    }
   }, [p])
 
-  const stopAll = useCallback(() => {
-    const s = stateRef.current
-    s.running = false
-    if (s.raf) cancelAnimationFrame(s.raf)
-    if (s.stream) { s.stream.getTracks().forEach((tr) => tr.stop()); s.stream = null }
-    setCamOn(false)
+  // ── loop control ───────────────────────────────────────────────────────────
+  const stopLoops = useCallback(() => {
+    runningRef.current = false
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    if (streamRef.current) { streamRef.current.getTracks().forEach((tr) => tr.stop()); streamRef.current = null }
+    const v = videoRef.current
+    if (v) { try { v.pause() } catch { /* noop */ } }
   }, [])
 
-  useEffect(() => { if (!open) stopAll() }, [open, stopAll])
-  useEffect(() => stopAll, [stopAll]) // unmount cleanup
-
-  // ---- camera mode -----------------------------------------------------------
-  const startCamera = async () => {
-    const video = videoRef.current, canvas = canvasRef.current
-    if (!video || !canvas) return
-    try {
-      setStatus(t.mirrorLoading)
-      const lm = await getLandmarker('VIDEO')
-      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-        setStatus(t.mirrorCamUnavailable); return
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-      stateRef.current.stream = stream
-      stateRef.current.photo = null
-      video.srcObject = stream
-      await video.play()
-      const ctx = canvas.getContext('2d')
-      const W = canvas.width = video.videoWidth || 640
-      const H = canvas.height = video.videoHeight || 480
-      canvas.style.transform = 'scaleX(-1)' // mirror the selfie view
-      setStatus('')
-      setCamOn(true)
-      stateRef.current.running = true
-      let last = -1
-      const loop = () => {
-        const s = stateRef.current
-        if (!s.running) return
-        if (video.currentTime !== last) {
-          last = video.currentTime
-          const res = lm.detectForVideo(video, performance.now())
-          ctx.clearRect(0, 0, W, H)
-          ctx.drawImage(video, 0, 0, W, H)
-          const l = res.faceLandmarks && res.faceLandmarks[0]
-          if (l) drawFrame(ctx, l, W, H)
+  const runVideoLoop = useCallback(() => {
+    runningRef.current = true
+    const video = videoRef.current
+    const loop = () => {
+      if (!runningRef.current) return
+      const lm = getEngine()
+      if (video && video.readyState >= 2) {
+        if (lm) {
+          setRunningMode('VIDEO')
+          let ts = performance.now(); if (ts <= lastTsRef.current) ts = lastTsRef.current + 1; lastTsRef.current = ts
+          let res = null
+          try { res = lm.detectForVideo(video, ts) } catch { /* wrong mode during switch */ }
+          paint(res?.faceLandmarks?.[0] || null, res?.facialTransformationMatrixes?.[0] || null, { smooth: true, detActive: true })
+        } else {
+          paint(null, null, { smooth: true, detActive: false })  // draw frame, model still loading
         }
-        s.raf = requestAnimationFrame(loop)
       }
-      loop()
-    } catch (err) {
-      setStatus(err && err.name === 'NotAllowedError' ? t.mirrorCamBlocked : t.mirrorCamUnavailable)
+      rafRef.current = requestAnimationFrame(loop)
     }
-  }
+    loop()
+  }, [getEngine, setRunningMode, paint])
 
-  // ---- photo mode ------------------------------------------------------------
-  const handlePhoto = async (file) => {
-    if (!file) return
-    const canvas = canvasRef.current
-    if (!canvas) return
+  // ── mode 1: live camera ────────────────────────────────────────────────────
+  const startLive = useCallback(async () => {
     try {
-      stopAll()
-      canvas.style.transform = 'none'
-      setStatus(t.mirrorLoading)
-      const lm = await getLandmarker('IMAGE')
-      const img = new Image()
-      img.src = URL.createObjectURL(file)
-      await img.decode()
-      const W = canvas.width = img.naturalWidth
-      const H = canvas.height = img.naturalHeight
-      const res = lm.detect(img)
-      const l = res.faceLandmarks && res.faceLandmarks[0]
-      stateRef.current.photo = { img, landmarks: l, W, H }
-      renderPhoto()
-      setStatus(l ? '' : t.mirrorNoFace)
-    } catch {
-      setStatus(t.mirrorNoFace)
+      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) { setErr(t.mirrorCamUnavailable); return }
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      if (!openRef.current) { stream.getTracks().forEach((x) => x.stop()); return }
+      streamRef.current = stream
+      const video = videoRef.current
+      video.srcObject = stream; video.muted = true
+      await video.play()
+      prepCanvas(video.videoWidth || 640, video.videoHeight || 480)
+      sourceRef.current = video
+      smoothReset(); setSourceLoaded(true); setErr('')
+      runVideoLoop()
+    } catch (e) {
+      if (e?.name === 'NotAllowedError') setErr(t.mirrorCamBlocked)
+      else if (e?.name === 'NotFoundError' || e?.name === 'DevicesNotFoundError' || e?.name === 'OverconstrainedError') setErr(t.mirrorNoCam)
+      else setErr(t.mirrorCamUnavailable)
     }
+  }, [t, runVideoLoop])
+
+  // ── mode 2: upload photo ───────────────────────────────────────────────────
+  const loadPhoto = useCallback((file) => {
+    stopLoops()
+    if (objUrlRef.current) URL.revokeObjectURL(objUrlRef.current)
+    const url = URL.createObjectURL(file); objUrlRef.current = url
+    const img = new Image()
+    img.onload = async () => {
+      const scale = Math.min(1, MAX_IMG / Math.max(img.naturalWidth, img.naturalHeight))
+      const W = Math.round(img.naturalWidth * scale), H = Math.round(img.naturalHeight * scale)
+      prepCanvas(W, H)
+      const canvas = canvasRef.current; if (canvas) canvas.style.transform = 'none'
+      sourceRef.current = img; setSourceLoaded(true)
+      let l = null, mat = null
+      const lm = getEngine()
+      if (lm) {
+        await setRunningMode('IMAGE')
+        try {
+          const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H
+          tmp.getContext('2d').drawImage(img, 0, 0, W, H)
+          const res = lm.detect(tmp)
+          l = res?.faceLandmarks?.[0] || null; mat = res?.facialTransformationMatrixes?.[0] || null
+        } catch { /* detection failed */ }
+      }
+      photoDetRef.current = { l, mat }
+      paint(l, mat, { smooth: false, detActive: !!lm })
+      setErr(lm && !l ? t.mirrorNoFace : '')
+    }
+    img.onerror = () => setErr(t.mirrorBadFile)
+    img.src = url
+  }, [stopLoops, getEngine, setRunningMode, paint, t])
+
+  // ── mode 3: upload video ───────────────────────────────────────────────────
+  const loadVideo = useCallback((file) => {
+    stopLoops()
+    if (objUrlRef.current) URL.revokeObjectURL(objUrlRef.current)
+    const url = URL.createObjectURL(file); objUrlRef.current = url
+    const video = videoRef.current
+    video.srcObject = null; video.src = url; video.muted = true; video.loop = false
+    video.style.transform = 'none'
+    video.onloadedmetadata = () => {
+      prepCanvas(video.videoWidth || 640, video.videoHeight || 480)
+      sourceRef.current = video; smoothReset(); setSourceLoaded(true); setErr('')
+      runVideoLoop()
+      video.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
+    }
+    video.ontimeupdate = () => setProgress(video.duration ? video.currentTime / video.duration : 0)
+    video.onended = () => setPlaying(false)
+    video.onerror = () => setErr(t.mirrorBadFile)
+  }, [stopLoops, runVideoLoop, t])
+
+  const handleFile = (file, kind) => {
+    if (!file) return
+    const ok = kind === 'photo' ? file.type.startsWith('image/') : file.type.startsWith('video/')
+    if (!ok) { setErr(t.mirrorBadFile); return }
+    setErr(''); setPlaying(false); setProgress(0)
+    kind === 'photo' ? loadPhoto(file) : loadVideo(file)
   }
 
-  const renderPhoto = useCallback(() => {
+  // ── (re)start on mode change / open ─────────────────────────────────────────
+  useEffect(() => {
+    if (!open) return
+    stopLoops()
+    sourceRef.current = null; photoDetRef.current = null
+    setSourceLoaded(false); setErr(''); setFace(true); setPlaying(false); setProgress(0)
     const canvas = canvasRef.current
-    const ph = stateRef.current.photo
-    if (!canvas || !ph) return
-    const ctx = canvas.getContext('2d')
-    ctx.clearRect(0, 0, ph.W, ph.H)
-    ctx.drawImage(ph.img, 0, 0, ph.W, ph.H)
-    if (ph.landmarks) drawFrame(ctx, ph.landmarks, ph.W, ph.H)
-  }, [drawFrame])
+    if (canvas) { canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); canvas.style.transform = mode === 'live' ? 'scaleX(-1)' : 'none' }
+    if (mode === 'live') startLive()
+    return () => stopLoops()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, mode])
 
-  // Re-render the still photo when size / colour change (video re-draws itself).
-  useEffect(() => { if (stateRef.current.photo) renderPhoto() }, [size, colorIdx, renderPhoto])
+  // Re-render the static photo when size / colour change (video redraws itself).
+  useEffect(() => {
+    if (mode === 'photo' && photoDetRef.current) {
+      const { l, mat } = photoDetRef.current
+      paint(l, mat, { smooth: false, detActive: !!getEngine() })
+    }
+  }, [size, colorIdx, mode, paint, getEngine])
+
+  // Full teardown on close/unmount.
+  useEffect(() => {
+    if (open) return
+    stopLoops()
+    if (objUrlRef.current) { URL.revokeObjectURL(objUrlRef.current); objUrlRef.current = null }
+    const v = videoRef.current; if (v) { v.srcObject = null; v.removeAttribute('src') }
+  }, [open, stopLoops])
+  useEffect(() => stopLoops, [stopLoops])
+
+  const togglePlay = () => {
+    const v = videoRef.current; if (!v) return
+    if (v.paused) { v.play().then(() => setPlaying(true)).catch(() => {}) } else { v.pause(); setPlaying(false) }
+  }
+  const scrub = (frac) => { const v = videoRef.current; if (v && v.duration) { v.currentTime = frac * v.duration; setProgress(frac) } }
 
   const download = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const canvas = canvasRef.current; if (!canvas) return
     const a = document.createElement('a')
-    a.download = `optizone-try-mirror-${(p.name || 'frame').replace(/\s+/g, '-').toLowerCase()}.png`
+    a.download = 'optizone-tryon.png'
     a.href = canvas.toDataURL('image/png')
     a.click()
   }
 
+  const bump = (d) => setSize((v) => Math.min(1.4, Math.max(0.8, Math.round((v + d) * 100) / 100)))
+
   if (!open) return null
 
-  const bump = (d) => setSize((v) => Math.min(1.4, Math.max(0.7, Math.round((v + d) * 100) / 100)))
+  const banner = err
+    ? { tone: 'danger', msg: err, retry: false }
+    : status === 'loading' ? { tone: 'info', msg: t.mirrorLoading, retry: false }
+    : status === 'error' ? { tone: 'danger', msg: t.mirrorInitFail, retry: true }
+    : null
 
-  // Portal to <body>: ancestors animate with CSS transforms (.oz-route), which
-  // would otherwise re-anchor this fixed overlay and break full-screen cover.
+  // Portal to <body> — ancestor CSS transforms (.oz-route) would re-anchor a
+  // fixed overlay. dir is inherited from <html> so RTL works automatically.
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'var(--pine-950)', display: 'flex', flexDirection: 'column' }}>
       {/* header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px', color: 'var(--cream-100)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', color: 'var(--cream-100)' }}>
         <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.14em', textTransform: 'uppercase', fontSize: 13, color: 'var(--amber-500)' }}>
-          {t.mirrorLive} · {p.brand} {p.name}
+          {t.tryMirror} · {p.brand} {p.name}
         </span>
-        <IconButton variant="ghost" onClick={() => { stopAll(); onClose() }} aria-label="close" style={{ color: 'var(--cream-100)' }}><Icon name="x" color="var(--cream-100)" /></IconButton>
+        <IconButton variant="ghost" onClick={() => { stopLoops(); onClose() }} aria-label="close" style={{ color: 'var(--cream-100)' }}><Icon name="x" color="var(--cream-100)" /></IconButton>
       </div>
+
+      {/* mode switcher */}
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', padding: '0 16px 12px', flexWrap: 'wrap' }}>
+        {MODES.map((m) => {
+          const active = mode === m.key
+          return (
+            <button key={m.key} onClick={() => setMode(m.key)} aria-pressed={active}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 'var(--radius-pill)', cursor: 'pointer', fontFamily: 'var(--font-display)', fontSize: 12.5, letterSpacing: '0.08em', textTransform: 'uppercase', border: `1px solid ${active ? 'var(--amber-500)' : 'var(--border-on-dark)'}`, background: active ? 'var(--amber-500)' : 'transparent', color: active ? 'var(--pine-950)' : 'var(--cream-200)' }}>
+              <Icon name={m.icon} size={15} color="currentColor" /> {t[m.label]}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* banners */}
+      {banner && (
+        <div role={banner.tone === 'danger' ? 'alert' : 'status'} style={{ margin: '0 16px 10px', padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: 13.5, textAlign: 'center', background: banner.tone === 'danger' ? 'rgba(190,60,60,0.16)' : 'rgba(255,255,255,0.08)', color: banner.tone === 'danger' ? '#ffb4a8' : 'var(--cream-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+          <Icon name={banner.tone === 'danger' ? 'info' : 'camera'} size={15} color="currentColor" /> {banner.msg}
+          {banner.retry && <Button variant="outline" size="sm" onClick={retry} style={{ color: 'var(--cream-100)', borderColor: 'var(--cream-100)' }}>{t.mirrorRetry}</Button>}
+        </div>
+      )}
 
       {/* stage */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '0 16px', minHeight: 0 }}>
         <div style={{ position: 'relative', width: 'min(92vw, 640px)', maxHeight: '100%', aspectRatio: '4/3', borderRadius: 'var(--radius-lg)', background: '#0e0e0e', border: '1px solid var(--border-on-dark)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <video ref={videoRef} playsInline muted style={{ display: 'none' }} />
           <canvas ref={canvasRef} width={640} height={480} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          {status && (
-            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '10px 14px', fontSize: 12.5, color: 'var(--cream-100)', background: 'linear-gradient(transparent, rgba(0,0,0,0.65))', textAlign: 'center' }}>{status}</div>
+
+          {/* per-mode empty state / hints */}
+          {(mode === 'photo' || mode === 'video') && !sourceLoaded && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, color: 'var(--cream-200)' }}>
+              <Icon name={mode === 'photo' ? 'user' : 'smartphone'} size={40} color="var(--pine-300)" />
+              <Button variant="outline" style={{ color: 'var(--cream-100)', borderColor: 'var(--cream-100)' }}
+                onClick={() => (mode === 'photo' ? photoInputRef.current : videoInputRef.current)?.click()}>
+                {mode === 'photo' ? t.mirrorChoosePhoto : t.mirrorChooseVideo}
+              </Button>
+            </div>
+          )}
+          {mode !== 'photo' && sourceLoaded && status === 'ready' && !hasFace && !err && (
+            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '10px 14px', fontSize: 13, color: 'var(--cream-100)', background: 'linear-gradient(transparent, rgba(0,0,0,0.7))', textAlign: 'center' }}>{t.mirrorPosition}</div>
           )}
         </div>
       </div>
 
+      {/* video transport (mode 3) */}
+      {mode === 'video' && sourceLoaded && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 24px 0', maxWidth: 680, margin: '0 auto', width: '100%' }}>
+          <IconButton variant="ghost" size="sm" onClick={togglePlay} aria-label={playing ? t.mirrorPause : t.mirrorPlay} style={{ color: 'var(--cream-100)', border: '1px solid var(--border-on-dark)' }}>
+            <Icon name={playing ? 'chevron-up' : 'arrow-right'} size={15} color="currentColor" />
+          </IconButton>
+          <input type="range" min="0" max="1" step="0.001" value={progress} onChange={(e) => scrub(Number(e.target.value))} aria-label="scrubber" style={{ flex: 1, accentColor: 'var(--amber-500)' }} />
+        </div>
+      )}
+
       {/* controls */}
-      <div style={{ padding: '14px 24px 26px', display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' }}>
-        {/* size */}
+      <div style={{ padding: '12px 24px 22px', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--cream-100)' }}>
           <span style={{ fontFamily: 'var(--font-display)', fontSize: 11.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--pine-200)' }}>{t.mirrorSize}</span>
           <IconButton variant="ghost" size="sm" onClick={() => bump(-0.05)} aria-label="smaller" style={{ color: 'var(--cream-100)', border: '1px solid var(--border-on-dark)' }}><span style={{ fontSize: 17, lineHeight: 1 }}>−</span></IconButton>
-          <input
-            type="range" min="0.7" max="1.4" step="0.05" value={size}
-            onChange={(e) => setSize(Number(e.target.value))}
-            aria-label={t.mirrorSize}
-            style={{ width: 170, accentColor: 'var(--amber-500)' }}
-          />
+          <input type="range" min="0.8" max="1.4" step="0.05" value={size} onChange={(e) => setSize(Number(e.target.value))} aria-label={t.mirrorSize} style={{ width: 160, accentColor: 'var(--amber-500)' }} />
           <IconButton variant="ghost" size="sm" onClick={() => bump(0.05)} aria-label="larger" style={{ color: 'var(--cream-100)', border: '1px solid var(--border-on-dark)' }}><Icon name="plus" size={15} color="currentColor" /></IconButton>
           <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, minWidth: 44, textAlign: 'center', color: 'var(--amber-500)' }}>{sizePct}</span>
         </div>
 
-        {/* colour swatches drive the vector frame tint (when no PNG asset) */}
-        {!p.tryMirrorImg && (p.colors || []).length > 0 && (
+        {!asset && (p.colors || []).length > 0 && (
           <div style={{ display: 'flex', gap: 10 }}>
             {p.colors.map((c, i) => (
-              <button key={i} onClick={() => setColorIdx(i)} aria-label={`color ${i + 1}`} style={{ width: 32, height: 32, borderRadius: 999, background: c, border: `2px solid ${colorIdx === i ? 'var(--amber-500)' : 'transparent'}`, cursor: 'pointer' }} />
+              <button key={i} onClick={() => setColorIdx(i)} aria-label={`color ${i + 1}`} style={{ width: 30, height: 30, borderRadius: 999, background: c, border: `2px solid ${colorIdx === i ? 'var(--amber-500)' : 'transparent'}`, cursor: 'pointer' }} />
             ))}
           </div>
         )}
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Button variant="outline" onClick={startCamera} disabled={camOn} style={{ color: 'var(--cream-100)', borderColor: 'var(--cream-100)' }} startIcon={<Icon name="camera" size={17} color="currentColor" />}>
-            {camOn ? t.mirrorLive : t.mirrorStart}
-          </Button>
-          <Button variant="ghost" onClick={() => fileRef.current && fileRef.current.click()} style={{ color: 'var(--pine-100)' }}>{t.mirrorPhotoAlt}</Button>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handlePhoto(e.target.files && e.target.files[0])} />
           <Button variant="ghost" onClick={download} style={{ color: 'var(--pine-100)' }} startIcon={<Icon name="share-2" size={16} color="currentColor" />}>{t.mirrorDownload}</Button>
-          <Button variant="primary" onClick={() => { stopAll(); onAddToCart(sizePct); onClose() }} startIcon={<Icon name="shopping-bag" size={17} color="currentColor" />}>
+          <Button variant="primary" onClick={() => { stopLoops(); onAddToCart(sizePct); onClose() }} startIcon={<Icon name="shopping-bag" size={17} color="currentColor" />}>
             {t.mirrorAdd} · {sizePct}
           </Button>
         </div>
-
         <span style={{ fontSize: 11.5, color: 'var(--pine-300)', letterSpacing: '0.04em', textAlign: 'center' }}>{t.mirrorPrivacy}</span>
       </div>
+
+      {/* hidden inputs (also reachable from the empty-state buttons) */}
+      <input ref={photoInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { setMode('photo'); handleFile(e.target.files && e.target.files[0], 'photo'); e.target.value = '' }} />
+      <input ref={videoInputRef} type="file" accept="video/*" style={{ display: 'none' }} onChange={(e) => { handleFile(e.target.files && e.target.files[0], 'video'); e.target.value = '' }} />
     </div>,
     document.body,
   )

@@ -106,6 +106,13 @@ const STRINGS = {
       mirrorCamBlocked: 'Camera permission blocked — you can upload a photo instead.',
       mirrorCamUnavailable: 'Camera is not available here — upload a photo instead.',
       mirrorPrivacy: 'Everything runs on your device — no image ever leaves your browser.',
+      modeLive: 'Live', modePhoto: 'Upload photo', modeVideo: 'Upload video',
+      mirrorChoosePhoto: 'Choose a photo', mirrorChooseVideo: 'Choose a video',
+      mirrorPosition: 'Position your face in the frame',
+      mirrorNoCam: 'No camera found — upload a photo or video instead.',
+      mirrorBadFile: 'That file type isn’t supported — please choose another.',
+      mirrorInitFail: 'Face tracking couldn’t load — check your connection and try again.',
+      mirrorPlay: 'Play', mirrorPause: 'Pause', mirrorRetry: 'Retry',
     },
 
     booking: {
@@ -298,6 +305,13 @@ const STRINGS = {
       mirrorCamBlocked: 'הרשאת המצלמה נחסמה — אפשר להעלות תמונה במקום.',
       mirrorCamUnavailable: 'המצלמה אינה זמינה כאן — העלו תמונה במקום.',
       mirrorPrivacy: 'הכול רץ על המכשיר שלכם — אף תמונה לא עוזבת את הדפדפן.',
+      modeLive: 'מצלמה חיה', modePhoto: 'העלאת תמונה', modeVideo: 'העלאת וידאו',
+      mirrorChoosePhoto: 'בחירת תמונה', mirrorChooseVideo: 'בחירת וידאו',
+      mirrorPosition: 'מקמו את הפנים במסגרת',
+      mirrorNoCam: 'לא נמצאה מצלמה — העלו תמונה או וידאו במקום.',
+      mirrorBadFile: 'סוג הקובץ אינו נתמך — בחרו קובץ אחר.',
+      mirrorInitFail: 'זיהוי הפנים לא נטען — בדקו את החיבור ונסו שוב.',
+      mirrorPlay: 'הפעלה', mirrorPause: 'השהיה', mirrorRetry: 'נסו שוב',
     },
 
     booking: {

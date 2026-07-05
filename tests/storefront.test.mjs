@@ -175,8 +175,8 @@ await withPage(browser, { captureOrder: true }, async (page, captured) => {
   await page.getByText('Camera & try-on consent').waitFor()
   ok('camera consent prompt shown')
   await page.getByRole('button', { name: 'Allow camera' }).click()
-  await page.getByText(/Try Mirror · Live/).waitFor()
-  ok('try-on experience opens')
+  await page.getByText('Frame size').waitFor()
+  ok('try-on experience opens (3-mode modal)')
   // Size control: 100% → +5% twice = 110%
   await page.getByRole('button', { name: 'larger' }).click()
   await page.getByRole('button', { name: 'larger' }).click()
