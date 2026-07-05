@@ -1,13 +1,15 @@
 import React, { useState } from 'react'
 import { Button, Icon } from '../ds/index.js'
-import { OZ_DATA } from '../data/catalog.js'
 import { useLang } from '../i18n/index.jsx'
+import { useContent } from '../content/ContentProvider.jsx'
 
 export function StoreLocator({ go }) {
   const { t: root, L, A, lang } = useLang()
+  const { content } = useContent()
+  const stores = content.stores || []
   const t = root.stores
   const [active, setActive] = useState(0)
-  const s = OZ_DATA.stores[active]
+  const s = stores[active] || stores[0] || {}
   const storeName = (st) => (lang === 'he' ? st.he : st.name)
 
   return (
@@ -22,7 +24,7 @@ export function StoreLocator({ go }) {
       <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '30px 28px 80px', display: 'grid', gridTemplateColumns: '360px 1fr', gap: 30, alignItems: 'start' }}>
         {/* list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {OZ_DATA.stores.map((st, i) => (
+          {stores.map((st, i) => (
             <button key={st.name} onClick={() => setActive(i)}
               style={{ textAlign: 'start', padding: '18px 20px', borderRadius: 'var(--radius-md)', border: `1.5px solid ${active === i ? 'var(--pine-700)' : 'var(--border-hair)'}`, background: active === i ? 'var(--pine-50)' : 'var(--surface-card)', cursor: 'pointer', transition: 'all var(--dur-fast) var(--ease-out)', boxShadow: active === i ? 'var(--shadow-sm)' : 'none' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -45,7 +47,7 @@ export function StoreLocator({ go }) {
               <rect width="100%" height="100%" fill="url(#ozgrid)" />
               <path d="M20 60 Q120 40 180 120 T360 200 Q440 240 520 210" fill="none" stroke="var(--amber-400)" strokeWidth="3" strokeLinecap="round" opacity="0.6" />
             </svg>
-            {OZ_DATA.stores.map((st, i) => (
+            {stores.map((st, i) => (
               <button key={st.name} onClick={() => setActive(i)} style={{ position: 'absolute', left: `${st.x}%`, top: `${st.y}%`, transform: 'translate(-50%,-100%)', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }}>
                 {active === i && <span style={{ position: 'absolute', left: '50%', top: '80%', transform: 'translate(-50%,-50%)', width: 30, height: 30, borderRadius: 999, background: 'var(--amber-500)', opacity: 0.5, animation: 'oz-ring 1.6s var(--ease-out) infinite' }} />}
                 <span style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

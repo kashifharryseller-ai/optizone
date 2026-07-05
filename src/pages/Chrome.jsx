@@ -1,19 +1,21 @@
 import React from 'react'
-import { Logo, Icon, IconButton, Button } from '../ds/index.js'
-import { OZ_DATA } from '../data/catalog.js'
+import { Logo, Icon, IconButton } from '../ds/index.js'
 import { useLang } from '../i18n/index.jsx'
+import { useContent } from '../content/ContentProvider.jsx'
 import { useScrolled } from '../lib/anim.jsx'
 
 const navTo = (key) => (key === 'eyeglasses' ? 'catalog' : key === 'book' ? 'booking' : key === 'stores' ? 'stores' : 'catalog')
 
-export function Header({ route, go, cartCount, onSearch, loggedIn, showAnnouncement }) {
-  const { lang, t, toggle } = useLang()
+export function Header({ route, go, cartCount, onSearch, loggedIn }) {
+  const { lang, t, toggle, L } = useLang()
+  const { content, nav } = useContent()
   const scrolled = useScrolled(4)
+  const ann = content.announcement || {}
   return (
     <header style={{ position: 'sticky', top: 0, zIndex: 50, boxShadow: scrolled ? 'var(--shadow-md)' : 'none', transition: 'box-shadow var(--dur-base) var(--ease-out)' }}>
-      {showAnnouncement !== false && (
+      {ann.enabled !== false && (
         <div style={{ background: 'var(--pine-950)', color: 'var(--cream-200)', textAlign: 'center', fontSize: 12.5, letterSpacing: '0.06em', padding: '7px 16px', fontFamily: 'var(--font-body)' }}>
-          {t.announce}
+          {L(ann) || t.announce}
         </div>
       )}
       <div style={{ background: 'var(--pine-700)', borderBottom: '1px solid var(--border-on-dark)' }}>
@@ -22,7 +24,7 @@ export function Header({ route, go, cartCount, onSearch, loggedIn, showAnnouncem
             <Logo variant="horizontal" theme="dark" size={22} tagline={false} />
           </div>
           <nav style={{ display: 'flex', gap: 26, marginInlineStart: 12, flexWrap: 'wrap' }}>
-            {OZ_DATA.nav.map((n) => {
+            {nav.map((n) => {
               const active = route === navTo(n.key) || (n.key === 'eyeglasses' && route === 'catalog')
               return (
                 <a
@@ -30,7 +32,7 @@ export function Header({ route, go, cartCount, onSearch, loggedIn, showAnnouncem
                   onClick={() => go(navTo(n.key))}
                   style={{ cursor: 'pointer', fontFamily: 'var(--font-display)', fontSize: 13, letterSpacing: '0.1em', textTransform: 'uppercase', color: active ? 'var(--amber-500)' : 'var(--cream-100)', paddingBottom: 2, borderBottom: `2px solid ${active ? 'var(--amber-500)' : 'transparent'}` }}
                 >
-                  {lang === 'he' && n.he ? n.he : n.label}
+                  {L(n.label)}
                 </a>
               )
             })}
@@ -59,8 +61,10 @@ export function Header({ route, go, cartCount, onSearch, loggedIn, showAnnouncem
 }
 
 export function Footer({ go }) {
-  const { t } = useLang()
-  // Map footer link labels (by column index + item index) to routes.
+  const { t, L } = useLang()
+  const { content } = useContent()
+  const s = content.settings || {}
+  const c = s.contact || {}
   const routes = [
     ['catalog', 'catalog', 'catalog', 'catalog', 'catalog'],
     ['booking', 'catalog', 'catalog', 'stores', 'catalog'],
@@ -71,16 +75,16 @@ export function Footer({ go }) {
       <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '56px 28px 28px', display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1fr', gap: 40 }}>
         <div>
           <Logo variant="wordmark" theme="dark" size={26} />
-          <p style={{ marginTop: 18, fontSize: 14, lineHeight: 1.6, color: 'var(--pine-200)', maxWidth: 240 }}>{t.footer.blurb}</p>
+          <p style={{ marginTop: 18, fontSize: 14, lineHeight: 1.6, color: 'var(--pine-200)', maxWidth: 240 }}>{L(s.footerBlurb) || t.footer.blurb}</p>
           <div style={{ marginTop: 16, fontSize: 13, color: 'var(--pine-200)', lineHeight: 1.8 }}>
-            {t.footer.address}<br />058-644-2303 · www.optizone.co.il
+            {L({ en: c.addressEn, he: c.addressHe }) || t.footer.address}<br />{c.phone || '058-644-2303'} · {c.site || 'www.optizone.co.il'}
           </div>
         </div>
-        {t.footer.cols.map((c, ci) => (
-          <div key={c.h}>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--amber-500)', marginBottom: 16 }}>{c.h}</div>
+        {t.footer.cols.map((col, ci) => (
+          <div key={col.h}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--amber-500)', marginBottom: 16 }}>{col.h}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {c.items.map((i, ii) => (
+              {col.items.map((i, ii) => (
                 <a key={i} onClick={() => go && go(routes[ci][ii])} style={{ fontSize: 14, color: 'var(--cream-200)', cursor: 'pointer' }}>{i}</a>
               ))}
             </div>

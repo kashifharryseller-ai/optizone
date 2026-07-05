@@ -1,8 +1,25 @@
 import React, { useState } from 'react'
 import { Button, Input, Icon, Tabs, Badge, Card, DiamondRule, GlassesMark, Price, ProductCard } from '../ds/index.js'
-import { OZ_DATA } from '../data/catalog.js'
 import { useLang } from '../i18n/index.jsx'
+import { useContent } from '../content/ContentProvider.jsx'
 import { useCountUp } from '../lib/anim.jsx'
+
+// Sample logged-in-customer data (a signed-in shopper's own history). This is
+// demo content for the account view; real orders live in the admin panel.
+const DEMO = {
+  orders: [
+    { id: 'OZ-24817', date: { en: '18 Jun 2026', he: '18 ביוני 2026' }, status: 'In lab', items: { en: 'Ray-Ban Round Metal + 1.6 AR', he: 'ריי-באן Round Metal + 1.6 AR' }, total: 600 },
+    { id: 'OZ-24603', date: { en: '2 May 2026', he: '2 במאי 2026' }, status: 'Collected', items: { en: 'Persol PO3092 Havana', he: 'Persol PO3092 Havana' }, total: 720 },
+  ],
+  prescriptions: [
+    { name: { en: 'Distance · Dr. Levi', he: 'למרחק · ד״ר לוי' }, date: { en: '12 Mar 2026', he: '12 במרץ 2026' }, od: '-2.25 / -0.50 × 180', os: '-2.00 / -0.75 × 165', pd: '63', expires: { en: 'Mar 2028', he: 'מרץ 2028' } },
+  ],
+  savedLooks: [
+    { frame: 'Prada PR 17WS', color: '#1A1A17' },
+    { frame: 'Versace VE4361', color: '#E08A2A' },
+    { frame: 'Ray-Ban RB3447', color: '#22402F' },
+  ],
+}
 
 function StatCard({ label, value, icon }) {
   const n = useCountUp(value)
@@ -63,6 +80,7 @@ function Login({ onLogin, t }) {
 }
 
 function Dashboard({ go, t, L, A }) {
+  const { content } = useContent()
   const [tab, setTab] = useState('orders')
   const statusColor = (s) => (s === 'Collected' ? 'var(--success)' : s === 'Shipped' ? 'var(--info)' : 'var(--amber-700)')
 
@@ -91,7 +109,7 @@ function Dashboard({ go, t, L, A }) {
         <div style={{ padding: '26px 0' }}>
           {tab === 'orders' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {OZ_DATA.orders.map((o, i) => (
+              {DEMO.orders.map((o, i) => (
                 <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '18px 20px', background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)', animation: 'oz-fade-up var(--dur-base) var(--ease-out) both', animationDelay: `${i * 70}ms`, flexWrap: 'wrap' }}>
                   <span style={{ width: 46, height: 46, borderRadius: 'var(--radius-sm)', background: 'var(--cream-300)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="package" size={20} color="var(--pine-700)" /></span>
                   <div style={{ flex: 1, minWidth: 160 }}>
@@ -110,7 +128,7 @@ function Dashboard({ go, t, L, A }) {
 
           {tab === 'rx' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {OZ_DATA.prescriptions.map((r) => (
+              {DEMO.prescriptions.map((r) => (
                 <div key={r.name.en} style={{ padding: '20px 22px', background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
                     <span style={{ fontFamily: 'var(--font-display)', fontSize: 16, color: 'var(--text-strong)' }}>{L(r.name)}</span>
@@ -136,7 +154,7 @@ function Dashboard({ go, t, L, A }) {
 
           {tab === 'looks' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 18 }}>
-              {OZ_DATA.savedLooks.map((l, i) => (
+              {DEMO.savedLooks.map((l, i) => (
                 <div key={i} style={{ background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)', overflow: 'hidden', animation: 'oz-scale-in var(--dur-base) var(--ease-out) both', animationDelay: `${i * 80}ms` }}>
                   <div style={{ aspectRatio: '4/3', background: 'linear-gradient(160deg,var(--pine-600),var(--pine-800))', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                     <Icon name="user" size={72} color="rgba(255,255,255,0.14)" />
@@ -153,7 +171,7 @@ function Dashboard({ go, t, L, A }) {
 
           {tab === 'wishlist' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
-              {OZ_DATA.products.slice(2, 5).map((p) => (
+              {(content.products || []).slice(2, 5).map((p) => (
                 <ProductCard key={p.id} brand={p.brand} name={p.name} amount={p.amount} original={p.original} rating={p.rating} reviewCount={p.reviews} badge={p.badge ? { variant: p.badge.variant, label: L(p.badge.label) } : undefined} tryMirror={p.tryMirror} colors={p.colors} style={{ cursor: 'pointer' }} onClick={() => go('product', p)} />
               ))}
             </div>

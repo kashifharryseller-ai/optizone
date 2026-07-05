@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Icon, Badge, Price } from '../ds/index.js'
-import { OZ_DATA } from '../data/catalog.js'
 import { useLang } from '../i18n/index.jsx'
+import { useContent } from '../content/ContentProvider.jsx'
 
 export function Search({ open, onClose, go }) {
   const { t: root, L } = useLang()
+  const { content } = useContent()
   const t = root.search
   const [q, setQ] = useState('')
   const inputRef = useRef(null)
@@ -19,7 +20,7 @@ export function Search({ open, onClose, go }) {
   if (!open) return null
   const ql = q.trim().toLowerCase()
   const results = ql
-    ? OZ_DATA.products.filter((p) => (p.name + ' ' + p.brand + ' ' + p.shape + ' ' + p.material).toLowerCase().includes(ql))
+    ? (content.products || []).filter((p) => (p.name + ' ' + p.brand + ' ' + p.shape + ' ' + p.material).toLowerCase().includes(ql))
     : []
 
   const pick = (p) => { onClose(); go('product', p) }
@@ -42,7 +43,7 @@ export function Search({ open, onClose, go }) {
             <div style={{ marginTop: 24 }}>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 14 }}>{t.popular}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {OZ_DATA.popularSearches.map((s) => (
+                {(content.popularSearches || []).map((s) => (
                   <button key={s.en} onClick={() => setQ(L(s))} style={{ border: '1px solid var(--border-hair)', background: 'var(--surface-card)', borderRadius: 'var(--radius-pill)', padding: '8px 16px', cursor: 'pointer', fontSize: 13.5, color: 'var(--text-body)' }}>{L(s)}</button>
                 ))}
               </div>

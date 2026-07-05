@@ -22,11 +22,21 @@ import '@fontsource/assistant/hebrew-700.css'
 import './styles/index.css'
 import App from './App.jsx'
 import { LangProvider } from './i18n/index.jsx'
+import { ContentProvider } from './content/ContentProvider.jsx'
+import AdminApp from './admin/AdminApp.jsx'
+
+const isAdmin = window.location.pathname.replace(/\/+$/, '').startsWith('/admin')
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <LangProvider defaultLang="en">
-      <App showAnnouncement={true} />
-    </LangProvider>
+    {isAdmin ? (
+      <AdminApp />
+    ) : (
+      <LangProvider defaultLang="en">
+        <ContentProvider>
+          <App showAnnouncement={true} />
+        </ContentProvider>
+      </LangProvider>
+    )}
   </React.StrictMode>,
 )

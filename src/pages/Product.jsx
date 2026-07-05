@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Button, IconButton, Icon, Tabs, Rating, Price, Dialog, Checkbox, Select, Badge, GlassesMark } from '../ds/index.js'
-import { OZ_DATA } from '../data/catalog.js'
 import { useLang } from '../i18n/index.jsx'
+import { useContent } from '../content/ContentProvider.jsx'
 import { ImageSlot } from '../components/ImageSlot.jsx'
 
 function MarkThumb({ active, onClick, tint }) {
@@ -23,8 +23,9 @@ function LensRow({ label, children }) {
 
 export function Product({ product, go, addToCart }) {
   const { t: root, A, lang } = useLang()
+  const { content } = useContent()
   const t = root.product
-  const p = product || OZ_DATA.products[0]
+  const p = product || (content.products || [])[0] || {}
   const [img, setImg] = useState(0)
   const [tab, setTab] = useState('desc')
   const [consent, setConsent] = useState(false)
@@ -50,7 +51,7 @@ export function Product({ product, go, addToCart }) {
             {[0, 1, 2, 3].map((i) => <MarkThumb key={i} active={img === i} onClick={() => setImg(i)} tint={p.colors[i % p.colors.length]} />)}
           </div>
           <div style={{ flex: 1, position: 'relative', aspectRatio: '1', background: 'var(--cream-300)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-hair)', overflow: 'hidden' }}>
-            <ImageSlot id={'product-' + p.id + '-view-' + img} placeholder={t.photoSlot} shape="rounded" radius={12} fit="cover" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+            <ImageSlot src={p.image || undefined} placeholder={t.photoSlot} shape="rounded" radius={12} fit="cover" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
             {p.tryMirror && <span style={{ position: 'absolute', top: 16, insetInlineStart: 16, zIndex: 2, pointerEvents: 'none' }}><Badge variant="try">Try Mirror</Badge></span>}
             <IconButton variant="outline" round style={{ position: 'absolute', bottom: 16, insetInlineEnd: 16, background: 'var(--white)', zIndex: 2 }}><Icon name="maximize-2" size={16} /></IconButton>
           </div>

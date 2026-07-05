@@ -1,11 +1,14 @@
 import React, { useState } from 'react'
 import { ProductCard, Tag, Switch, Select } from '../ds/index.js'
-import { OZ_DATA } from '../data/catalog.js'
 import { useLang } from '../i18n/index.jsx'
+import { useContent } from '../content/ContentProvider.jsx'
 
 export function Catalog({ go, addToCart }) {
   const { t: root, A, L } = useLang()
   const t = root.catalog
+  const { content } = useContent()
+  const products = content.products || []
+  const filters = content.filters || {}
   const [selected, setSelected] = useState({})
   const [tryOnly, setTryOnly] = useState(false)
   const [sort, setSort] = useState('popular')
@@ -18,7 +21,7 @@ export function Catalog({ go, addToCart }) {
     })
   }
   const activeVals = Object.values(selected).flat()
-  let list = OZ_DATA.products.filter((p) => {
+  let list = products.filter((p) => {
     if (tryOnly && !p.tryMirror) return false
     for (const [g, vals] of Object.entries(selected)) {
       if (!vals.length) continue
@@ -53,7 +56,7 @@ export function Catalog({ go, addToCart }) {
           <div style={{ padding: '12px 0', borderTop: '1px solid var(--border-hair)', borderBottom: '1px solid var(--border-hair)' }}>
             <Switch label={t.tryOnly} checked={tryOnly} onChange={setTryOnly} />
           </div>
-          {Object.entries(OZ_DATA.filters).map(([group, vals]) => (
+          {Object.entries(filters).map(([group, vals]) => (
             <div key={group}>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>{A(group)}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -78,7 +81,7 @@ export function Catalog({ go, addToCart }) {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
               {list.map((p) => (
-                <ProductCard key={p.id} brand={p.brand} name={p.name} amount={p.amount} original={p.original}
+                <ProductCard key={p.id} image={p.image || undefined} brand={p.brand} name={p.name} amount={p.amount} original={p.original || undefined}
                   rating={p.rating} reviewCount={p.reviews} badge={badgeOf(p)} tryMirror={p.tryMirror} colors={p.colors}
                   onQuickAdd={() => addToCart(p)} style={{ cursor: 'pointer' }} onClick={() => go('product', p)} {...cardLabels} />
               ))}

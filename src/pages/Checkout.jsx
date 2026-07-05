@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Button, Input, Select, Icon, DiamondRule, Price, GlassesMark } from '../ds/index.js'
-import { OZ_DATA } from '../data/catalog.js'
 import { useLang } from '../i18n/index.jsx'
+import { useContent } from '../content/ContentProvider.jsx'
+import { api } from '../api.js'
 
 function Step({ n, label, active, done }) {
   return (
@@ -36,13 +37,28 @@ function SectionTitle({ children }) {
 
 export function Checkout({ cart, subtotal, go, onComplete }) {
   const { t: root, L } = useLang()
+  const { content } = useContent()
+  const settings = content.settings || {}
+  const branches = content.stores || []
+  const threshold = settings.shippingThreshold ?? 400
+  const fee = settings.shippingFee ?? 30
   const t = root.checkout
   const [step, setStep] = useState(0)
   const [pay, setPay] = useState('card')
   const [ship, setShip] = useState('delivery')
+  const [contact, setContact] = useState({ firstName: 'Maya', lastName: 'Levi', email: 'maya@example.co.il', phone: '058-644-2303', address: '' })
   useEffect(() => { window.scrollTo({ top: 0 }) }, [step])
-  const shipping = ship === 'pickup' || subtotal > 400 ? 0 : 30
+  const shipping = ship === 'pickup' || subtotal > threshold ? 0 : fee
   const total = subtotal + shipping
+
+  const placeOrder = () => {
+    api.createOrder({
+      customer: { name: `${contact.firstName} ${contact.lastName}`.trim(), email: contact.email, phone: contact.phone, address: contact.address },
+      items: cart.map((it) => ({ id: it.id, name: it.name, brand: it.brand, amount: it.amount, qty: it.qty })),
+      subtotal, shipping, total, payment: pay, fulfilment: ship,
+    }).catch(() => { /* still confirm to the shopper */ })
+    setStep(3)
+  }
 
   if (step === 3) {
     return (
@@ -75,11 +91,11 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
             <>
               <SectionTitle>{t.contactTitle}</SectionTitle>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <Input placeholder={t.firstName} defaultValue="Maya" />
-                <Input placeholder={t.lastName} defaultValue="Levi" />
+                <Input placeholder={t.firstName} value={contact.firstName} onChange={(e) => setContact({ ...contact, firstName: e.target.value })} />
+                <Input placeholder={t.lastName} value={contact.lastName} onChange={(e) => setContact({ ...contact, lastName: e.target.value })} />
               </div>
-              <Input placeholder={t.email} defaultValue="maya@example.co.il" />
-              <Input placeholder={t.phone} defaultValue="058-644-2303" />
+              <Input placeholder={t.email} value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} />
+              <Input placeholder={t.phone} value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} />
               <Button variant="primary" size="lg" onClick={() => setStep(1)} endIcon={<Icon name="arrow-right" size={18} color="currentColor" />}>{t.toShipping}</Button>
             </>
           )}
@@ -87,13 +103,13 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
           {step === 1 && (
             <>
               <SectionTitle>{t.deliveryTitle}</SectionTitle>
-              <PayOption id="delivery" sel={ship} onSel={setShip} icon="truck" title={t.homeDelivery} sub={subtotal > 400 ? t.homeFree : t.homePaid} />
+              <PayOption id="delivery" sel={ship} onSel={setShip} icon="truck" title={t.homeDelivery} sub={subtotal > threshold ? t.homeFree : t.homePaid} />
               <PayOption id="pickup" sel={ship} onSel={setShip} icon="store" title={t.pickup} sub={t.pickupSub} />
               {ship === 'delivery' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 4 }}>
                   <SectionTitle>{t.addrTitle}</SectionTitle>
                   <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
-                    <Input placeholder={t.street} defaultValue="השלים 12" />
+                    <Input placeholder={t.street} value={contact.address} onChange={(e) => setContact({ ...contact, address: e.target.value })} />
                     <Input placeholder={t.apt} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
@@ -104,7 +120,7 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
               )}
               {ship === 'pickup' && (
                 <div style={{ marginTop: 4 }}>
-                  <Select options={OZ_DATA.branches.map((b) => ({ value: b.en, label: L(b) }))} />
+                  <Select options={branches.map((b) => ({ value: b.name, label: 'OPTIZONE ' + L({ en: b.name, he: b.he }) }))} />
                 </div>
               )}
               <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
@@ -139,7 +155,7 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
               </div>
               <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
                 <Button variant="ghost" onClick={() => setStep(1)}>{t.back}</Button>
-                <Button variant="primary" size="lg" block onClick={() => setStep(3)} startIcon={<Icon name="lock" size={17} color="currentColor" />}>{t.pay(total.toLocaleString('he-IL'))}</Button>
+                <Button variant="primary" size="lg" block onClick={placeOrder} startIcon={<Icon name="lock" size={17} color="currentColor" />}>{t.pay(total.toLocaleString('he-IL'))}</Button>
               </div>
             </>
           )}

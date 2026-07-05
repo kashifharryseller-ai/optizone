@@ -1,11 +1,15 @@
 import React from 'react'
 import { Button, Icon, QuantityStepper, Price, Card, Input, GlassesMark } from '../ds/index.js'
 import { useLang } from '../i18n/index.jsx'
+import { useContent } from '../content/ContentProvider.jsx'
 
 export function Cart({ cart, setCart, go }) {
   const t = useLang().t.cart
-  const subtotal = cart.reduce((s, i) => s + i.amount * i.qty, 0)
-  const shipping = subtotal > 400 || subtotal === 0 ? 0 : 30
+  const s = useContent().content.settings || {}
+  const threshold = s.shippingThreshold ?? 400
+  const fee = s.shippingFee ?? 30
+  const subtotal = cart.reduce((sum, i) => sum + i.amount * i.qty, 0)
+  const shipping = subtotal > threshold || subtotal === 0 ? 0 : fee
   const setQty = (idx, qty) => setCart(cart.map((c, i) => (i === idx ? { ...c, qty } : c)))
   const remove = (idx) => setCart(cart.filter((_, i) => i !== idx))
 

@@ -1,67 +1,99 @@
 # OPTIZONE — Vision & Style
 
-A full, clickable **OPTIZONE** eyewear storefront — premium eyeglasses, sunglasses,
-contact lenses and eye-care services for the Israeli market, with a virtual
-**Try Mirror** try-on, a lens/prescription configurator, in-store appointment
-booking, and a complete **English / עברית** experience with full RTL support.
+A full-stack **OPTIZONE** eyewear store — premium eyeglasses, sunglasses, contact
+lenses and eye-care services for the Israeli market, with a virtual **Try Mirror**
+try-on, a lens/prescription configurator, in-store appointment booking, a complete
+**English / עברית** experience with full RTL support, **and a connected admin
+panel** for managing everything on the site.
 
-Built as a **Vite + React** app, recreated faithfully from the Claude Design
-handoff bundle (the original HTML/CSS/JS prototype lives in [`project/`](./project)).
+- **Frontend:** Vite + React (recreated from the Claude Design handoff in [`project/`](./project)).
+- **Backend:** Node/Express + **MySQL** (with an automatic JSON-file fallback).
+- **Deploys as one Node.js app** — ready for Hostinger Cloud Startup. See
+  **[DEPLOY-HOSTINGER.md](./DEPLOY-HOSTINGER.md)**.
 
 ## Features
 
-- **Storefront journey** — home, catalog (with live filters + sort), product
-  detail (colourways, lens configurator, specs/reviews tabs), cart, multi-step
-  checkout, booking flow, store locator, account login + dashboard, and a
-  live search overlay.
+### Storefront
+- Home, catalog (live filters + sort), product detail (colourways, lens
+  configurator, specs/reviews), cart, multi-step checkout, booking, store
+  locator, account login + dashboard, and a live search overlay.
 - **Try Mirror** — camera-consent dialog and an animated virtual try-on mock.
-- **Fully bilingual** — every page is translated EN ⇄ עברית; toggling the
-  language flips the whole layout to RTL. The `OPTIZONE` wordmark and prices
-  stay LTR within RTL text, per the brand guidelines.
-- **Design system** — all 20 OPTIZONE components (Button, ProductCard, Price,
-  Badge, Tabs, Dialog, …) ported to React with the brand's pine/amber/cream
-  tokens, Jost + Assistant type, and the amber diamond-rule motif.
-- **Fillable image slots** — hero, category and product photo placeholders
-  accept a drag-and-drop / click-to-upload image, persisted in `localStorage`.
-  Swap these for real product photography when available.
-- **Self-contained** — React, Lucide icons and the Jost/Assistant fonts are all
-  vendored locally (via npm / `@fontsource`); nothing loads from a CDN at runtime.
+- **Fully bilingual** — every page translated EN ⇄ עברית; the toggle flips the
+  whole layout to RTL (the `OPTIZONE` wordmark and prices stay LTR).
+- Checkout submits **real orders** and booking submits **real appointments** to
+  the backend, where the admin can see and manage them.
 
-## Getting started
+### Admin panel (`/admin`)
+A password-protected dashboard, styled with the OPTIZONE design system, that lets
+the owner control the whole site — no code needed:
+- **Products & catalog** — add/edit/reorder/delete frames: brand, name, price,
+  sale price, rating, badges, colourways, Try-Mirror flag, shape/material/gender,
+  and a product photo upload.
+- **Homepage & content** — announcement bar, hero copy, section headings, the six
+  services, and category tiles — all bilingual (EN + עברית) — plus hero and
+  category photo uploads.
+- **Stores & settings** — branches (address, hours, phone, map pin, service tags),
+  booking services, popular searches, catalog filters, free-shipping threshold,
+  contact details and footer copy.
+- **Orders & appointments** — everything submitted through the site, with status
+  updates and delete.
+
+## Getting started (local)
 
 ```bash
 npm install
-npm run dev       # start the dev server (http://localhost:5173)
-npm run build     # production build → dist/
-npm run preview   # preview the production build
+
+# Option A — one command runs the API (5000) + Vite web (5173) together:
+npm run dev:all
+#   → storefront  http://localhost:5173
+#   → admin       http://localhost:5173/admin   (default login: admin / optizone-admin)
+
+# Option B — production build served by the Node server on one port:
+npm run build && npm start        # → http://localhost:3000  (and /admin)
 ```
+
+With no `DB_*` env vars set, the app uses a local JSON store
+(`server/data/db.json`) so it runs with zero setup. Copy `.env.example` → `.env`
+to configure MySQL and admin credentials.
+
+### Scripts
+| Script | What it does |
+|---|---|
+| `npm run dev` | Vite dev server (frontend only) |
+| `npm run dev:server` | Express API only (port 5000) |
+| `npm run dev:all` | Both together (frontend proxies `/api` to the API) |
+| `npm run build` | Build the frontend into `dist/` |
+| `npm start` | Run the production server (`app.js`) — serves `dist/` + API |
+| `npm run seed` | Reset site content to defaults (keeps orders/bookings) |
 
 ## Project structure
 
 ```
-src/
-  main.jsx            App entry (mounts <App>, imports fonts + global CSS)
-  App.jsx             Client-side router + cart / toast / language state
-  i18n/               Bilingual string tables + <LangProvider> / useLang()
-  data/catalog.js     Sample catalog, services, stores, orders (bilingual)
-  ds/                 OPTIZONE design-system components (React port)
-  pages/              Home, Catalog, Product, Booking, Cart, Checkout,
-                      StoreLocator, Account, Search, Chrome (header/footer)
-  components/         ImageSlot (fillable photo placeholder)
-  lib/anim.jsx        Scroll-reveal, sticky-header and count-up helpers
-  styles/             Design tokens (copied verbatim) + animations
-project/              Original Claude Design export (reference / source of truth)
+app.js                 Production entry (Hostinger "startup file") — serves dist/ + API
+server/                Express API (CommonJS)
+  config.js            Env-driven config
+  app.js               App factory + start()
+  auth.js              Admin JWT auth
+  seed-data.js         Default site content (seed)
+  store/               MySQL + JSON-file backends behind one interface
+  routes/              public (content, orders, bookings) + admin (CRUD, upload)
+src/                   Storefront (Vite + React)
+  api.js               Fetch client for the API
+  content/             ContentProvider — live site content
+  i18n/                Bilingual UI strings (EN/עברית) + RTL
+  ds/                  OPTIZONE design-system components
+  pages/               Home, Catalog, Product, Booking, Cart, Checkout, …
+  admin/               Admin panel (login, shell, section editors)
+project/               Original Claude Design export (reference)
+DEPLOY-HOSTINGER.md    Step-by-step Hostinger deployment guide
+.env.example           All environment variables
 ```
 
-## Notes & next steps
+## Notes
 
-- **Sample data.** Product names, prices, prescriptions and orders are
-  placeholder content — replace the entries in `src/data/catalog.js` with real
-  OPTIZONE inventory.
-- **Try Mirror** is a visual mock; wire it to your on-device try-on / camera
-  pipeline when ready.
-- **Auth, payments and booking** are front-end flows only — connect them to
-  your backend, payment gateway and scheduling system.
-- **Fonts & icons** are stand-ins (Jost for the geometric wordmark face,
-  Assistant for bilingual body, Lucide for line icons); swap in the licensed
-  brand assets when available, as flagged in the design system.
+- **Storage.** MySQL when `DB_*` is set (tables auto-created + seeded on first
+  boot); otherwise a JSON file. Uploaded images live in `server/data/uploads/`.
+- **Sample data.** Products/prices are placeholder content — edit them in the
+  admin panel or `server/seed-data.js`.
+- **Fonts & icons** are stand-ins (Jost, Assistant, Lucide) vendored locally — no
+  runtime CDN; swap in licensed brand assets when available.
