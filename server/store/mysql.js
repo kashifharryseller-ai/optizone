@@ -21,6 +21,12 @@ async function ensureSchema(conn) {
     created_at DATETIME NOT NULL,
     data LONGTEXT NOT NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`)
+  await conn.query(`CREATE TABLE IF NOT EXISTS oz_users (
+    id VARCHAR(40) PRIMARY KEY,
+    email VARCHAR(190) NOT NULL UNIQUE,
+    created_at DATETIME NOT NULL,
+    data LONGTEXT NOT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`)
 
   const [rows] = await conn.query('SELECT id FROM oz_content WHERE id = 1')
   if (!rows.length) {
@@ -89,4 +95,31 @@ module.exports = {
     return bk
   },
   async deleteBooking(id) { await pool.query('DELETE FROM oz_bookings WHERE id = ?', [id]) },
+
+  // --- Users (customer accounts) ---
+  async listUsers() {
+    const [rows] = await pool.query('SELECT data FROM oz_users ORDER BY created_at DESC')
+    return rows.map((r) => JSON.parse(r.data))
+  },
+  async getUser(id) {
+    const [rows] = await pool.query('SELECT data FROM oz_users WHERE id = ?', [id])
+    return rows.length ? JSON.parse(rows[0].data) : null
+  },
+  async findUserByEmail(email) {
+    const e = String(email || '').trim().toLowerCase()
+    const [rows] = await pool.query('SELECT data FROM oz_users WHERE email = ?', [e])
+    return rows.length ? JSON.parse(rows[0].data) : null
+  },
+  async addUser(user) {
+    await pool.query('INSERT INTO oz_users (id, email, created_at, data) VALUES (?, ?, ?, ?)', [user.id, user.email, new Date(user.createdAt), JSON.stringify(user)])
+    return user
+  },
+  async updateUser(id, patch) {
+    const [rows] = await pool.query('SELECT data FROM oz_users WHERE id = ?', [id])
+    if (!rows.length) return null
+    const u = { ...JSON.parse(rows[0].data), ...patch }
+    await pool.query('UPDATE oz_users SET data = ?, email = ? WHERE id = ?', [JSON.stringify(u), u.email, id])
+    return u
+  },
+  async deleteUser(id) { await pool.query('DELETE FROM oz_users WHERE id = ?', [id]) },
 }

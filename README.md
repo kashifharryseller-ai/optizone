@@ -39,10 +39,16 @@ Default admin login is `admin` / `optizone-admin` — override with the
   configurator, specs/reviews), cart, multi-step checkout, booking, store
   locator, account login + dashboard, and a live search overlay.
 - **Try Mirror** — camera-consent dialog and an animated virtual try-on mock.
+- **Customer accounts** — register / sign in (bcrypt-hashed passwords, JWT
+  sessions), a VisionExpress-style header menu (My account · My orders ·
+  My appointments · My wishlist · My settings · Sign out), a live account
+  dashboard, server-side wishlist, profile & password settings, and checkout /
+  booking prefilled from the profile.
 - **Fully bilingual** — every page translated EN ⇄ עברית; the toggle flips the
   whole layout to RTL (the `OPTIZONE` wordmark and prices stay LTR).
 - Checkout submits **real orders** and booking submits **real appointments** to
-  the backend, where the admin can see and manage them.
+  the backend — linked to the signed-in customer and visible in both the
+  customer's account and the admin panel.
 
 ### Admin panel (`/admin`)
 A password-protected dashboard, styled with the OPTIZONE design system, that lets
@@ -58,6 +64,8 @@ the owner control the whole site — no code needed:
   contact details and footer copy.
 - **Orders & appointments** — everything submitted through the site, with status
   updates and delete.
+- **Customers** — every registered user with their orders, appointments, total
+  spend and join date; search, disable (blocks sign-in) or delete accounts.
 
 ## Getting started (local)
 

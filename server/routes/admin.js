@@ -27,18 +27,48 @@ router.get('/me', (req, res) => res.json({ user: { username: req.admin.sub, role
 
 router.get('/stats', async (req, res, next) => {
   try {
-    const [content, orders, bookings] = await Promise.all([store().getContent(), store().listOrders(), store().listBookings()])
+    const [content, orders, bookings, users] = await Promise.all([store().getContent(), store().listOrders(), store().listBookings(), store().listUsers()])
     const revenue = orders.reduce((s, o) => s + (Number(o.total) || 0), 0)
     res.json({
       products: (content.products || []).length,
       stores: (content.stores || []).length,
       orders: orders.length,
       bookings: bookings.length,
+      customers: users.length,
       newOrders: orders.filter((o) => o.status === 'New').length,
       newBookings: bookings.filter((b) => b.status === 'New').length,
       revenue,
     })
   } catch (err) { next(err) }
+})
+
+// --- Customers ----------------------------------------------------------------
+router.get('/users', async (req, res, next) => {
+  try {
+    const [users, orders, bookings] = await Promise.all([store().listUsers(), store().listOrders(), store().listBookings()])
+    res.json(users.map((u) => ({
+      id: u.id, name: u.name, email: u.email, phone: u.phone || '',
+      createdAt: u.createdAt, active: u.active !== false,
+      wishlistCount: (u.wishlist || []).length,
+      orders: orders.filter((o) => o.userId === u.id).length,
+      bookings: bookings.filter((b) => b.userId === u.id).length,
+      spent: orders.filter((o) => o.userId === u.id).reduce((s, o) => s + (Number(o.total) || 0), 0),
+    })))
+  } catch (err) { next(err) }
+})
+
+router.patch('/users/:id', async (req, res, next) => {
+  try {
+    const patch = {}
+    if (typeof (req.body || {}).active === 'boolean') patch.active = req.body.active
+    const user = await store().updateUser(req.params.id, patch)
+    if (!user) return res.status(404).json({ error: 'Customer not found' })
+    res.json({ id: user.id, active: user.active !== false })
+  } catch (err) { next(err) }
+})
+
+router.delete('/users/:id', async (req, res, next) => {
+  try { await store().deleteUser(req.params.id); res.json({ ok: true }) } catch (err) { next(err) }
 })
 
 // --- Content (single document holding products, homepage, stores, settings) --

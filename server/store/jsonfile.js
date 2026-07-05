@@ -20,6 +20,7 @@ async function load() {
   if (!cache.content) cache.content = defaultContent()
   if (!Array.isArray(cache.orders)) cache.orders = []
   if (!Array.isArray(cache.bookings)) cache.bookings = []
+  if (!Array.isArray(cache.users)) cache.users = []
   return cache
 }
 
@@ -60,4 +61,19 @@ module.exports = {
     Object.assign(b, patch); await persist(); return b
   },
   async deleteBooking(id) { cache.bookings = cache.bookings.filter((x) => x.id !== id); await persist() },
+
+  // --- Users (customer accounts) ---
+  async listUsers() { return [...cache.users].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)) },
+  async getUser(id) { return cache.users.find((u) => u.id === id) || null },
+  async findUserByEmail(email) {
+    const e = String(email || '').trim().toLowerCase()
+    return cache.users.find((u) => u.email === e) || null
+  },
+  async addUser(user) { cache.users.push(user); await persist(); return user },
+  async updateUser(id, patch) {
+    const u = cache.users.find((x) => x.id === id)
+    if (!u) return null
+    Object.assign(u, patch); await persist(); return u
+  },
+  async deleteUser(id) { cache.users = cache.users.filter((x) => x.id !== id); await persist() },
 }

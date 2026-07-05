@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Button, Input, Select, Icon, DiamondRule, Price, GlassesMark } from '../ds/index.js'
 import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
+import { useAuth } from '../auth/AuthProvider.jsx'
 import { api } from '../api.js'
 
 function Step({ n, label, active, done }) {
@@ -43,10 +44,21 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
   const threshold = settings.shippingThreshold ?? 400
   const fee = settings.shippingFee ?? 30
   const t = root.checkout
+  const { user } = useAuth()
   const [step, setStep] = useState(0)
   const [pay, setPay] = useState('card')
   const [ship, setShip] = useState('delivery')
-  const [contact, setContact] = useState({ firstName: 'Maya', lastName: 'Levi', email: 'maya@example.co.il', phone: '058-644-2303', address: '' })
+  // Prefill contact details from the signed-in customer's profile.
+  const [contact, setContact] = useState(() => {
+    const parts = (user?.name || '').split(/\s+/)
+    return {
+      firstName: parts[0] || '',
+      lastName: parts.slice(1).join(' ') || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      address: '',
+    }
+  })
   useEffect(() => { window.scrollTo({ top: 0 }) }, [step])
   const shipping = ship === 'pickup' || subtotal > threshold ? 0 : fee
   const total = subtotal + shipping

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Button, Icon, Tag, Input, DiamondRule, Card } from '../ds/index.js'
 import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
+import { useAuth } from '../auth/AuthProvider.jsx'
 import { api } from '../api.js'
 
 function Field({ label, children }) {
@@ -23,10 +24,11 @@ export function Booking({ go }) {
   const [service, setService] = useState(0)
   const [branch, setBranch] = useState(0)
   const [slot, setSlot] = useState(slots[1] || slots[0] || '10:30')
+  const { user } = useAuth()
   const [done, setDone] = useState(false)
   const [day, setDay] = useState(1)
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
+  const [name, setName] = useState(user?.name || '')
+  const [phone, setPhone] = useState(user?.phone || '')
 
   const bDisp = (b) => (b ? `OPTIZONE ${lang === 'he' ? b.he || b.name : b.name} · ${b.addr || ''}` : '')
   const branchLabel = (b) => `OPTIZONE ${b?.name || ''} · ${b?.addr || ''}`.trim()

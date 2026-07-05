@@ -12,20 +12,25 @@ import { Account } from './pages/Account.jsx'
 import { Checkout } from './pages/Checkout.jsx'
 import { StoreLocator } from './pages/StoreLocator.jsx'
 
-export default function App({ showAnnouncement }) {
+export default function App() {
   const { t } = useLang()
   const [route, setRoute] = useState('home')
   const [product, setProduct] = useState(null)
   const [cart, setCart] = useState([])
   const [toast, setToast] = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
-  const [loggedIn, setLoggedIn] = useState(false)
+  const [accountTab, setAccountTab] = useState('orders')
   const toastTimer = useRef(null)
 
   const go = (r, p) => {
     if (p) setProduct(p)
     setRoute(r)
     window.scrollTo({ top: 0 })
+  }
+  // Open the account area on a specific tab (from the header menu / wishlist heart).
+  const openAccount = (tab) => {
+    if (tab) setAccountTab(tab)
+    go('account')
   }
   const addToCart = (p) => {
     setCart((c) => {
@@ -41,16 +46,16 @@ export default function App({ showAnnouncement }) {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Header route={route} go={go} cartCount={cart.reduce((s, i) => s + i.qty, 0)} onSearch={() => setSearchOpen(true)} loggedIn={loggedIn} showAnnouncement={showAnnouncement} />
+      <Header route={route} go={go} cartCount={cart.reduce((s, i) => s + i.qty, 0)} onSearch={() => setSearchOpen(true)} openAccount={openAccount} />
       <main style={{ flex: 1 }}>
         <div key={route} className="oz-route">
           {route === 'home' && <Home go={go} addToCart={addToCart} />}
           {route === 'catalog' && <Catalog go={go} addToCart={addToCart} />}
-          {route === 'product' && <Product product={product} go={go} addToCart={addToCart} />}
+          {route === 'product' && <Product product={product} go={go} addToCart={addToCart} openAccount={openAccount} />}
           {route === 'booking' && <Booking go={go} />}
           {route === 'cart' && <Cart cart={cart} setCart={setCart} go={go} />}
           {route === 'stores' && <StoreLocator go={go} />}
-          {route === 'account' && <Account loggedIn={loggedIn} onLogin={() => setLoggedIn(true)} go={go} />}
+          {route === 'account' && <Account go={go} tab={accountTab} setTab={setAccountTab} />}
           {route === 'checkout' && <Checkout cart={cart} subtotal={subtotal} go={go} onComplete={() => setCart([])} />}
         </div>
       </main>

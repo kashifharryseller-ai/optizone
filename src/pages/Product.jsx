@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Button, IconButton, Icon, Tabs, Rating, Price, Dialog, Checkbox, Select, Badge, GlassesMark } from '../ds/index.js'
 import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
+import { useAuth } from '../auth/AuthProvider.jsx'
 import { ImageSlot } from '../components/ImageSlot.jsx'
 
 function MarkThumb({ active, onClick, tint }) {
@@ -21,11 +22,14 @@ function LensRow({ label, children }) {
   )
 }
 
-export function Product({ product, go, addToCart }) {
+export function Product({ product, go, addToCart, openAccount }) {
   const { t: root, A, lang } = useLang()
   const { content } = useContent()
+  const { user, inWishlist, toggleWishlist } = useAuth()
   const t = root.product
   const p = product || (content.products || [])[0] || {}
+  const wished = user ? inWishlist(p.id) : false
+  const onHeart = () => { user ? toggleWishlist(p.id) : openAccount && openAccount('wishlist') }
   const [img, setImg] = useState(0)
   const [tab, setTab] = useState('desc')
   const [consent, setConsent] = useState(false)
@@ -100,9 +104,12 @@ export function Product({ product, go, addToCart }) {
           )}
 
           {/* actions */}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <Button variant="primary" size="lg" block onClick={() => addToCart({ ...p, amount: total })} startIcon={<Icon name="shopping-bag" size={18} color="currentColor" />}>{t.addToCart(total)}</Button>
             {p.tryMirror && <Button variant="solid" size="lg" onClick={() => setConsent(true)} startIcon={<Icon name="camera" size={18} color="currentColor" />}>{t.tryMirror}</Button>}
+            <IconButton variant="outline" size="lg" onClick={onHeart} aria-label="wishlist">
+              <Icon name="heart" size={20} color={wished ? 'var(--danger)' : 'var(--pine-700)'} fill={wished ? 'var(--danger)' : 'none'} />
+            </IconButton>
           </div>
           <div style={{ display: 'flex', gap: 22, marginTop: 18, fontSize: 13, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="truck" size={16} /> {t.freeShip}</span>

@@ -28,6 +28,7 @@ export default function Dashboard({ go }) {
           <Stat icon="shopping-bag" label="Products" value={stats ? stats.products : '—'} />
           <Stat icon="package" label={`Orders (${stats ? stats.newOrders : 0} new)`} value={stats ? stats.orders : '—'} tone="var(--amber-50)" />
           <Stat icon="calendar" label={`Appointments (${stats ? stats.newBookings : 0} new)`} value={stats ? stats.bookings : '—'} tone="var(--amber-50)" />
+          <Stat icon="user" label="Customers" value={stats ? stats.customers : '—'} />
           <Stat icon="store" label="Branches" value={stats ? stats.stores : '—'} />
           <Stat icon="credit-card" label="Revenue" value={stats ? '₪' + Number(stats.revenue).toLocaleString('he-IL') : '—'} />
         </div>
@@ -39,6 +40,7 @@ export default function Dashboard({ go }) {
           <Btn variant="outline" onClick={() => go('homepage')}>Edit homepage</Btn>
           <Btn variant="outline" onClick={() => go('orders')}>View orders</Btn>
           <Btn variant="outline" onClick={() => go('bookings')}>View appointments</Btn>
+          <Btn variant="outline" onClick={() => go('customers')}>View customers</Btn>
           <Btn variant="ghost" onClick={() => window.open('/', '_blank')}>Open storefront ↗</Btn>
         </div>
       </Panel>

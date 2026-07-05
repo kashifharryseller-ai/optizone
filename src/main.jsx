@@ -23,6 +23,7 @@ import './styles/index.css'
 import App from './App.jsx'
 import { LangProvider } from './i18n/index.jsx'
 import { ContentProvider } from './content/ContentProvider.jsx'
+import { AuthProvider } from './auth/AuthProvider.jsx'
 import AdminApp from './admin/AdminApp.jsx'
 
 const isAdmin = window.location.pathname.replace(/\/+$/, '').startsWith('/admin')
@@ -34,7 +35,9 @@ createRoot(document.getElementById('root')).render(
     ) : (
       <LangProvider defaultLang="en">
         <ContentProvider>
-          <App showAnnouncement={true} />
+          <AuthProvider>
+            <App />
+          </AuthProvider>
         </ContentProvider>
       </LangProvider>
     )}

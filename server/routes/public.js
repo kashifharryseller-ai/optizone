@@ -2,6 +2,7 @@
 const express = require('express')
 const { customAlphabet } = require('nanoid')
 const { store } = require('../store')
+const { optionalUser } = require('../auth')
 
 const router = express.Router()
 const num = customAlphabet('0123456789', 5)
@@ -13,8 +14,9 @@ router.get('/content', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
-// Create an order from checkout.
-router.post('/orders', async (req, res, next) => {
+// Create an order from checkout. If the shopper is signed in, the order is
+// linked to their account (visible under My Orders and in the admin panel).
+router.post('/orders', optionalUser, async (req, res, next) => {
   try {
     const b = req.body || {}
     const items = Array.isArray(b.items) ? b.items : []
@@ -22,6 +24,7 @@ router.post('/orders', async (req, res, next) => {
       id: 'OZ-' + num(),
       createdAt: new Date().toISOString(),
       status: 'New',
+      userId: req.userId || null,
       customer: {
         name: String(b.customer?.name || '').slice(0, 120),
         email: String(b.customer?.email || '').slice(0, 160),
@@ -43,14 +46,15 @@ router.post('/orders', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
-// Create a booking / appointment.
-router.post('/bookings', async (req, res, next) => {
+// Create a booking / appointment (linked to the account when signed in).
+router.post('/bookings', optionalUser, async (req, res, next) => {
   try {
     const b = req.body || {}
     const booking = {
       id: 'AP-' + num(),
       createdAt: new Date().toISOString(),
       status: 'New',
+      userId: req.userId || null,
       service: String(b.service || '').slice(0, 120),
       branch: String(b.branch || '').slice(0, 120),
       day: String(b.day || '').slice(0, 40),

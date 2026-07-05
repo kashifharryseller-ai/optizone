@@ -8,6 +8,7 @@ import Products from './sections/Products.jsx'
 import Homepage from './sections/Homepage.jsx'
 import StoresSettings from './sections/StoresSettings.jsx'
 import Orders from './sections/Orders.jsx'
+import Customers from './sections/Customers.jsx'
 import Bookings from './sections/Bookings.jsx'
 
 const NAV = [
@@ -16,6 +17,7 @@ const NAV = [
   { key: 'homepage', label: 'Homepage & Content', icon: '❖' },
   { key: 'stores', label: 'Stores & Settings', icon: '⚑' },
   { key: 'orders', label: 'Orders', icon: '⛁' },
+  { key: 'customers', label: 'Customers', icon: '☺' },
   { key: 'bookings', label: 'Appointments', icon: '◷' },
 ]
 const CONTENT_SECTIONS = new Set(['products', 'homepage', 'stores'])
@@ -95,6 +97,7 @@ export default function AdminApp() {
               {section === 'homepage' && <Homepage content={content} setContent={setContentState} />}
               {section === 'stores' && <StoresSettings content={content} setContent={setContentState} />}
               {section === 'orders' && <Orders />}
+              {section === 'customers' && <Customers />}
               {section === 'bookings' && <Bookings />}
             </>
           )}
