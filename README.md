@@ -82,7 +82,7 @@ npm install
 # Option A — one command runs the API (5000) + Vite web (5173) together:
 npm run dev:all
 #   → storefront  http://localhost:5173
-#   → admin       http://localhost:5173/admin   (default login: admin / optizone-admin)
+#   → admin       http://localhost:5173/admin   (owner email + password; see Admin → Security)
 
 # Option B — production build served by the Node server on one port:
 npm run build && npm start        # → http://localhost:3000  (and /admin)
