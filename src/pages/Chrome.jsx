@@ -67,6 +67,7 @@ export function Header({ navActive, go, openCatalog, cartCount, onSearch, openAc
   const { content, nav } = useContent()
   const { user } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const scrolled = useScrolled(4)
   const ann = content.announcement || {}
   const loggedIn = !!user
@@ -85,10 +86,14 @@ export function Header({ navActive, go, openCatalog, cartCount, onSearch, openAc
       )}
       <div style={{ background: 'var(--pine-700)', borderBottom: '1px solid var(--border-on-dark)' }}>
         <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 20px', height: 74, display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* Hamburger — hidden on desktop, shown on small screens (CSS) */}
+          <IconButton variant="ghost" className="oz-hamburger" onClick={() => setMobileNavOpen((o) => !o)} aria-label={t.aria.menu} style={{ color: 'var(--cream-100)' }}>
+            <Icon name={mobileNavOpen ? 'x' : 'menu'} color="var(--cream-100)" />
+          </IconButton>
           <div style={{ cursor: 'pointer' }} onClick={() => go('home')}>
             <Logo variant="horizontal" theme="dark" size={20} tagline={false} />
           </div>
-          <nav className="oz-nav" style={{ marginInlineStart: 6 }}>
+          <nav className="oz-nav oz-nav-desktop" style={{ marginInlineStart: 6 }}>
             {nav.map((n) => (
               <a
                 key={n.key}
@@ -120,6 +125,21 @@ export function Header({ navActive, go, openCatalog, cartCount, onSearch, openAc
             </span>
           </div>
         </div>
+
+        {/* Mobile drop-down menu — only rendered/visible on small screens (CSS) */}
+        {mobileNavOpen && (
+          <div className="oz-mobile-nav">
+            {nav.map((n) => (
+              <a
+                key={n.key}
+                onClick={() => { navGo(n.key); setMobileNavOpen(false) }}
+                className={(navActive === n.key ? 'active ' : '') + (n.key === 'book' ? 'oz-nav-cta' : '')}
+              >
+                {L(n.label)}
+              </a>
+            ))}
+          </div>
+        )}
       </div>
     </header>
   )
@@ -138,7 +158,7 @@ export function Footer({ go, openCatalog }) {
   ]
   return (
     <footer style={{ background: 'var(--pine-800)', color: 'var(--cream-200)', marginTop: 0 }}>
-      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '56px 28px 28px', display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1fr', gap: 40 }}>
+      <div className="oz-footer-grid" style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '56px 28px 28px', display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1fr', gap: 40 }}>
         <div>
           <Logo variant="wordmark" theme="dark" size={26} />
           <p style={{ marginTop: 18, fontSize: 14, lineHeight: 1.6, color: 'var(--pine-200)', maxWidth: 240 }}>{L(s.footerBlurb) || t.footer.blurb}</p>

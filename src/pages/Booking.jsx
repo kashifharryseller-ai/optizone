@@ -69,7 +69,7 @@ export function Booking({ go }) {
         </div>
       </div>
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '36px 28px 80px', display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 40, alignItems: 'start' }}>
+      <div className="oz-split" style={{ maxWidth: 900, margin: '0 auto', padding: '36px 28px 80px', display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 40, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
           <Field label={t.s1}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>

@@ -27,10 +27,10 @@ export function Cart({ cart, setCart, go, openCatalog }) {
   return (
     <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '36px 28px 80px' }}>
       <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 34, color: 'var(--text-strong)', margin: '0 0 24px' }}>{t.title}</h1>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 36, alignItems: 'start' }}>
+      <div className="oz-sidebar" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 36, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {cart.map((it, idx) => (
-            <div key={idx} style={{ display: 'flex', gap: 18, padding: 16, background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)', alignItems: 'center' }}>
+            <div key={idx} className="oz-cart-item" style={{ display: 'flex', gap: 18, padding: 16, background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)', alignItems: 'center' }}>
               <div style={{ width: 92, height: 92, borderRadius: 'var(--radius-sm)', background: 'var(--cream-300)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
                 <GlassesMark size={26} color={(it.colors && it.colors[0]) || 'var(--pine-500)'} />
               </div>

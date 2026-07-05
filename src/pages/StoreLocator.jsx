@@ -21,7 +21,7 @@ export function StoreLocator({ go }) {
         </div>
       </div>
 
-      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '30px 28px 80px', display: 'grid', gridTemplateColumns: '360px 1fr', gap: 30, alignItems: 'start' }}>
+      <div className="oz-sidebar" style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '30px 28px 80px', display: 'grid', gridTemplateColumns: '360px 1fr', gap: 30, alignItems: 'start' }}>
         {/* list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {stores.map((st, i) => (

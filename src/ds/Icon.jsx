@@ -2,7 +2,7 @@ import React from 'react'
 import {
   ArrowRight, Calendar, Camera, Check, CheckCircle, ChevronDown, ChevronUp,
   CircleDot, Clock, CreditCard, Eye, FileText, Glasses, Heart, Info, Layers,
-  Lock, MapPin, Maximize2, Navigation, Package, Phone, Plus, Search, Share2,
+  Lock, MapPin, Maximize2, Menu, Navigation, Package, Phone, Plus, Search, Share2,
   ShieldCheck, ShoppingBag, Smartphone, Store, Target, Trash2, Truck, User,
   UserPlus, X,
 } from 'lucide-react'
@@ -14,7 +14,7 @@ const ICONS = {
   'check-circle': CheckCircle, 'chevron-down': ChevronDown, 'chevron-up': ChevronUp,
   'circle-dot': CircleDot, clock: Clock, 'credit-card': CreditCard, eye: Eye,
   'file-text': FileText, glasses: Glasses, heart: Heart, info: Info, layers: Layers,
-  lock: Lock, 'map-pin': MapPin, 'maximize-2': Maximize2, navigation: Navigation,
+  lock: Lock, 'map-pin': MapPin, 'maximize-2': Maximize2, menu: Menu, navigation: Navigation,
   package: Package, phone: Phone, plus: Plus, search: Search, 'share-2': Share2,
   'shield-check': ShieldCheck, 'shopping-bag': ShoppingBag, smartphone: Smartphone,
   store: Store, target: Target, 'trash-2': Trash2, truck: Truck, user: User,

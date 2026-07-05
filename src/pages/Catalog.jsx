@@ -74,7 +74,7 @@ export function Catalog({ category = 'eyeglasses', brand = null, go, openCatalog
         </div>
       </div>
 
-      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '28px 28px 72px', display: 'grid', gridTemplateColumns: groups.length || hasTryMirror ? '250px 1fr' : '1fr', gap: 34, alignItems: 'start' }}>
+      <div className="oz-sidebar" style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '28px 28px 72px', display: 'grid', gridTemplateColumns: groups.length || hasTryMirror ? '250px 1fr' : '1fr', gap: 34, alignItems: 'start' }}>
         {/* FILTERS */}
         {(groups.length > 0 || hasTryMirror) && (
           <aside style={{ position: 'sticky', top: 96, display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -111,7 +111,7 @@ export function Catalog({ category = 'eyeglasses', brand = null, go, openCatalog
           {list.length === 0 ? (
             <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-muted)' }}>{t.empty}</div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
+            <div className="oz-g3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
               {list.map((p) => (
                 <ProductCard key={p.id} image={p.image || undefined} brand={p.brand} name={p.name} amount={p.amount} original={p.original || undefined}
                   rating={p.rating} reviewCount={p.reviews} badge={badgeOf(p)} tryMirror={p.tryMirror} colors={p.colors}

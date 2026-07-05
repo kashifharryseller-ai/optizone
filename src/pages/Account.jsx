@@ -191,7 +191,7 @@ function Dashboard({ go, openCatalog, tab, setTab, t }) {
       </div>
 
       <div className="oz-route" style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '30px 28px 80px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 30 }}>
+        <div className="oz-g4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 30 }}>
           <StatCard label={t.stats.orders} value={(orders || []).length} icon="package" />
           <StatCard label={t.stats.appts} value={(bookings || []).length} icon="calendar" />
           <StatCard label={t.stats.wishlist} value={wishlist.length} icon="heart" />
@@ -265,7 +265,7 @@ function Dashboard({ go, openCatalog, tab, setTab, t }) {
                 <Button variant="primary" onClick={() => openCatalog('eyeglasses')}>{t.browse}</Button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
+              <div className="oz-g3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
                 {wishProducts.map((p) => (
                   <div key={p.id} style={{ position: 'relative' }}>
                     <ProductCard image={p.image || undefined} brand={p.brand} name={p.name} amount={p.amount} original={p.original || undefined}
@@ -282,7 +282,7 @@ function Dashboard({ go, openCatalog, tab, setTab, t }) {
           )}
 
           {tab === 'settings' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start', maxWidth: 900 }}>
+            <div className="oz-g2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start', maxWidth: 900 }}>
               <Card padding="lg">
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-strong)', marginBottom: 16 }}>{t.profile}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

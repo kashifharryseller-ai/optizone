@@ -97,12 +97,12 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
         {t.steps.map((s, i) => <Step key={s} n={i + 1} label={s} active={step === i} done={step > i} />)}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 36, alignItems: 'start' }}>
+      <div className="oz-sidebar" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 36, alignItems: 'start' }}>
         <div key={step} className="oz-route" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {step === 0 && (
             <>
               <SectionTitle>{t.contactTitle}</SectionTitle>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="oz-g2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <Input placeholder={t.firstName} value={contact.firstName} onChange={(e) => setContact({ ...contact, firstName: e.target.value })} />
                 <Input placeholder={t.lastName} value={contact.lastName} onChange={(e) => setContact({ ...contact, lastName: e.target.value })} />
               </div>
@@ -120,11 +120,11 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
               {ship === 'delivery' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 4 }}>
                   <SectionTitle>{t.addrTitle}</SectionTitle>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+                  <div className="oz-split21" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
                     <Input placeholder={t.street} value={contact.address} onChange={(e) => setContact({ ...contact, address: e.target.value })} />
                     <Input placeholder={t.apt} />
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+                  <div className="oz-split21" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
                     <Input placeholder={t.city} defaultValue="נתניה" />
                     <Input placeholder={t.postal} defaultValue="4237512" />
                   </div>
@@ -151,7 +151,7 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
               {pay === 'card' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 4 }}>
                   <Input placeholder={t.cardNumber} defaultValue="4580 •••• •••• 1234" />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div className="oz-g2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <Input placeholder={t.expiry} defaultValue="09 / 28" />
                     <Input placeholder={t.cvv} defaultValue="•••" />
                   </div>

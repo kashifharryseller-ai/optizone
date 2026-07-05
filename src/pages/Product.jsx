@@ -50,7 +50,7 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
     <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '28px 28px 72px' }}>
       <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => openCatalog(p.category || 'eyeglasses')}>{t.backTo(catLabel)}</span>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, marginTop: 20, alignItems: 'start' }}>
+      <div className="oz-g2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, marginTop: 20, alignItems: 'start' }}>
         {/* GALLERY */}
         <div style={{ display: 'flex', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -126,7 +126,7 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
         <div style={{ padding: '24px 2px', fontSize: 15, lineHeight: 1.7, color: 'var(--text-body)' }}>
           {tab === 'desc' && <p style={{ margin: 0 }}>{t.descLong(p.name, p.shape, p.material)}</p>}
           {tab === 'specs' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 40px', maxWidth: 520 }}>
+            <div className="oz-g2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 40px', maxWidth: 520 }}>
               {[[t.specLabels.brand, p.brand], [t.specLabels.shape, A(p.shape)], [t.specLabels.material, A(p.material)], [t.specLabels.gender, A(p.gender)], [t.specLabels.lensWidth, '50 mm'], [t.specLabels.bridge, '21 mm'], [t.specLabels.temple, '145 mm'], [t.specLabels.tryMirror, p.tryMirror ? t.yes : t.no]].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-hair)', paddingBottom: 8 }}>
                   <span style={{ color: 'var(--text-muted)' }}>{k}</span><span style={{ color: 'var(--text-strong)', fontWeight: 600 }}>{v}</span>

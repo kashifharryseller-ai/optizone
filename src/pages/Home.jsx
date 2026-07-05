@@ -32,7 +32,7 @@ export function Home({ go, openCatalog, addToCart }) {
     <div>
       {/* HERO */}
       <section style={{ background: 'var(--pine-700)', color: 'var(--cream-100)', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '84px 28px 92px', display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 40, alignItems: 'center' }}>
+        <div className="oz-split" style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '84px 28px 92px', display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 40, alignItems: 'center' }}>
           <div>
             <span style={{ ...rise(40), display: 'inline-block', fontFamily: 'var(--font-display)', fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--amber-500)' }}>{L(hero.eyebrow)}</span>
             <h1 style={{ ...rise(120), fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 60, lineHeight: 1.02, letterSpacing: '0.01em', color: 'var(--cream-100)', margin: '18px 0 0' }}>
@@ -62,7 +62,7 @@ export function Home({ go, openCatalog, addToCart }) {
           <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--amber-700)' }}>{L(sec.services?.eyebrow)}</span>
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 32, color: 'var(--text-strong)', margin: '10px 0 0' }}>{L(sec.services?.title)}</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 18 }}>
+        <div className="oz-g3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 18 }}>
           {(content.services || []).map((s, i) => <Reveal key={i} delay={i * 70}><ServiceTile s={s} L={L} /></Reveal>)}
         </div>
       </section>
@@ -73,7 +73,7 @@ export function Home({ go, openCatalog, addToCart }) {
           <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--amber-700)' }}>{L(sec.categories?.eyebrow)}</span>
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 32, color: 'var(--text-strong)', margin: '10px 0 0' }}>{L(sec.categories?.title)}</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
+        <div className="oz-g3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
           {(content.categories || []).map((c, i) => (
             <Reveal key={c.key} delay={i * 80}>
               <div style={{ background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
@@ -97,7 +97,7 @@ export function Home({ go, openCatalog, addToCart }) {
           </div>
           <Button variant="link" onClick={() => openCatalog('eyeglasses')} endIcon={<Icon name="arrow-right" size={16} color="currentColor" style={{ transform: he ? 'scaleX(-1)' : 'none' }} />}>{L(sec.bestsellers?.viewall)}</Button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 20 }}>
+        <div className="oz-g4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 20 }}>
           {(content.products || []).slice(0, 4).map((p, i) => (
             <Reveal key={p.id} delay={i * 80}>
               <ProductCard image={p.image || undefined} brand={p.brand} name={p.name} amount={p.amount} original={p.original || undefined}

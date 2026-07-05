@@ -6,6 +6,7 @@
 @import './spacing.css';
 @import './base.css';
 @import './animations.css';
+@import './responsive.css';
 
 html, body, #root { min-height: 100%; }
 body { margin: 0; background: var(--bg-page); }

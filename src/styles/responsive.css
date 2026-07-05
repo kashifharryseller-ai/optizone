@@ -1,0 +1,72 @@
+/* ============================================================================
+   OPTIZONE — responsive layer.
+   Desktop is UNCHANGED: the inline styles on each element are the desktop
+   design, and there are NO desktop rules here. These media queries only kick
+   in on tablet / phone widths and override the grid columns via !important
+   (needed because the base values are inline). Nothing else about the design,
+   colours, content, fonts or spacing is touched.
+   ============================================================================ */
+
+/* --- Kill horizontal overflow on every screen ---------------------------- */
+html, body { max-width: 100%; overflow-x: hidden; }
+#root { max-width: 100%; overflow-x: hidden; }
+img, svg, video, canvas { max-width: 100%; }
+
+/* --- Responsive grids ----------------------------------------------------- */
+/* Tablet: 4-column → 2, 3-column → 2 */
+@media (max-width: 1024px) {
+  .oz-g4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .oz-g3 { grid-template-columns: repeat(2, 1fr) !important; }
+}
+/* Tablet/phone: stack the two-pane layouts (hero, sidebar+content, forms) */
+@media (max-width: 900px) {
+  .oz-split { grid-template-columns: 1fr !important; }
+  .oz-sidebar { grid-template-columns: 1fr !important; }
+}
+/* Footer: 4 → 2 columns */
+@media (max-width: 768px) {
+  .oz-footer-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+/* Phone: single column everywhere */
+@media (max-width: 640px) {
+  .oz-g4, .oz-g3, .oz-g2, .oz-split21 { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 480px) {
+  .oz-footer-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Cart line items wrap on narrow phones so nothing overflows */
+@media (max-width: 560px) {
+  .oz-cart-item { flex-wrap: wrap; }
+  .oz-cart-item > :nth-child(2) { min-width: 55%; }
+}
+
+/* --- Mobile navigation (hamburger) --------------------------------------- */
+/* !important is required: IconButton carries an inline `display:inline-flex`,
+   and an inline style outranks a plain class rule — so without !important the
+   hamburger would stay visible on desktop. The mobile media query below is
+   also !important and comes later in source order, so it wins when it matches. */
+.oz-hamburger { display: none !important; }
+.oz-mobile-nav { display: none; }
+
+@media (max-width: 900px) {
+  .oz-nav-desktop { display: none !important; }
+  .oz-hamburger { display: inline-flex !important; }
+  .oz-mobile-nav { display: block; }
+}
+
+/* The mobile drop-down menu (matches the pine header) */
+.oz-mobile-nav a {
+  display: block;
+  padding: 15px 24px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cream-100);
+  border-bottom: 1px solid var(--border-on-dark);
+  cursor: pointer;
+}
+.oz-mobile-nav a:last-child { border-bottom: none; }
+.oz-mobile-nav a.active { color: var(--amber-500); }
+.oz-mobile-nav a.oz-nav-cta { color: var(--amber-500); }
