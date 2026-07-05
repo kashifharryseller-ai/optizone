@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Panel, Row, Field, Text, Num, SelectField, Toggle, Bilingual, ImageField, ListEditor, StringList, Btn } from '../ui.jsx'
 
 const BADGE_VARIANTS = [
@@ -20,8 +20,8 @@ function ColorList({ colors = [], onChange }) {
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
       {colors.map((c, i) => (
         <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          <input type="color" value={c} onChange={(e) => onChange(colors.map((x, idx) => (idx === i ? e.target.value : x)))} style={{ width: 34, height: 34, border: '1px solid var(--border-hair)', borderRadius: 6, background: 'none', cursor: 'pointer' }} />
-          <button type="button" onClick={() => onChange(colors.filter((_, idx) => idx !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', fontSize: 15 }}>×</button>
+          <input type="color" aria-label={`Colour ${i + 1}`} value={c} onChange={(e) => onChange(colors.map((x, idx) => (idx === i ? e.target.value : x)))} style={{ width: 34, height: 34, border: '1px solid var(--border-hair)', borderRadius: 6, background: 'none', cursor: 'pointer' }} />
+          <button type="button" aria-label={`Remove colour ${i + 1}`} onClick={() => onChange(colors.filter((_, idx) => idx !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', fontSize: 15 }}>×</button>
         </span>
       ))}
       <Btn variant="outline" size="sm" onClick={() => onChange([...colors, '#274A3B'])}>+ Colour</Btn>
@@ -29,19 +29,80 @@ function ColorList({ colors = [], onChange }) {
   )
 }
 
+const searchStyle = { height: 36, padding: '0 12px', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-body)', fontSize: 13.5, outline: 'none', minWidth: 220 }
+
 export default function Products({ content, setContent }) {
   const products = content.products || []
   const filters = content.filters || {}
   const setProducts = (list) => setContent({ ...content, products: list })
   const nextId = () => (products.reduce((m, p) => Math.max(m, Number(p.id) || 0), 0) + 1)
 
+  // Search + category filter keep large catalogs navigable. While a filter is
+  // active, edits from the (filtered) list are reconciled back into the FULL
+  // catalog by product id, and reordering is disabled to avoid ambiguity.
+  const [query, setQuery] = useState('')
+  const [cat, setCat] = useState('all')
+  const filtering = query.trim() !== '' || cat !== 'all'
+  const q = query.trim().toLowerCase()
+  const visible = filtering
+    ? products.filter((p) =>
+        (cat === 'all' || (p.category || 'eyeglasses') === cat) &&
+        (!q || `${p.brand} ${p.name}`.toLowerCase().includes(q)))
+    : products
+  const onListChange = (nextVisible) => {
+    if (!filtering) return setProducts(nextVisible)
+    const shownIds = new Set(visible.map((p) => p.id))
+    const nextById = new Map(nextVisible.map((p) => [p.id, p]))
+    const merged = products
+      .filter((p) => !(shownIds.has(p.id) && !nextById.has(p.id))) // removed while filtered
+      .map((p) => nextById.get(p.id) || p)                          // edited while filtered
+    const known = new Set(products.map((p) => p.id))
+    let added = false
+    for (const p of nextVisible) if (!known.has(p.id)) { merged.push(p); added = true }
+    setProducts(merged)
+    if (added) { setQuery(''); setCat('all') } // reveal the newly added product
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-    <Panel title="Products & catalog" desc="Every product belongs to a category — that decides which navbar page (Eyeglasses / Sunglasses / Contact Lenses) it appears on.">
+    <Panel
+      title="Products & catalog"
+      desc="Every product belongs to a category — that decides which navbar page (Eyeglasses / Sunglasses / Contact Lenses) it appears on. Archived products stay here but are hidden from the storefront."
+      actions={(
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input aria-label="Search products" placeholder={`Search ${products.length} products…`} value={query} onChange={(e) => setQuery(e.target.value)} style={searchStyle} />
+          <select aria-label="Filter by category" value={cat} onChange={(e) => setCat(e.target.value)} style={{ ...searchStyle, minWidth: 0 }}>
+            <option value="all">All categories</option>
+            {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+        </div>
+      )}
+    >
       <ListEditor
-        items={products}
-        onChange={setProducts}
+        items={visible}
+        onChange={onListChange}
+        canReorder={!filtering}
         addLabel="Add product"
+        confirmRemove={(p) => `PERMANENTLY remove "${p.brand ? p.brand + ' ' : ''}${p.name}" from the catalog? To hide it from the store while keeping its history, use the Archive toggle instead.`}
+        summary={(p) => (
+          <>
+            <span style={{ width: 44, height: 34, borderRadius: 6, background: 'var(--cream-300)', border: '1px solid var(--border-hair)', overflow: 'hidden', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {p.image
+                ? <img src={p.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                : <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>no photo</span>}
+            </span>
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <b style={{ color: 'var(--text-strong)', fontSize: 14 }}>{p.brand ? `${p.brand} · ` : ''}{p.name}</b>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>
+                {'  ·  ₪' + Number(p.amount || 0).toLocaleString('he-IL')}
+                {'  ·  ' + (CATEGORIES.find((c) => c.value === (p.category || 'eyeglasses'))?.label || p.category)}
+              </span>
+            </span>
+            {p.active === false && (
+              <span style={{ flex: '0 0 auto', fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'var(--amber-500)', color: 'var(--pine-950)', borderRadius: 999, padding: '3px 9px' }}>Archived</span>
+            )}
+          </>
+        )}
         makeNew={() => ({ id: nextId(), category: 'eyeglasses', brand: '', name: 'New frame', amount: 0, original: 0, rating: 5, reviews: 0, badge: null, tryMirror: true, colors: ['#274A3B'], shape: 'Round', material: 'Acetate', gender: 'Unisex', image: '', images: [], tryMirrorImg: '', desc: { en: '', he: '' }, specs: { lensWidth: '', bridge: '', temple: '', weight: '', lensOpts: { en: '', he: '' } } })}
         render={(p, set) => (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -66,6 +127,9 @@ export default function Products({ content, setContent }) {
               <div style={{ display: 'flex', gap: 20, alignItems: 'flex-end', paddingBottom: 8 }}>
                 <Field label="Try Mirror"><Toggle checked={!!p.tryMirror} onChange={(v) => set({ ...p, tryMirror: v })} label={p.tryMirror ? 'On' : 'Off'} /></Field>
                 <Field label="Badge"><Toggle checked={!!p.badge} onChange={(v) => set({ ...p, badge: v ? { variant: 'new', label: { en: 'New', he: 'חדש' } } : null })} label={p.badge ? 'Shown' : 'Hidden'} /></Field>
+                {/* Soft delete: archived products keep their data/history but
+                    are hidden from the storefront (server filters them out). */}
+                <Field label="In store"><Toggle checked={p.active !== false} onChange={(v) => set({ ...p, active: v })} label={p.active !== false ? 'Visible' : 'Archived'} /></Field>
               </div>
             </Row>
             {p.badge && (

@@ -4,25 +4,45 @@ import { api } from '../../api.js'
 
 const STATUSES = ['New', 'In lab', 'Shipped', 'Collected', 'Cancelled']
 
+const searchStyle = { height: 34, padding: '0 12px', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-body)', fontSize: 13.5, outline: 'none' }
+
 export default function Orders() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
 
   const load = () => { setLoading(true); api.orders().then(setOrders).catch((e) => setErr(e.message)).finally(() => setLoading(false)) }
   useEffect(load, [])
 
   const setStatus = (id, status) => { api.setOrderStatus(id, status).then(() => setOrders((os) => os.map((o) => (o.id === id ? { ...o, status } : o)))).catch((e) => setErr(e.message)) }
-  const del = (id) => { if (!confirm('Delete this order?')) return; api.deleteOrder(id).then(() => setOrders((os) => os.filter((o) => o.id !== id))).catch((e) => setErr(e.message)) }
+  const del = (id) => { if (!confirm(`Delete order ${id}? This cannot be undone.`)) return; api.deleteOrder(id).then(() => setOrders((os) => os.filter((o) => o.id !== id))).catch((e) => setErr(e.message)) }
+
+  const q = query.trim().toLowerCase()
+  const shown = orders.filter((o) =>
+    (statusFilter === 'all' || o.status === statusFilter) &&
+    (!q || `${o.id} ${o.customer?.name || ''} ${o.customer?.email || ''} ${o.customer?.phone || ''}`.toLowerCase().includes(q)))
 
   return (
-    <Panel title="Orders" desc="Orders placed through the storefront checkout." actions={<Btn variant="outline" size="sm" onClick={load}>Refresh</Btn>}>
+    <Panel title="Orders" desc="Orders placed through the storefront checkout." actions={(
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input aria-label="Search orders" placeholder="Search id / name / email…" value={query} onChange={(e) => setQuery(e.target.value)} style={{ ...searchStyle, minWidth: 190 }} />
+        <select aria-label="Filter by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={searchStyle}>
+          <option value="all">All statuses</option>
+          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <Btn variant="outline" size="sm" onClick={load}>Refresh</Btn>
+      </div>
+    )}>
       {err && <div style={{ color: 'var(--danger)', marginBottom: 12 }}>{err}</div>}
       {loading ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : orders.length === 0 ? (
         <p style={{ color: 'var(--text-muted)' }}>No orders yet.</p>
+      ) : shown.length === 0 ? (
+        <p style={{ color: 'var(--text-muted)' }}>No orders match the current search/filter.</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {orders.map((o) => (
+          {shown.map((o) => (
             <div key={o.id} style={{ border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)', padding: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <div>

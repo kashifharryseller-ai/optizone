@@ -22,6 +22,21 @@ const maskEmail = (e) => e.replace(/^(.).*(@.*)$/, (m, a, b) => a + '•••' 
 
 const getAdmin = async () => (await store().getMeta()).adminAccount || null
 
+// --- Audit log ----------------------------------------------------------------
+// Fire-and-forget trail of admin actions on data (views of PII, edits,
+// deletions). Stored in meta.audit, newest first, capped so it can't grow
+// unbounded. Never blocks or fails the underlying request.
+const AUDIT_MAX = 300
+function audit(req, action, target) {
+  ;(async () => {
+    try {
+      const meta = await store().getMeta()
+      const entry = { ts: new Date().toISOString(), actor: (req.admin && req.admin.sub) || 'admin', action, target: String(target || '').slice(0, 200) }
+      await store().setMeta({ audit: [entry, ...(meta.audit || [])].slice(0, AUDIT_MAX) })
+    } catch { /* audit must never break the request */ }
+  })()
+}
+
 // One active challenge at a time (single owner); persisted in the store so it
 // works across serverless instances.
 async function createChallenge(purpose) {
@@ -171,10 +186,10 @@ router.get('/stats', async (req, res, next) => {
       newOrders: orders.filter((o) => o.status === 'New').length,
       newBookings: bookings.filter((b) => b.status === 'New').length,
       revenue,
-      // Deployment health — lets the dashboard warn about ephemeral storage
-      // (serverless without MySQL) and a missing JWT_SECRET.
+      // Deployment health — powers the dashboard warning banner and the
+      // Security page's environment checklist.
       store: storeInfo(),
-      security: { jwtFromEnv: config.jwtSecretFromEnv },
+      security: { jwtFromEnv: config.jwtSecretFromEnv, mailConfigured: mailEnabled(), otpEnabled: otpOn() },
     })
   } catch (err) { next(err) }
 })
@@ -183,6 +198,7 @@ router.get('/stats', async (req, res, next) => {
 router.get('/users', async (req, res, next) => {
   try {
     const [users, orders, bookings] = await Promise.all([store().listUsers(), store().listOrders(), store().listBookings()])
+    audit(req, 'customers.view', `count=${users.length}`) // PII access trail
     res.json(users.map((u) => ({
       id: u.id, name: u.name, email: u.email, phone: u.phone || '',
       createdAt: u.createdAt, active: u.active !== false,
@@ -200,12 +216,22 @@ router.patch('/users/:id', async (req, res, next) => {
     if (typeof (req.body || {}).active === 'boolean') patch.active = req.body.active
     const user = await store().updateUser(req.params.id, patch)
     if (!user) return res.status(404).json({ error: 'Customer not found' })
+    audit(req, patch.active === false ? 'customer.disable' : 'customer.enable', user.email || user.id)
     res.json({ id: user.id, active: user.active !== false })
   } catch (err) { next(err) }
 })
 
 router.delete('/users/:id', async (req, res, next) => {
-  try { await store().deleteUser(req.params.id); res.json({ ok: true }) } catch (err) { next(err) }
+  try {
+    await store().deleteUser(req.params.id)
+    audit(req, 'customer.delete', req.params.id)
+    res.json({ ok: true })
+  } catch (err) { next(err) }
+})
+
+// Recent admin actions on data (PII views/edits/deletes) — newest first.
+router.get('/audit', async (req, res, next) => {
+  try { res.json((await store().getMeta()).audit || []) } catch (err) { next(err) }
 })
 
 // --- Content (single document holding products, homepage, stores, settings) --
@@ -213,15 +239,50 @@ router.get('/content', async (req, res, next) => {
   try { res.json(await store().getContent()) } catch (err) { next(err) }
 })
 
+// Strip HTML tags from a string (defence-in-depth against stored XSS — React
+// escapes on render, this keeps markup out of the data layer entirely).
+const stripTags = (s) => String(s).replace(/<[^>]*>/g, '').slice(0, 4000)
+const cleanBilingual = (v) => (v && typeof v === 'object'
+  ? { ...v, en: v.en != null ? stripTags(v.en) : v.en, he: v.he != null ? stripTags(v.he) : v.he }
+  : typeof v === 'string' ? stripTags(v) : v)
+const clamp = (n, lo, hi, dflt = 0) => { const x = Number(n); return Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : dflt }
+
+// Server-side validation for product records — the UI validates too, but the
+// API must not trust the client (types/ranges per the catalog contract).
+function validateProducts(products) {
+  if (!Array.isArray(products)) return { error: 'products must be an array' }
+  for (const p of products) {
+    if (!p || typeof p !== 'object') return { error: 'Invalid product entry' }
+    p.name = stripTags(p.name || '').slice(0, 160)
+    p.brand = stripTags(p.brand || '').slice(0, 80)
+    p.amount = clamp(p.amount, 0, 10_000_000)               // price ≥ 0
+    p.original = clamp(p.original, 0, 10_000_000)
+    p.rating = clamp(p.rating, 0, 5, 5)                     // rating 0–5
+    p.reviews = Math.round(clamp(p.reviews, 0, 10_000_000)) // integer ≥ 0
+    if (p.desc) p.desc = cleanBilingual(p.desc)
+    if (p.specs && typeof p.specs === 'object') {
+      for (const k of ['lensWidth', 'bridge', 'temple', 'weight']) if (p.specs[k] != null) p.specs[k] = stripTags(p.specs[k]).slice(0, 80)
+      if (p.specs.lensOpts) p.specs.lensOpts = cleanBilingual(p.specs.lensOpts)
+    }
+  }
+  return { ok: true }
+}
+
 router.put('/content', async (req, res, next) => {
   try {
     const content = req.body
     if (!content || typeof content !== 'object' || Array.isArray(content)) {
       return res.status(400).json({ error: 'Invalid content payload' })
     }
+    if (content.products) {
+      const v = validateProducts(content.products)
+      if (v.error) return res.status(400).json({ error: v.error })
+    }
     // Version stamp — the storefront polls this to refresh itself instantly.
     content.updatedAt = new Date().toISOString()
-    res.json(await store().setContent(content))
+    const saved = await store().setContent(content)
+    audit(req, 'content.save', `products=${(content.products || []).length}`)
+    res.json(saved)
   } catch (err) { next(err) }
 })
 
@@ -239,7 +300,11 @@ router.patch('/orders/:id', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 router.delete('/orders/:id', async (req, res, next) => {
-  try { await store().deleteOrder(req.params.id); res.json({ ok: true }) } catch (err) { next(err) }
+  try {
+    await store().deleteOrder(req.params.id)
+    audit(req, 'order.delete', req.params.id)
+    res.json({ ok: true })
+  } catch (err) { next(err) }
 })
 
 // --- Bookings ---------------------------------------------------------------
@@ -256,7 +321,11 @@ router.patch('/bookings/:id', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 router.delete('/bookings/:id', async (req, res, next) => {
-  try { await store().deleteBooking(req.params.id); res.json({ ok: true }) } catch (err) { next(err) }
+  try {
+    await store().deleteBooking(req.params.id)
+    audit(req, 'appointment.delete', req.params.id)
+    res.json({ ok: true })
+  } catch (err) { next(err) }
 })
 
 // --- Image upload -----------------------------------------------------------

@@ -4,6 +4,81 @@ import { api } from '../../api.js'
 
 const pwStyle = { width: '100%', height: 40, padding: '0 12px', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }
 
+// One ✓/✗ row of the production-readiness checklist.
+function CheckRow({ ok, label, fix }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border-hair)' }}>
+      <span style={{ width: 20, height: 20, borderRadius: 999, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, background: ok ? 'var(--success)' : 'var(--amber-500)', color: ok ? 'var(--cream-100)' : 'var(--pine-950)' }}>{ok ? '✓' : '!'}</span>
+      <div style={{ fontSize: 14, lineHeight: 1.55 }}>
+        <b style={{ color: 'var(--text-strong)' }}>{label}</b>
+        {!ok && fix && <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{fix}</div>}
+      </div>
+    </div>
+  )
+}
+
+// Production-readiness checklist — the same env-level items the dashboard
+// warns about, in one place with exact fixes (DB, JWT_SECRET, email OTP).
+function EnvChecklist() {
+  const [stats, setStats] = useState(null)
+  useEffect(() => { api.stats().then(setStats).catch(() => {}) }, [])
+  if (!stats) return null
+  const s = stats.security || {}
+  const st = stats.store || {}
+  return (
+    <Panel title="Production readiness" desc="Environment configuration this panel can detect. All three should be green before taking real orders.">
+      <div style={{ maxWidth: 640 }}>
+        <CheckRow
+          ok={st.driver === 'mysql'}
+          label={st.driver === 'mysql' ? 'Persistent database connected (MySQL)' : 'Persistent database (MySQL)'}
+          fix={st.ephemeral
+            ? 'Data currently lives in TEMPORARY serverless storage and resets on redeploys. Set DB_HOST / DB_USER / DB_PASSWORD / DB_NAME env vars on your host.'
+            : 'Using the local JSON-file store. Fine on a single server (Hostinger); set DB_* env vars to switch to MySQL.'}
+        />
+        <CheckRow
+          ok={!!s.jwtFromEnv}
+          label="JWT_SECRET configured"
+          fix="Set a long random JWT_SECRET env var so sign-in sessions are cryptographically strong and stable."
+        />
+        <CheckRow
+          ok={!!s.otpEnabled}
+          label="Two-step verification (email OTP)"
+          fix="Set GMAIL_USER + GMAIL_APP_PASSWORD env vars — OTP turns on automatically (details below)."
+        />
+      </div>
+    </Panel>
+  )
+}
+
+// Trail of recent admin actions on data (PII views, edits, deletions) —
+// written server-side; read-only here.
+function AuditLog() {
+  const [rows, setRows] = useState(null)
+  useEffect(() => { api.adminAudit().then(setRows).catch(() => setRows([])) }, [])
+  return (
+    <Panel title="Audit log" desc="Recent admin actions on store data — customer views, edits and deletions. Recorded automatically on the server.">
+      {!rows ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : rows.length === 0 ? (
+        <p style={{ color: 'var(--text-muted)' }}>No recorded actions yet.</p>
+      ) : (
+        <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <tbody>
+              {rows.slice(0, 100).map((r, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid var(--border-hair)' }}>
+                  <td style={{ padding: '8px 12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{new Date(r.ts).toLocaleString()}</td>
+                  <td style={{ padding: '8px 12px', fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.04em', color: 'var(--text-strong)' }}>{r.action}</td>
+                  <td style={{ padding: '8px 12px', color: 'var(--text-body)', overflowWrap: 'anywhere' }}>{r.target}</td>
+                  <td style={{ padding: '8px 12px', color: 'var(--text-muted)' }}>{r.actor}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Panel>
+  )
+}
+
 export default function Security() {
   const [account, setAccount] = useState(null)
   const [email, setEmail] = useState('')
@@ -36,6 +111,7 @@ export default function Security() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <EnvChecklist />
       <Panel title="Owner account" desc="The email and password used to sign in to this admin panel. The email also receives your OTP sign-in codes.">
         {!account ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 560 }}>
@@ -78,6 +154,8 @@ export default function Security() {
           </div>
         )}
       </Panel>
+
+      <AuditLog />
     </div>
   )
 }

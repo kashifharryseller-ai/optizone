@@ -58,6 +58,7 @@ export const api = {
   adminReset: (challenge, code, password) => req('/admin/reset', { method: 'POST', body: { challenge, code, password } }),
   adminAccount: () => req('/admin/account', { auth: 'admin' }),
   adminAccountUpdate: (payload) => req('/admin/account', { method: 'PUT', auth: 'admin', body: payload }),
+  adminAudit: () => req('/admin/audit', { auth: 'admin' }),
   contentVersion: () => req('/content/version'),
   me: () => req('/admin/me', { auth: 'admin' }),
   stats: () => req('/admin/stats', { auth: 'admin' }),

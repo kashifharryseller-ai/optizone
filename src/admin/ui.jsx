@@ -141,27 +141,54 @@ export function ImageField({ label, value, onChange }) {
 }
 
 // --- Repeatable list --------------------------------------------------------
-export function ListEditor({ items, onChange, render, makeNew, addLabel = 'Add item', itemStyle }) {
+// Optional props:
+//  - summary(item, i): renders a compact header row; when provided the item
+//    body is COLLAPSED by default and expands via the header / Edit button —
+//    keeps long catalogs (e.g. Products) scannable instead of a huge scroll.
+//  - confirmRemove(item) | string: confirmation prompt before deleting a row.
+export function ListEditor({ items, onChange, render, makeNew, addLabel = 'Add item', itemStyle, summary, confirmRemove, canReorder = true }) {
+  const [openIdx, setOpenIdx] = useState(summary ? null : -1) // -1 = all open (no summary mode)
   const update = (i, next) => onChange(items.map((it, idx) => (idx === i ? next : it)))
-  const remove = (i) => onChange(items.filter((_, idx) => idx !== i))
+  const remove = (i, it) => {
+    if (confirmRemove) {
+      const msg = typeof confirmRemove === 'function' ? confirmRemove(it) : confirmRemove
+      if (!window.confirm(msg)) return
+    }
+    if (openIdx === i) setOpenIdx(null)
+    onChange(items.filter((_, idx) => idx !== i))
+  }
   const move = (i, dir) => {
     const j = i + dir
     if (j < 0 || j >= items.length) return
     const copy = [...items]; const [x] = copy.splice(i, 1); copy.splice(j, 0, x); onChange(copy)
+    if (openIdx === i) setOpenIdx(j)
+    else if (openIdx === j) setOpenIdx(i)
   }
+  const add = () => { onChange([...items, makeNew()]); if (summary) setOpenIdx(items.length) }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {items.map((it, i) => (
-        <div key={i} style={{ border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)', padding: 14, background: 'var(--bg-page-alt)', ...itemStyle }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginBottom: 8 }}>
-            <Btn variant="ghost" size="sm" onClick={() => move(i, -1)} disabled={i === 0}>↑</Btn>
-            <Btn variant="ghost" size="sm" onClick={() => move(i, 1)} disabled={i === items.length - 1}>↓</Btn>
-            <Btn variant="danger" size="sm" onClick={() => remove(i)}>Remove</Btn>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: summary ? 8 : 12 }}>
+      {items.map((it, i) => {
+        const open = !summary || openIdx === i
+        return (
+          <div key={i} style={{ border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)', padding: summary && !open ? '10px 14px' : 14, background: 'var(--bg-page-alt)', ...itemStyle }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {summary && (
+                <div onClick={() => setOpenIdx(open ? null : i)} style={{ flex: 1, minWidth: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {summary(it, i)}
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginInlineStart: 'auto', flex: '0 0 auto', marginBottom: open && !summary ? 8 : 0 }}>
+                {summary && <Btn variant={open ? 'outline' : 'ghost'} size="sm" onClick={() => setOpenIdx(open ? null : i)}>{open ? 'Close' : 'Edit'}</Btn>}
+                {canReorder && <Btn variant="ghost" size="sm" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">↑</Btn>}
+                {canReorder && <Btn variant="ghost" size="sm" onClick={() => move(i, 1)} disabled={i === items.length - 1} aria-label="Move down">↓</Btn>}
+                <Btn variant="danger" size="sm" onClick={() => remove(i, it)} aria-label="Remove item">Remove</Btn>
+              </div>
+            </div>
+            {open && <div style={{ marginTop: summary ? 12 : 0 }}>{render(it, (next) => update(i, next), i)}</div>}
           </div>
-          {render(it, (next) => update(i, next), i)}
-        </div>
-      ))}
-      <div><Btn variant="accent" size="sm" onClick={() => onChange([...items, makeNew()])}>+ {addLabel}</Btn></div>
+        )
+      })}
+      <div><Btn variant="accent" size="sm" onClick={add}>+ {addLabel}</Btn></div>
     </div>
   )
 }
@@ -173,7 +200,7 @@ export function StringList({ items = [], onChange, placeholder }) {
       {items.map((v, i) => (
         <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
           <input value={v} onChange={(e) => onChange(items.map((x, idx) => (idx === i ? e.target.value : x)))} style={{ ...inputStyle, height: 32, width: 130 }} placeholder={placeholder} />
-          <button type="button" onClick={() => onChange(items.filter((_, idx) => idx !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', fontSize: 16 }}>×</button>
+          <button type="button" aria-label={`Remove ${v || 'item'}`} onClick={() => onChange(items.filter((_, idx) => idx !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', fontSize: 16 }}>×</button>
         </span>
       ))}
       <Btn variant="outline" size="sm" onClick={() => onChange([...items, ''])}>+ Add</Btn>

@@ -3,13 +3,18 @@ import { Panel, Btn } from '../ui.jsx'
 import { Icon } from '../../ds/index.js'
 import { api } from '../../api.js'
 
-function Stat({ icon, label, value, tone }) {
+function Stat({ icon, label, value, prefix, tone }) {
   return (
     <div style={{ background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)', padding: '18px 20px' }}>
       <span style={{ display: 'inline-flex', width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: tone || 'var(--pine-50)', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
         <Icon name={icon} size={19} color="var(--pine-700)" />
       </span>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'var(--text-strong)' }}>{value}</div>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'var(--text-strong)', display: 'flex', alignItems: 'baseline', gap: 3 }}>
+        {/* currency prefix in the body font at a smaller size — the display
+            face renders ₪ oversized and kerns badly against digits */}
+        {prefix && <span style={{ fontFamily: 'var(--font-body)', fontSize: 17, fontWeight: 600, color: 'var(--text-muted)' }}>{prefix}</span>}
+        <span>{value}</span>
+      </div>
       <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{label}</div>
     </div>
   )
@@ -57,7 +62,7 @@ export default function Dashboard({ go }) {
           <Stat icon="calendar" label={`Appointments (${stats ? stats.newBookings : 0} new)`} value={stats ? stats.bookings : '—'} tone="var(--amber-50)" />
           <Stat icon="user" label="Customers" value={stats ? stats.customers : '—'} />
           <Stat icon="store" label="Branches" value={stats ? stats.stores : '—'} />
-          <Stat icon="credit-card" label="Revenue" value={stats ? '₪' + Number(stats.revenue).toLocaleString('he-IL') : '—'} />
+          <Stat icon="credit-card" label="Revenue" prefix={stats ? '₪' : ''} value={stats ? Number(stats.revenue).toLocaleString('he-IL') : '—'} />
         </div>
       </Panel>
 

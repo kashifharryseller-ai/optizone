@@ -17,8 +17,12 @@ export default function Customers() {
       .catch((e) => setErr(e.message))
   }
   const del = (id) => {
-    if (!confirm('Delete this customer account? Their orders stay in Orders.')) return
-    api.deleteUser(id).then(() => setUsers((us) => us.filter((u) => u.id !== id))).catch((e) => setErr(e.message))
+    const u = users.find((x) => x.id === id)
+    const who = u ? `${u.name || 'this customer'} (${u.email})` : 'this customer account'
+    // Prefer the reversible path: the Active toggle disables an account while
+    // keeping its history. Delete is the explicit, confirmed, permanent path.
+    if (!confirm(`PERMANENTLY delete ${who}? Their orders stay in Orders.\n\nTip: use the Active toggle to disable the account without deleting history.`)) return
+    api.deleteUser(id).then(() => setUsers((us) => us.filter((u2) => u2.id !== id))).catch((e) => setErr(e.message))
   }
 
   const ql = q.trim().toLowerCase()

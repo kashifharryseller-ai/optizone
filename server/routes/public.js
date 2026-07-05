@@ -14,7 +14,13 @@ const num = customAlphabet('0123456789', 5)
 router.get('/content', async (req, res, next) => {
   try {
     const content = await store().getContent()
-    res.json({ ...content, settings: { ...(content.settings || {}), mapsKey: config.mapsKey || '' } })
+    res.json({
+      ...content,
+      // Soft-deleted (archived) products stay in the admin catalog but never
+      // reach the storefront.
+      products: (content.products || []).filter((p) => p.active !== false),
+      settings: { ...(content.settings || {}), mapsKey: config.mapsKey || '' },
+    })
   } catch (err) { next(err) }
 })
 

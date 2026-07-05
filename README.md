@@ -102,6 +102,29 @@ With no `DB_*` env vars set, the app uses a local JSON store
 (`server/data/db.json`) so it runs with zero setup. Copy `.env.example` → `.env`
 to configure MySQL and admin credentials.
 
+### Production checklist (required env vars)
+
+All of these are documented with examples in [.env.example](.env.example) —
+the admin **Security → Production readiness** panel shows live ✓/✗ status:
+
+1. **`JWT_SECRET`** *(required — the server refuses to boot in production
+   without it on a normal host; on serverless it falls back to a
+   deployment-derived secret with a warning)*. Generate one:
+   `openssl rand -hex 32`.
+2. **Persistent database** — `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+   (+ optional `DB_PORT`). The MySQL store creates its tables automatically on
+   first boot and seeds content; without it, serverless hosts (Vercel) keep
+   data in **temporary per-instance storage** that resets on redeploys.
+3. **Email OTP (two-step admin sign-in)** — `GMAIL_USER` +
+   `GMAIL_APP_PASSWORD` (Google Account → Security → 2-Step Verification →
+   App passwords). OTP turns on automatically once email works
+   (`ADMIN_OTP=force|off` to override).
+4. **`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`** — checkout address autocomplete
+   (referrer-restricted browser key; optional, checkout degrades gracefully).
+
+Health check: `GET /api/health` returns `{ ok, uptime, store: { driver,
+ephemeral } }` for uptime monitors and deploy verification.
+
 ### Scripts
 | Script | What it does |
 |---|---|

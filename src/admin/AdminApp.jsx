@@ -54,6 +54,14 @@ export default function AdminApp() {
 
   const dirty = useMemo(() => content && original && JSON.stringify(content) !== JSON.stringify(original), [content, original])
 
+  // Warn before closing/leaving the tab with unsaved content edits.
+  useEffect(() => {
+    if (!dirty) return
+    const onBeforeUnload = (e) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
+
   const save = async () => {
     setSaving(true); setMsg('')
     try { const saved = await api.saveContent(content); setOriginal(saved); setContentState(saved); setMsg('Saved') ; setTimeout(() => setMsg(''), 2500) }

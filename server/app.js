@@ -10,13 +10,21 @@ const adminRoutes = require('./routes/admin')
 const accountRoutes = require('./routes/account')
 const googleRoutes = require('./routes/google')
 
-// Warn (don't crash) when no explicit signing secret is configured — a strong
-// random one is used per process, but sessions won't survive restarts.
+// JWT_SECRET policy:
+//  - production on a normal server: REQUIRED — fail fast with a clear error so
+//    a misconfigured deploy can't silently run with unstable sessions.
+//  - production on serverless (Vercel/Lambda): a deployment-stable secret is
+//    derived so the live site keeps working, with a loud warning (crashing
+//    here would take the whole site down on hosts where env edits redeploy).
+//  - development/tests: random per-process secret is fine.
 if (config.nodeEnv === 'production' && !config.jwtSecretFromEnv) {
   if (config.jwtServerlessDerived) {
     console.warn('[security] JWT_SECRET is not set — derived a deployment-stable secret so sign-ins keep working across serverless instances. Set JWT_SECRET in your host env for stronger security.')
   } else {
-    console.warn('[security] JWT_SECRET is not set — using a random per-process secret. Set JWT_SECRET for stable sessions.')
+    throw new Error(
+      '[security] JWT_SECRET is required in production. Set a long random JWT_SECRET environment variable ' +
+      '(e.g. `openssl rand -hex 32`) in your host settings and restart. See .env.example.',
+    )
   }
 }
 
@@ -46,7 +54,12 @@ function createApp({ serveStatic = true } = {}) {
   }))
 
   // Health check.
-  app.get('/api/health', (req, res) => res.json({ ok: true, store: config.useMysql ? 'mysql' : 'file' }))
+  // Health check — for uptime monitors and deploy verification (reports the
+  // ACTIVE store driver, incl. MySQL→file fallback, and ephemerality).
+  app.get('/api/health', (req, res) => {
+    const { storeInfo } = require('./store')
+    res.json({ ok: true, uptime: Math.round(process.uptime()), store: storeInfo(), ts: new Date().toISOString() })
+  })
 
   // Rate limiting: broad shield on the whole API, tighter on auth + public writes.
   app.use('/api', globalApiLimiter)
