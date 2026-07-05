@@ -28,6 +28,16 @@ use "Forgot password?" on the login screen to reset by emailed code. Content
 saved in the admin panel appears on the live storefront **automatically**
 (version polling + refresh-on-focus, no reload needed).
 
+> **Admin ↔ website connection.** The admin writes to the store and the
+> storefront reads from it, so they stay in sync **when they share one store**.
+> On an always-on host (Hostinger) with **MySQL**, or any single Node process,
+> this is automatic. On **serverless (Vercel) without a database**, each request
+> can hit a different instance with its own temporary store, so admin edits may
+> not appear on the site — set the `DB_*` env vars to **any** reachable MySQL
+> (Hostinger, or a free cloud MySQL like Aiven/Railway/PlanetScale) and both
+> sides share it. Existing stores are auto-migrated to the latest content shape
+> on boot, so new fields are populated without losing your customizations.
+
 ### Deploy targets
 - **Vercel (preview/demo):** import this repo at [vercel.com/new](https://vercel.com/new) —
   `vercel.json` configures the Vite build, the serverless API (`api/index.js`)
