@@ -8,10 +8,27 @@ const config = {
   port: Number(process.env.PORT) || 3000,
   nodeEnv: process.env.NODE_ENV || 'production',
 
-  // Admin credentials (set these in your Hostinger env / .env).
+  // Super-admin (store owner). These values only SEED the account on first boot;
+  // after that the credentials live in the database and are managed from
+  // Admin → Security (change email / password, reset via email OTP).
   admin: {
-    username: process.env.ADMIN_USERNAME || 'admin',
-    password: process.env.ADMIN_PASSWORD || 'optizone-admin',
+    email: (process.env.ADMIN_EMAIL || (String(process.env.ADMIN_USERNAME || '').includes('@') ? process.env.ADMIN_USERNAME : '') || 'info@optizone.co.il').toLowerCase(),
+    // bcrypt hash only — plaintext is never stored in the repo.
+    seedPasswordHash: process.env.ADMIN_PASSWORD_HASH || '',
+    seedPassword: process.env.ADMIN_PASSWORD || '', // hashed at boot if provided
+    defaultHash: '$2a$10$5T18Ljk0gnr43hFQ27qmeOSyN71qz6eFN10jwC8aLPQyjHrPpxL8S',
+    // OTP mode: 'auto' (on when email is configured) | 'force' | 'off'
+    otp: (process.env.ADMIN_OTP || 'auto').toLowerCase(),
+    otpTtlMin: Number(process.env.ADMIN_OTP_TTL_MIN) || 10,
+  },
+
+  // Outgoing email for admin OTP codes (Gmail app password recommended).
+  mail: {
+    user: process.env.GMAIL_USER || process.env.SMTP_USER || '',
+    pass: process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS || '',
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: Number(process.env.SMTP_PORT) || 465,
+    from: process.env.MAIL_FROM || process.env.GMAIL_USER || process.env.SMTP_USER || '',
   },
   jwtSecret: process.env.JWT_SECRET || 'dev-only-insecure-secret-change-in-production',
   tokenTtl: process.env.TOKEN_TTL || '12h',

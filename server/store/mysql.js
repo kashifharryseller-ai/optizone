@@ -27,6 +27,10 @@ async function ensureSchema(conn) {
     created_at DATETIME NOT NULL,
     data LONGTEXT NOT NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`)
+  await conn.query(`CREATE TABLE IF NOT EXISTS oz_meta (
+    id TINYINT PRIMARY KEY,
+    data LONGTEXT NOT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`)
 
   const [rows] = await conn.query('SELECT id FROM oz_content WHERE id = 1')
   if (!rows.length) {
@@ -122,4 +126,17 @@ module.exports = {
     return u
   },
   async deleteUser(id) { await pool.query('DELETE FROM oz_users WHERE id = ?', [id]) },
+
+  // --- Meta (admin account, OTP challenges) ---
+  async getMeta() {
+    const [rows] = await pool.query('SELECT data FROM oz_meta WHERE id = 1')
+    if (!rows.length) return {}
+    try { return JSON.parse(rows[0].data) } catch (_) { return {} }
+  },
+  async setMeta(patch) {
+    const cur = await this.getMeta()
+    const next = { ...cur, ...patch }
+    await pool.query('INSERT INTO oz_meta (id, data) VALUES (1, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)', [JSON.stringify(next)])
+    return next
+  },
 }

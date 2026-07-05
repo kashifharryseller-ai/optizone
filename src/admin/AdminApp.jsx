@@ -9,6 +9,7 @@ import Homepage from './sections/Homepage.jsx'
 import StoresSettings from './sections/StoresSettings.jsx'
 import Orders from './sections/Orders.jsx'
 import Customers from './sections/Customers.jsx'
+import Security from './sections/Security.jsx'
 import Bookings from './sections/Bookings.jsx'
 
 const NAV = [
@@ -19,6 +20,7 @@ const NAV = [
   { key: 'orders', label: 'Orders', icon: '⛁' },
   { key: 'customers', label: 'Customers', icon: '☺' },
   { key: 'bookings', label: 'Appointments', icon: '◷' },
+  { key: 'security', label: 'Security', icon: '⚿' },
 ]
 const CONTENT_SECTIONS = new Set(['products', 'homepage', 'stores'])
 
@@ -99,6 +101,7 @@ export default function AdminApp() {
               {section === 'orders' && <Orders />}
               {section === 'customers' && <Customers />}
               {section === 'bookings' && <Bookings />}
+              {section === 'security' && <Security />}
             </>
           )}
         </div>

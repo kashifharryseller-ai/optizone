@@ -14,6 +14,15 @@ router.get('/content', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// Tiny version stamp — the storefront polls this and refetches content when it
+// changes, so admin edits appear on the live site automatically.
+router.get('/content/version', async (req, res, next) => {
+  try {
+    const content = await store().getContent()
+    res.json({ v: content.updatedAt || null })
+  } catch (err) { next(err) }
+})
+
 // Create an order from checkout. If the shopper is signed in, the order is
 // linked to their account (visible under My Orders and in the admin panel).
 router.post('/orders', optionalUser, async (req, res, next) => {

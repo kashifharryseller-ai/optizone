@@ -7,25 +7,9 @@ const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
 const config = require('./config')
 
-function safeEqual(a, b) {
-  const ab = Buffer.from(String(a))
-  const bb = Buffer.from(String(b))
-  if (ab.length !== bb.length) return false
-  return crypto.timingSafeEqual(ab, bb)
-}
-
 // --- Admin -------------------------------------------------------------------
-// Verify submitted credentials against env config. Supports either a plaintext
-// ADMIN_PASSWORD or a bcrypt ADMIN_PASSWORD_HASH.
-function checkCredentials(username, password) {
-  if (!safeEqual(username || '', config.admin.username)) return false
-  const hash = process.env.ADMIN_PASSWORD_HASH
-  if (hash) {
-    try { return bcrypt.compareSync(String(password || ''), hash) } catch (_) { return false }
-  }
-  return safeEqual(password || '', config.admin.password)
-}
-
+// Admin credentials live in the store (meta.adminAccount, bcrypt-hashed) and
+// are verified in routes/admin.js; this module only mints/validates tokens.
 function issueToken(username) {
   return jwt.sign({ sub: username, role: 'admin' }, config.jwtSecret, { expiresIn: config.tokenTtl })
 }
@@ -84,4 +68,4 @@ function optionalUser(req, res, next) {
 const hashPassword = (pw) => bcrypt.hashSync(String(pw), 10)
 const verifyPassword = (pw, hash) => { try { return bcrypt.compareSync(String(pw), String(hash)) } catch (_) { return false } }
 
-module.exports = { checkCredentials, issueToken, requireAuth, issueUserToken, requireUser, optionalUser, hashPassword, verifyPassword }
+module.exports = { issueToken, requireAuth, issueUserToken, requireUser, optionalUser, hashPassword, verifyPassword }

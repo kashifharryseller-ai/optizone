@@ -21,6 +21,7 @@ async function load() {
   if (!Array.isArray(cache.orders)) cache.orders = []
   if (!Array.isArray(cache.bookings)) cache.bookings = []
   if (!Array.isArray(cache.users)) cache.users = []
+  if (!cache.meta || typeof cache.meta !== 'object') cache.meta = {}
   return cache
 }
 
@@ -76,4 +77,8 @@ module.exports = {
     Object.assign(u, patch); await persist(); return u
   },
   async deleteUser(id) { cache.users = cache.users.filter((x) => x.id !== id); await persist() },
+
+  // --- Meta (admin account, OTP challenges) ---
+  async getMeta() { return cache.meta || {} },
+  async setMeta(patch) { cache.meta = { ...(cache.meta || {}), ...patch }; await persist(); return cache.meta },
 }

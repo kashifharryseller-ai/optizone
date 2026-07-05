@@ -21,8 +21,12 @@ The customer website and the admin panel ship together in a single deployment:
 | `/admin` | **Admin panel** — products, homepage content, stores/settings, orders, appointments |
 | `/api/*` | JSON API used by both |
 
-Default admin login is `admin` / `optizone-admin` — override with the
-`ADMIN_USERNAME` / `ADMIN_PASSWORD` environment variables before going live.
+Admin sign-in is the **owner email + password** (seeded on first boot; change
+both anytime from **Admin → Security**), with an optional **email OTP second
+step** — set `GMAIL_USER` + `GMAIL_APP_PASSWORD` env vars to enable codes, and
+use "Forgot password?" on the login screen to reset by emailed code. Content
+saved in the admin panel appears on the live storefront **automatically**
+(version polling + refresh-on-focus, no reload needed).
 
 ### Deploy targets
 - **Vercel (preview/demo):** import this repo at [vercel.com/new](https://vercel.com/new) —

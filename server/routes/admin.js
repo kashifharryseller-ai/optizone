@@ -1,29 +1,160 @@
-// Admin API — login (public) + protected content/orders/bookings/upload.
+// Admin API — email+password (+ email OTP) login, forgot/reset, account
+// management, and protected content/orders/bookings/customers/upload.
 const express = require('express')
 const path = require('path')
 const fs = require('fs')
+const crypto = require('crypto')
 const multer = require('multer')
 const { customAlphabet } = require('nanoid')
 const config = require('../config')
 const { store } = require('../store')
-const { checkCredentials, issueToken, requireAuth } = require('../auth')
+const { issueToken, requireAuth, hashPassword, verifyPassword } = require('../auth')
+const { sendMail, mailEnabled, otpEmail } = require('../mailer')
 
 const router = express.Router()
 const rid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 10)
 
-// --- Login (public) ---------------------------------------------------------
-router.post('/login', (req, res) => {
-  const { username, password } = req.body || {}
-  if (!checkCredentials(username, password)) {
-    return res.status(401).json({ error: 'Invalid username or password' })
+// --- Super-admin auth helpers -------------------------------------------------
+const otpOn = () => config.admin.otp !== 'off' && (config.admin.otp === 'force' || mailEnabled())
+const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex')
+const maskEmail = (e) => e.replace(/^(.).*(@.*)$/, (m, a, b) => a + '•••' + b)
+
+const getAdmin = async () => (await store().getMeta()).adminAccount || null
+
+// One active challenge at a time (single owner); persisted in the store so it
+// works across serverless instances.
+async function createChallenge(purpose) {
+  const code = String(crypto.randomInt(100000, 1000000))
+  const challenge = {
+    id: crypto.randomBytes(12).toString('hex'),
+    codeHash: sha(code),
+    purpose,
+    expiresAt: Date.now() + config.admin.otpTtlMin * 60 * 1000,
+    attempts: 0,
   }
-  res.json({ token: issueToken(username), user: { username, role: 'admin' } })
+  await store().setMeta({ adminOtp: challenge })
+  return { challenge, code }
+}
+
+async function consumeChallenge(id, code, purpose) {
+  const ch = (await store().getMeta()).adminOtp
+  if (!ch || ch.id !== id || ch.purpose !== purpose) return { error: 'Code expired — please start again' }
+  if (Date.now() > ch.expiresAt) return { error: 'Code expired — please start again' }
+  if (ch.attempts >= 5) return { error: 'Too many wrong codes — please start again' }
+  if (sha(String(code || '').trim()) !== ch.codeHash) {
+    ch.attempts += 1
+    await store().setMeta({ adminOtp: ch })
+    return { error: 'Wrong code — check the email and try again' }
+  }
+  await store().setMeta({ adminOtp: null })
+  return { ok: true }
+}
+
+async function emailChallenge(purpose, adminEmail) {
+  const { challenge, code } = await createChallenge(purpose)
+  const mail = otpEmail(code)
+  let sent = false
+  try { const r = await sendMail({ to: adminEmail, ...mail }); sent = !!r.sent } catch (e) { console.error('[mail] send failed:', e.message) }
+  if (!sent) console.log('[admin] OTP code for %s (%s): %s', adminEmail, purpose, code)
+  return { challenge: challenge.id, sent }
+}
+
+// Simple failure limiter: 8 wrong passwords → 10-minute lockout (per instance).
+let fails = { count: 0, until: 0 }
+
+// --- Login (public) -----------------------------------------------------------
+router.post('/login', async (req, res, next) => {
+  try {
+    const { username, email, password } = req.body || {}
+    if (fails.count >= 8 && Date.now() < fails.until) {
+      return res.status(429).json({ error: 'Too many attempts — try again in a few minutes' })
+    }
+    const admin = await getAdmin()
+    const em = String(email || username || '').trim().toLowerCase()
+    if (!admin || em !== admin.email || !verifyPassword(password, admin.passwordHash)) {
+      fails.count += 1
+      if (fails.count >= 8) fails.until = Date.now() + 10 * 60 * 1000
+      return res.status(401).json({ error: 'Wrong email or password' })
+    }
+    fails = { count: 0, until: 0 }
+    if (otpOn()) {
+      const { challenge, sent } = await emailChallenge('login', admin.email)
+      return res.json({ otp: true, challenge, email: maskEmail(admin.email), sent })
+    }
+    res.json({ token: issueToken(admin.email), user: { username: admin.email, role: 'admin' } })
+  } catch (err) { next(err) }
+})
+
+// Step 2: verify the emailed code.
+router.post('/otp', async (req, res, next) => {
+  try {
+    const { challenge, code } = req.body || {}
+    const result = await consumeChallenge(challenge, code, 'login')
+    if (result.error) return res.status(401).json({ error: result.error })
+    const admin = await getAdmin()
+    res.json({ token: issueToken(admin.email), user: { username: admin.email, role: 'admin' } })
+  } catch (err) { next(err) }
+})
+
+// Forgot password → email an OTP to the owner address.
+router.post('/forgot', async (req, res, next) => {
+  try {
+    const admin = await getAdmin()
+    const em = String((req.body || {}).email || '').trim().toLowerCase()
+    if (!admin || em !== admin.email) return res.status(401).json({ error: 'That is not the owner email' })
+    const { challenge, sent } = await emailChallenge('reset', admin.email)
+    res.json({ challenge, email: maskEmail(admin.email), sent })
+  } catch (err) { next(err) }
+})
+
+// Complete the reset with the emailed code + a new password.
+router.post('/reset', async (req, res, next) => {
+  try {
+    const { challenge, code, password } = req.body || {}
+    if (String(password || '').length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters' })
+    const result = await consumeChallenge(challenge, code, 'reset')
+    if (result.error) return res.status(401).json({ error: result.error })
+    const admin = await getAdmin()
+    await store().setMeta({ adminAccount: { ...admin, passwordHash: hashPassword(password), updatedAt: new Date().toISOString() } })
+    res.json({ ok: true })
+  } catch (err) { next(err) }
 })
 
 // --- Everything below requires a valid admin token --------------------------
 router.use(requireAuth)
 
 router.get('/me', (req, res) => res.json({ user: { username: req.admin.sub, role: req.admin.role } }))
+
+// Owner account (Admin → Security).
+router.get('/account', async (req, res, next) => {
+  try {
+    const admin = await getAdmin()
+    res.json({ email: admin?.email || '', otpEnabled: otpOn(), mailConfigured: mailEnabled(), updatedAt: admin?.updatedAt || null })
+  } catch (err) { next(err) }
+})
+
+router.put('/account', async (req, res, next) => {
+  try {
+    const { currentPassword, email, newPassword } = req.body || {}
+    const admin = await getAdmin()
+    if (!admin || !verifyPassword(currentPassword, admin.passwordHash)) {
+      return res.status(401).json({ error: 'Current password is incorrect' })
+    }
+    const next_ = { ...admin }
+    if (email !== undefined) {
+      const em = String(email).trim().toLowerCase()
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return res.status(400).json({ error: 'Please enter a valid email address' })
+      next_.email = em
+    }
+    if (newPassword !== undefined && newPassword !== '') {
+      if (String(newPassword).length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters' })
+      next_.passwordHash = hashPassword(newPassword)
+    }
+    next_.updatedAt = new Date().toISOString()
+    await store().setMeta({ adminAccount: next_ })
+    res.json({ ok: true, email: next_.email })
+  } catch (err) { next(err) }
+})
 
 router.get('/stats', async (req, res, next) => {
   try {
@@ -82,6 +213,8 @@ router.put('/content', async (req, res, next) => {
     if (!content || typeof content !== 'object' || Array.isArray(content)) {
       return res.status(400).json({ error: 'Invalid content payload' })
     }
+    // Version stamp — the storefront polls this to refresh itself instantly.
+    content.updatedAt = new Date().toISOString()
     res.json(await store().setContent(content))
   } catch (err) { next(err) }
 })
