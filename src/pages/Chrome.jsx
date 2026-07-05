@@ -77,20 +77,31 @@ export function Header({ navActive, go, openCatalog, cartCount, onSearch, openAc
     if (key === 'stores') return go('stores')
     if (key === 'book') return go('booking')
   }
+  // BUG 4 fix: the sticky <header> was transparent (green lived only on the
+  // inner bar, fragile on scroll/overscroll). Give the header itself a solid
+  // brand-green background so it never shows through when stuck. NOTE: the
+  // visible navbar shade is --pine-700 (#274A3B); the palette's #0F221A is
+  // --pine-950 (the announcement bar). Backing the header with --pine-700 keeps
+  // the desktop pixel-identical AND makes it solid. The scroll shadow stays for
+  // the subtle "lifted" cue when scrolling.
   return (
-    <header style={{ position: 'sticky', top: 0, zIndex: 50, boxShadow: scrolled ? 'var(--shadow-md)' : 'none', transition: 'box-shadow var(--dur-base) var(--ease-out)' }}>
+    <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--pine-700)', boxShadow: scrolled ? 'var(--shadow-md)' : 'none', transition: 'box-shadow var(--dur-base) var(--ease-out)' }}>
       {ann.enabled !== false && (
         <div style={{ background: 'var(--pine-950)', color: 'var(--cream-200)', textAlign: 'center', fontSize: 12.5, letterSpacing: '0.06em', padding: '7px 16px', fontFamily: 'var(--font-body)' }}>
           {L(ann) || t.announce}
         </div>
       )}
       <div style={{ background: 'var(--pine-700)', borderBottom: '1px solid var(--border-on-dark)' }}>
-        <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 20px', height: 74, display: 'flex', alignItems: 'center', gap: 14 }}>
+        {/* BUG 1: className lets responsive.css tighten paddings/gaps on phones
+            so the icon cluster + עברית toggle always fit inside the bar. */}
+        <div className="oz-header-row" style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 20px', height: 74, display: 'flex', alignItems: 'center', gap: 14 }}>
           {/* Hamburger — hidden on desktop, shown on small screens (CSS) */}
           <IconButton variant="ghost" className="oz-hamburger" onClick={() => setMobileNavOpen((o) => !o)} aria-label={t.aria.menu} style={{ color: 'var(--cream-100)' }}>
             <Icon name={mobileNavOpen ? 'x' : 'menu'} color="var(--cream-100)" />
           </IconButton>
-          <div style={{ cursor: 'pointer' }} onClick={() => go('home')}>
+          {/* BUG 1: className lets responsive.css gently scale the logo down on
+              phones so the bar's contents always fit. Desktop size unchanged. */}
+          <div className="oz-header-logo" style={{ cursor: 'pointer' }} onClick={() => go('home')}>
             <Logo variant="horizontal" theme="dark" size={20} tagline={false} />
           </div>
           <nav className="oz-nav oz-nav-desktop" style={{ marginInlineStart: 6 }}>
@@ -119,6 +130,7 @@ export function Header({ navActive, go, openCatalog, cartCount, onSearch, openAc
             </div>
             <span
               onClick={toggle}
+              className="oz-lang-toggle"
               style={{ marginInlineStart: 10, fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.08em', color: 'var(--cream-200)', border: '1px solid var(--border-on-dark)', borderRadius: 'var(--radius-pill)', padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
               {t.langLabel}

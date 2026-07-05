@@ -48,7 +48,22 @@ export function Home({ go, openCatalog, addToCart }) {
             </div>
           </div>
           <div style={{ ...rise(240), position: 'relative', aspectRatio: '4/3', borderRadius: 'var(--radius-lg)', background: 'linear-gradient(160deg,var(--pine-600),var(--pine-800))', border: '1px solid var(--border-on-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-dark)', overflow: 'hidden' }}>
-            <ImageSlot src={media['hero-photo']} placeholder={L(hero.slot)} shape="rounded" radius={14} fit="cover" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+            {/* BUG 3: hero is the LCP image — load it eagerly with high fetch
+                priority and a responsive srcset/sizes when the data supplies one.
+                The pine gradient on the parent acts as the lightweight poster
+                shown while the photo decodes. Quality/visuals are unchanged. */}
+            <ImageSlot
+              src={media['hero-photo']}
+              srcSet={media['hero-photo-srcset']}
+              sizes="(max-width: 1100px) 92vw, 520px"
+              alt={L(hero.slot)}
+              placeholder={L(hero.slot)}
+              priority
+              shape="rounded"
+              radius={14}
+              fit="cover"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+            />
             <span style={{ position: 'absolute', bottom: 18, insetInlineEnd: 18, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(18,36,26,0.7)', color: 'var(--cream-100)', padding: '8px 14px', borderRadius: 999, fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', backdropFilter: 'blur(4px)', pointerEvents: 'none' }}>
               <Icon name="camera" size={14} color="var(--amber-500)" /> {L(hero.tryReady)}
             </span>

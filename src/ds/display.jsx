@@ -91,6 +91,7 @@ export function Rating({ value = 0, max = 5, count, size = 16, style, ...rest })
  */
 export function ProductCard({ image, brand, name, amount, original, rating, reviewCount, badge, tryMirror = false, colors = [], onQuickAdd, tryMirrorLabel = 'Try Mirror', quickAddLabel = 'Add to cart', style, ...rest }) {
   const [h, setH] = useState(false)
+  const [imgFailed, setImgFailed] = useState(false) // BUG 2: broken photo URL → SVG fallback
   return (
     <div
       onMouseEnter={() => setH(true)}
@@ -106,8 +107,17 @@ export function ProductCard({ image, brand, name, amount, original, rating, revi
       {...rest}
     >
       <div style={{ position: 'relative', aspectRatio: '4 / 3', background: 'var(--cream-300)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {image ? (
-          <img src={image} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {image && !imgFailed ? (
+          // BUG 2: real product photo when available — object-cover, lazy-loaded,
+          // async-decoded, descriptive alt; falls back to the SVG on load error.
+          <img
+            src={image}
+            alt={[brand, name].filter(Boolean).join(' ')}
+            loading="lazy"
+            decoding="async"
+            onError={() => setImgFailed(true)}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
         ) : (
           <svg viewBox="0 0 120 46" width="46%" fill="none" style={{ opacity: 0.35 }}>
             <g stroke="var(--pine-500)" strokeWidth="2.4" strokeLinecap="round">

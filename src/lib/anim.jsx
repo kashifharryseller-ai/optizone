@@ -26,11 +26,22 @@ export function Reveal({ children, delay = 0, as = 'div', style, ...rest }) {
 }
 
 // useScrolled: true once the window has scrolled past `threshold` px.
+// BUG 4 (INP) fix: coalesce scroll work into a single rAF per frame and only
+// call setState when the boolean actually flips. This keeps the scroll handler
+// off the critical path (no per-event React re-renders), so interactions stay
+// well under the INP budget while the visible behaviour is unchanged.
 export function useScrolled(threshold = 8) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > threshold)
-    onScroll()
+    let ticking = false
+    const last = { v: window.scrollY > threshold }
+    const update = () => {
+      ticking = false
+      const next = window.scrollY > threshold
+      if (next !== last.v) { last.v = next; setScrolled(next) } // flip only
+    }
+    const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(update) } }
+    setScrolled(last.v)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [threshold])

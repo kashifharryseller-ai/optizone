@@ -49,10 +49,37 @@ img, svg, video, canvas { max-width: 100%; }
 .oz-hamburger { display: none !important; }
 .oz-mobile-nav { display: none; }
 
-@media (max-width: 900px) {
+/* BUG 1 fix: the full desktop nav needs ~1067px of intrinsic width, so between
+   901–1067px it used to overflow its container and the עברית toggle got clipped.
+   Collapse to the hamburger at <=1100px (comfortably above 1067) so the nav
+   never overflows. Desktop (>=1280px) is unaffected — full nav still shows. */
+@media (max-width: 1100px) {
   .oz-nav-desktop { display: none !important; }
   .oz-hamburger { display: inline-flex !important; }
   .oz-mobile-nav { display: block; }
+}
+
+/* BUG 1 (phone widths): the header row's fixed-size icon buttons + עברית
+   toggle add up wider than a small phone screen, clipping the toggle. Tighten
+   paddings, gaps and button sizes on phones ONLY so everything fits inside the
+   bar. Desktop (>640px) keeps the original 44px buttons and spacing. */
+@media (max-width: 640px) {
+  .oz-header-row { padding: 0 10px !important; gap: 8px !important; }
+  .oz-header-row button { width: 38px !important; height: 38px !important; }
+  .oz-lang-toggle { margin-inline-start: 2px !important; padding: 4px 8px !important; font-size: 11px !important; }
+}
+@media (max-width: 420px) {
+  .oz-header-row { padding: 0 6px !important; gap: 5px !important; }
+  .oz-header-row button { width: 34px !important; height: 34px !important; }
+  /* zoom (not transform) so the logo's layout box shrinks too */
+  .oz-header-logo { zoom: 0.8; }
+}
+/* Smallest phones (<=360px, e.g. 320px SE): one more notch so the row can
+   never exceed the bar width. */
+@media (max-width: 360px) {
+  .oz-header-row button { width: 30px !important; height: 30px !important; }
+  .oz-header-logo { zoom: 0.7; }
+  .oz-lang-toggle { padding: 3px 6px !important; letter-spacing: 0.04em !important; }
 }
 
 /* The mobile drop-down menu (matches the pine header) */
