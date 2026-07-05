@@ -40,6 +40,13 @@ const config = {
 
   // Max upload size for images (bytes).
   maxUpload: Number(process.env.MAX_UPLOAD_BYTES) || 6 * 1024 * 1024,
+
+  // Google OAuth ("Continue with Google"). The client ID is public; the SECRET
+  // must be provided via env (never committed). Both are set in hPanel/Vercel.
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '1034284379097-2qh5htoh5ma02cln4pvu8i4p9qnj5bhr.apps.googleusercontent.com',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+  },
 }
 
 config.useMysql = bool(process.env.USE_MYSQL, !!(config.db.host && config.db.database && config.db.user))

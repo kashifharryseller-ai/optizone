@@ -7,6 +7,16 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [wishlist, setWishlist] = useState([])
+  // "Continue with Google" lands on /#gtoken=<jwt> (or /#gerror=<msg>) — pick
+  // that up before the first session check, then scrub it from the URL.
+  const [oauthError, setOauthError] = useState(() => {
+    const hash = window.location.hash || ''
+    const tok = hash.match(/[#&]gtoken=([^&]+)/)
+    const err = hash.match(/[#&]gerror=([^&]+)/)
+    if (tok) setUserToken(decodeURIComponent(tok[1]))
+    if (tok || err) window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    return err ? decodeURIComponent(err[1]) : ''
+  })
   const [checking, setChecking] = useState(!!getUserToken())
 
   useEffect(() => {
@@ -42,10 +52,11 @@ export function AuthProvider({ children }) {
   }, [])
 
   const value = useMemo(() => ({
-    user, checking, wishlist,
+    user, checking, wishlist, oauthError,
+    clearOauthError: () => setOauthError(''),
     login, register, logout, updateProfile, toggleWishlist,
     inWishlist: (id) => wishlist.includes(id),
-  }), [user, checking, wishlist, login, register, logout, updateProfile, toggleWishlist])
+  }), [user, checking, wishlist, oauthError, login, register, logout, updateProfile, toggleWishlist])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

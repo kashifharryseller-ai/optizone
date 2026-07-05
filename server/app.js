@@ -8,6 +8,7 @@ const { initStore } = require('./store')
 const publicRoutes = require('./routes/public')
 const adminRoutes = require('./routes/admin')
 const accountRoutes = require('./routes/account')
+const googleRoutes = require('./routes/google')
 
 function createApp({ serveStatic = true } = {}) {
   const app = express()
@@ -26,6 +27,7 @@ function createApp({ serveStatic = true } = {}) {
   // API.
   app.use('/api', publicRoutes)
   app.use('/api', accountRoutes)
+  app.use('/api', googleRoutes)
   app.use('/api/admin', adminRoutes)
 
   // Unknown API route → JSON 404 (never fall through to the SPA).
