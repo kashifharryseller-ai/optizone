@@ -1,0 +1,8 @@
+/* OPTIZONE — Webfonts
+ * Jost      → geometric sans, Futura-like. Used for the wordmark, display &
+ *             headings and all-caps UI labels. Substitute for the logo's
+ *             proprietary geometric typeface (flagged in readme.md).
+ * Assistant → humanist sans with full Hebrew + Latin coverage. The bilingual
+ *             workhorse for body copy and UI in both LTR English and RTL Hebrew.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300..700;1,400&family=Assistant:wght@300..700&display=swap');
