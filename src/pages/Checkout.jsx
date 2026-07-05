@@ -1,0 +1,173 @@
+import React, { useState, useEffect } from 'react'
+import { Button, Input, Select, Icon, DiamondRule, Price, GlassesMark } from '../ds/index.js'
+import { OZ_DATA } from '../data/catalog.js'
+import { useLang } from '../i18n/index.jsx'
+
+function Step({ n, label, active, done }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, opacity: active || done ? 1 : 0.5 }}>
+      <span style={{ width: 30, height: 30, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 13, background: done ? 'var(--success)' : active ? 'var(--pine-700)' : 'var(--surface-sunken)', color: done || active ? 'var(--cream-100)' : 'var(--text-muted)', transition: 'all var(--dur-base) var(--ease-out)' }}>
+        {done ? <Icon name="check" size={15} color="currentColor" /> : n}
+      </span>
+      <span style={{ fontFamily: 'var(--font-display)', fontSize: 12.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: active ? 'var(--text-strong)' : 'var(--text-muted)' }}>{label}</span>
+    </div>
+  )
+}
+
+function PayOption({ id, sel, onSel, icon, title, sub }) {
+  const active = sel === id
+  return (
+    <button onClick={() => onSel(id)} style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', textAlign: 'start', padding: '14px 16px', borderRadius: 'var(--radius-md)', border: `1.5px solid ${active ? 'var(--pine-700)' : 'var(--border-hair)'}`, background: active ? 'var(--pine-50)' : 'var(--white)', cursor: 'pointer', transition: 'all var(--dur-fast) var(--ease-out)' }}>
+      <span style={{ width: 40, height: 40, borderRadius: 'var(--radius-sm)', background: 'var(--surface-sunken)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={20} color="var(--pine-700)" /></span>
+      <span style={{ flex: 1 }}>
+        <span style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--text-strong)' }}>{title}</span>
+        <span style={{ display: 'block', fontSize: 13, color: 'var(--text-muted)' }}>{sub}</span>
+      </span>
+      <span style={{ width: 20, height: 20, borderRadius: 999, border: `2px solid ${active ? 'var(--pine-700)' : 'var(--border-strong)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {active && <span style={{ width: 10, height: 10, borderRadius: 999, background: 'var(--pine-700)' }} />}
+      </span>
+    </button>
+  )
+}
+
+function SectionTitle({ children }) {
+  return <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-strong)' }}>{children}</div>
+}
+
+export function Checkout({ cart, subtotal, go, onComplete }) {
+  const { t: root, L } = useLang()
+  const t = root.checkout
+  const [step, setStep] = useState(0)
+  const [pay, setPay] = useState('card')
+  const [ship, setShip] = useState('delivery')
+  useEffect(() => { window.scrollTo({ top: 0 }) }, [step])
+  const shipping = ship === 'pickup' || subtotal > 400 ? 0 : 30
+  const total = subtotal + shipping
+
+  if (step === 3) {
+    return (
+      <div className="oz-route" style={{ maxWidth: 560, margin: '64px auto 110px', padding: '0 28px', textAlign: 'center' }}>
+        <span style={{ position: 'relative', width: 76, height: 76, borderRadius: 999, background: 'var(--pine-50)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+          <span style={{ position: 'absolute', inset: 0, borderRadius: 999, border: '2px solid var(--pine-400)', animation: 'oz-ring 1.6s var(--ease-out) infinite' }} />
+          <Icon name="check" size={36} color="var(--pine-700)" />
+        </span>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 32, color: 'var(--text-strong)', margin: '22px 0 6px' }}>{t.confirmedH1}</h1>
+        <p style={{ fontSize: 16, color: 'var(--text-body)', lineHeight: 1.6 }}>{t.confirmedP(total.toLocaleString('he-IL'))}<br />{t.confirmedNote}</p>
+        <div style={{ margin: '22px auto', maxWidth: 280 }}><DiamondRule label={t.thankYou} /></div>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+          <Button variant="outline" onClick={() => go('account')}>{t.trackOrder}</Button>
+          <Button variant="primary" onClick={() => { onComplete(); go('home') }}>{t.continueShopping}</Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '32px 28px 80px' }}>
+      <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 32, color: 'var(--text-strong)', margin: '0 0 22px' }}>{t.title}</h1>
+      <div style={{ display: 'flex', gap: 28, marginBottom: 30, flexWrap: 'wrap' }}>
+        {t.steps.map((s, i) => <Step key={s} n={i + 1} label={s} active={step === i} done={step > i} />)}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 36, alignItems: 'start' }}>
+        <div key={step} className="oz-route" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {step === 0 && (
+            <>
+              <SectionTitle>{t.contactTitle}</SectionTitle>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <Input placeholder={t.firstName} defaultValue="Maya" />
+                <Input placeholder={t.lastName} defaultValue="Levi" />
+              </div>
+              <Input placeholder={t.email} defaultValue="maya@example.co.il" />
+              <Input placeholder={t.phone} defaultValue="058-644-2303" />
+              <Button variant="primary" size="lg" onClick={() => setStep(1)} endIcon={<Icon name="arrow-right" size={18} color="currentColor" />}>{t.toShipping}</Button>
+            </>
+          )}
+
+          {step === 1 && (
+            <>
+              <SectionTitle>{t.deliveryTitle}</SectionTitle>
+              <PayOption id="delivery" sel={ship} onSel={setShip} icon="truck" title={t.homeDelivery} sub={subtotal > 400 ? t.homeFree : t.homePaid} />
+              <PayOption id="pickup" sel={ship} onSel={setShip} icon="store" title={t.pickup} sub={t.pickupSub} />
+              {ship === 'delivery' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 4 }}>
+                  <SectionTitle>{t.addrTitle}</SectionTitle>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+                    <Input placeholder={t.street} defaultValue="השלים 12" />
+                    <Input placeholder={t.apt} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+                    <Input placeholder={t.city} defaultValue="נתניה" />
+                    <Input placeholder={t.postal} defaultValue="4237512" />
+                  </div>
+                </div>
+              )}
+              {ship === 'pickup' && (
+                <div style={{ marginTop: 4 }}>
+                  <Select options={OZ_DATA.branches.map((b) => ({ value: b.en, label: L(b) }))} />
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+                <Button variant="ghost" onClick={() => setStep(0)}>{t.back}</Button>
+                <Button variant="primary" size="lg" block onClick={() => setStep(2)} endIcon={<Icon name="arrow-right" size={18} color="currentColor" />}>{t.toPayment}</Button>
+              </div>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <SectionTitle>{t.payTitle}</SectionTitle>
+              <PayOption id="card" sel={pay} onSel={setPay} icon="credit-card" title={t.card} sub={t.cardSub} />
+              <PayOption id="bit" sel={pay} onSel={setPay} icon="smartphone" title={t.bit} sub={t.bitSub} />
+              <PayOption id="installments" sel={pay} onSel={setPay} icon="layers" title={t.installments} sub={t.installmentsSub} />
+              {pay === 'card' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 4 }}>
+                  <Input placeholder={t.cardNumber} defaultValue="4580 •••• •••• 1234" />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <Input placeholder={t.expiry} defaultValue="09 / 28" />
+                    <Input placeholder={t.cvv} defaultValue="•••" />
+                  </div>
+                </div>
+              )}
+              {pay === 'installments' && (
+                <div style={{ marginTop: 4 }}>
+                  <Select options={[3, 6, 12].map((n) => ({ value: String(n), label: t.instOpt(n, Math.round(total / n)) }))} />
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>
+                <Icon name="lock" size={14} /> {t.secure}
+              </div>
+              <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+                <Button variant="ghost" onClick={() => setStep(1)}>{t.back}</Button>
+                <Button variant="primary" size="lg" block onClick={() => setStep(3)} startIcon={<Icon name="lock" size={17} color="currentColor" />}>{t.pay(total.toLocaleString('he-IL'))}</Button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* summary */}
+        <div style={{ position: 'sticky', top: 96, background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-lg)', padding: 22, boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-strong)', marginBottom: 16 }}>{t.summary}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
+            {cart.map((it, i) => (
+              <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <span style={{ width: 44, height: 44, borderRadius: 'var(--radius-sm)', background: 'var(--cream-300)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><GlassesMark size={18} color={(it.colors && it.colors[0]) || 'var(--pine-500)'} /></span>
+                <span style={{ flex: 1, fontSize: 13.5 }}><b style={{ color: 'var(--text-strong)' }}>{it.name}</b><br /><span style={{ color: 'var(--text-muted)' }}>{t.qty(it.qty)}</span></span>
+                <span style={{ fontSize: 13.5, fontWeight: 600 }}>₪{(it.amount * it.qty).toLocaleString('he-IL')}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ borderTop: '1px solid var(--border-hair)', paddingTop: 12 }}>
+            {[[t.subtotal, `₪${subtotal.toLocaleString('he-IL')}`], [t.shipping, shipping ? `₪${shipping}` : t.free]].map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 14, color: 'var(--text-body)' }}><span>{k}</span><span>{v}</span></div>
+            ))}
+          </div>
+          <div style={{ borderTop: '1px solid var(--border-hair)', marginTop: 8, paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, letterSpacing: '0.06em', color: 'var(--text-strong)' }}>{t.total}</span>
+            <Price amount={total} size="lg" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

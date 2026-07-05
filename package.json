@@ -1,0 +1,23 @@
+{
+  "name": "optizone-storefront",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "OPTIZONE — Vision & Style. Premium optical storefront (eyeglasses, sunglasses, contacts, eye-care) with Try Mirror, booking, and full EN/עברית RTL support.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host"
+  },
+  "dependencies": {
+    "@fontsource/assistant": "^5.2.9",
+    "@fontsource/jost": "^5.2.8",
+    "lucide-react": "^1.23.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
+    "playwright": "^1.61.1"
+  }
+}

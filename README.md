@@ -1,25 +1,67 @@
-# CODING AGENTS: READ THIS FIRST
+# OPTIZONE — Vision & Style
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+A full, clickable **OPTIZONE** eyewear storefront — premium eyeglasses, sunglasses,
+contact lenses and eye-care services for the Israeli market, with a virtual
+**Try Mirror** try-on, a lens/prescription configurator, in-store appointment
+booking, and a complete **English / עברית** experience with full RTL support.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+Built as a **Vite + React** app, recreated faithfully from the Claude Design
+handoff bundle (the original HTML/CSS/JS prototype lives in [`project/`](./project)).
 
-## What you should do — IMPORTANT
+## Features
 
-**Read the chat transcripts first.** There are 1 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+- **Storefront journey** — home, catalog (with live filters + sort), product
+  detail (colourways, lens configurator, specs/reviews tabs), cart, multi-step
+  checkout, booking flow, store locator, account login + dashboard, and a
+  live search overlay.
+- **Try Mirror** — camera-consent dialog and an animated virtual try-on mock.
+- **Fully bilingual** — every page is translated EN ⇄ עברית; toggling the
+  language flips the whole layout to RTL. The `OPTIZONE` wordmark and prices
+  stay LTR within RTL text, per the brand guidelines.
+- **Design system** — all 20 OPTIZONE components (Button, ProductCard, Price,
+  Badge, Tabs, Dialog, …) ported to React with the brand's pine/amber/cream
+  tokens, Jost + Assistant type, and the amber diamond-rule motif.
+- **Fillable image slots** — hero, category and product photo placeholders
+  accept a drag-and-drop / click-to-upload image, persisted in `localStorage`.
+  Swap these for real product photography when available.
+- **Self-contained** — React, Lucide icons and the Jost/Assistant fonts are all
+  vendored locally (via npm / `@fontsource`); nothing loads from a CDN at runtime.
 
-**Read `project/OPTIZONE Storefront.dc.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+## Getting started
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+```bash
+npm install
+npm run dev       # start the dev server (http://localhost:5173)
+npm run build     # production build → dist/
+npm run preview   # preview the production build
+```
 
-## About the design files
+## Project structure
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+```
+src/
+  main.jsx            App entry (mounts <App>, imports fonts + global CSS)
+  App.jsx             Client-side router + cart / toast / language state
+  i18n/               Bilingual string tables + <LangProvider> / useLang()
+  data/catalog.js     Sample catalog, services, stores, orders (bilingual)
+  ds/                 OPTIZONE design-system components (React port)
+  pages/              Home, Catalog, Product, Booking, Cart, Checkout,
+                      StoreLocator, Account, Search, Chrome (header/footer)
+  components/         ImageSlot (fillable photo placeholder)
+  lib/anim.jsx        Scroll-reveal, sticky-header and count-up helpers
+  styles/             Design tokens (copied verbatim) + animations
+project/              Original Claude Design export (reference / source of truth)
+```
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+## Notes & next steps
 
-## Bundle contents
-
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `Website recreation for Optizone` project files (HTML prototypes, assets, components)
+- **Sample data.** Product names, prices, prescriptions and orders are
+  placeholder content — replace the entries in `src/data/catalog.js` with real
+  OPTIZONE inventory.
+- **Try Mirror** is a visual mock; wire it to your on-device try-on / camera
+  pipeline when ready.
+- **Auth, payments and booking** are front-end flows only — connect them to
+  your backend, payment gateway and scheduling system.
+- **Fonts & icons** are stand-ins (Jost for the geometric wordmark face,
+  Assistant for bilingual body, Lucide for line icons); swap in the licensed
+  brand assets when available, as flagged in the design system.

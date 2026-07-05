@@ -1,0 +1,96 @@
+/* OPTIZONE — Color tokens
+ * Sampled from brand collateral (pine cups, kraft bags, amber foil).
+ * Palette: deep pine green (primary), warm amber-orange (accent),
+ * warm cream (surface), with white hairline detailing.
+ */
+:root {
+  /* ---- Pine green (primary brand) ----
+   * Anchored to the OPTIZONE logo/packaging green: lit collateral
+   * samples average ~rgb(48,66,52). --pine-700 is the true brand green. */
+  --pine-950: #0F221A;
+  --pine-900: #163024;
+  --pine-800: #1E3C2D;
+  --pine-700: #274A3B;   /* brand pine — the logo/collateral green */
+  --pine-600: #315846;
+  --pine-500: #3E6B56;
+  --pine-400: #52846D;
+  --pine-300: #7DA894;
+  --pine-200: #B4CEC1;
+  --pine-100: #DCE9E2;
+  --pine-50:  #EFF4F1;
+
+  /* ---- Amber orange (accent) ---- */
+  --amber-900: #7E4310;
+  --amber-800: #A85B17;
+  --amber-700: #C6741C;
+  --amber-600: #E08A2A;   /* brand amber — the foil / accent */
+  --amber-500: #E89A45;
+  --amber-400: #EEB06A;
+  --amber-300: #F3C892;
+  --amber-200: #F8DEBC;
+  --amber-100: #FBEDDB;
+  --amber-50:  #FDF6EC;
+
+  /* ---- Cream / kraft neutrals ---- */
+  --cream-100: #FBF8F1;
+  --cream-200: #F5F0E4;   /* brand cream — the light bag */
+  --cream-300: #ECE4D2;
+  --cream-400: #E0D5BD;
+  --cream-500: #CBBC9C;
+
+  /* ---- Ink & greys ---- */
+  --ink-900: #16130E;
+  --ink-800: #262119;
+  --ink-700: #3A342A;
+  --ink-600: #554E42;
+  --ink-500: #736A5C;
+  --ink-400: #9A9081;
+  --ink-300: #C3BAAB;
+  --ink-200: #E2DBCF;
+  --ink-100: #F0EBE1;
+  --white:   #FFFFFF;
+
+  /* ---- Semantic status ---- */
+  --success: #3E8E5A;
+  --warning: #E0A32A;
+  --danger:  #C0492F;
+  --info:    #3E6B56;
+
+  /* ======================================================
+     SEMANTIC ALIASES — reach for these in components
+     ====================================================== */
+
+  /* Backgrounds & surfaces */
+  --bg-page:        var(--cream-200);
+  --bg-page-alt:    var(--cream-100);
+  --surface-card:   var(--white);
+  --surface-sunken: var(--cream-300);
+  --surface-dark:   var(--pine-700);
+  --surface-dark-2: var(--pine-800);
+
+  /* Text */
+  --text-strong:    var(--ink-900);
+  --text-body:      var(--ink-700);
+  --text-muted:     var(--ink-500);
+  --text-faint:     var(--ink-400);
+  --text-on-dark:   var(--cream-100);
+  --text-on-dark-muted: var(--pine-200);
+  --text-accent:    var(--amber-700);
+
+  /* Brand */
+  --brand:          var(--pine-700);
+  --brand-strong:   var(--pine-800);
+  --accent:         var(--amber-600);
+  --accent-strong:  var(--amber-700);
+
+  /* Lines & borders */
+  --border-hair:    var(--ink-200);
+  --border-soft:    var(--cream-400);
+  --border-strong:  var(--ink-300);
+  --border-on-dark: rgba(255,255,255,0.16);
+  --rule-accent:    var(--amber-600);
+
+  /* Interactive */
+  --focus-ring:     var(--amber-600);
+  --overlay-scrim:  rgba(15,34,26,0.55);
+}

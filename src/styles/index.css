@@ -1,0 +1,12 @@
+/* OPTIZONE storefront — global stylesheet entry.
+ * Token layers are copied verbatim from the OPTIZONE design system; fonts are
+ * vendored locally via @fontsource (imported in main.jsx) instead of a CDN. */
+@import './colors.css';
+@import './typography.css';
+@import './spacing.css';
+@import './base.css';
+@import './animations.css';
+
+html, body, #root { min-height: 100%; }
+body { margin: 0; background: var(--bg-page); }
+#root { isolation: isolate; }
