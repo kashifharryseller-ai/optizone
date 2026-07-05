@@ -42,7 +42,7 @@ export default function Products({ content, setContent }) {
         items={products}
         onChange={setProducts}
         addLabel="Add product"
-        makeNew={() => ({ id: nextId(), category: 'eyeglasses', brand: '', name: 'New frame', amount: 0, original: 0, rating: 5, reviews: 0, badge: null, tryMirror: true, colors: ['#274A3B'], shape: 'Round', material: 'Acetate', gender: 'Unisex', image: '' })}
+        makeNew={() => ({ id: nextId(), category: 'eyeglasses', brand: '', name: 'New frame', amount: 0, original: 0, rating: 5, reviews: 0, badge: null, tryMirror: true, colors: ['#274A3B'], shape: 'Round', material: 'Acetate', gender: 'Unisex', image: '', images: [], tryMirrorImg: '', desc: { en: '', he: '' }, specs: { lensWidth: '', bridge: '', temple: '', weight: '', lensOpts: { en: '', he: '' } } })}
         render={(p, set) => (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <Row cols="220px 1fr 1fr">
@@ -75,6 +75,30 @@ export default function Products({ content, setContent }) {
               </Row>
             )}
             <ImageField label="Product photo" value={p.image} onChange={(v) => set({ ...p, image: v })} />
+            {/* Up to 3 extra gallery angles shown as PDP thumbnails. */}
+            <Row cols="repeat(3,1fr)">
+              {[0, 1, 2].map((i) => (
+                <ImageField
+                  key={i}
+                  label={`Extra photo ${i + 1}`}
+                  value={(p.images || [])[i] || ''}
+                  onChange={(v) => {
+                    const images = [...(p.images || [])]
+                    images[i] = v
+                    set({ ...p, images: images.filter(Boolean) })
+                  }}
+                />
+              ))}
+            </Row>
+            <ImageField label="Try-on frame PNG (transparent — overlaid on the face in Try Mirror)" value={p.tryMirrorImg || ''} onChange={(v) => set({ ...p, tryMirrorImg: v })} />
+            <Bilingual label="Description (PDP · rich text, blank line = new paragraph)" area value={p.desc || { en: '', he: '' }} onChange={(v) => set({ ...p, desc: v })} />
+            <Row cols="repeat(4,1fr)">
+              <Field label="Lens width"><Text value={(p.specs || {}).lensWidth || ''} onChange={(v) => set({ ...p, specs: { ...(p.specs || {}), lensWidth: v } })} /></Field>
+              <Field label="Bridge"><Text value={(p.specs || {}).bridge || ''} onChange={(v) => set({ ...p, specs: { ...(p.specs || {}), bridge: v } })} /></Field>
+              <Field label="Temple length"><Text value={(p.specs || {}).temple || ''} onChange={(v) => set({ ...p, specs: { ...(p.specs || {}), temple: v } })} /></Field>
+              <Field label="Weight"><Text value={(p.specs || {}).weight || ''} onChange={(v) => set({ ...p, specs: { ...(p.specs || {}), weight: v } })} /></Field>
+            </Row>
+            <Bilingual label="Lens options (specs table)" value={(p.specs || {}).lensOpts || { en: '', he: '' }} onChange={(v) => set({ ...p, specs: { ...(p.specs || {}), lensOpts: v } })} />
           </div>
         )}
       />

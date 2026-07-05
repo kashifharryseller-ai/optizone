@@ -128,4 +128,96 @@ function defaultContent() {
   }
 }
 
-module.exports = { defaultContent }
+// Per-product PDP content (rich description + structured specs), editable in
+// Admin → Products. Keyed by product id; merged into existing stores by
+// migrateContent so every product ships with unique, professional copy.
+function productDetails() {
+  return {
+    1: {
+      desc: {
+        en: 'The Round Metal RB3447 is Ray-Ban’s tribute to the counter-culture icons of the 1960s. Fully round crystal lenses sit in a feather-light gold-tone metal chassis with adjustable plastic-tipped nose pads and slender temples that curl comfortably behind the ear. A timeless choice that suits narrow and mid-width faces, and takes prescription lenses beautifully.',
+        he: 'ה-Round Metal RB3447 הוא מחווה של Ray-Ban לאייקונים של שנות ה-60. עדשות עגולות לחלוטין במסגרת מתכת קלה כנוצה בגוון זהב, עם אפי אף מתכווננים וזרועות דקות שמתעגלות בנוחות מאחורי האוזן. בחירה על-זמנית שמתאימה לפנים צרות ובינוניות ומקבלת עדשות אופטיות בצורה מושלמת.',
+      },
+      specs: { lensWidth: '50 mm', bridge: '21 mm', temple: '145 mm', weight: '24 g', lensOpts: { en: 'Single-vision · Progressive · Blue-light', he: 'חד-מוקד · פרוגרסיב · סינון אור כחול' } },
+    },
+    2: {
+      desc: {
+        en: 'Hand-finished in Italy, the Persol PO3092 wears the house’s celebrated Havana acetate — warm tortoise tones polished to a deep gloss. The Meflecto flexible temple system removes pressure at the sides of the head, while the signature Supreme Arrow hinges add a flash of steel. A square silhouette with true heritage character.',
+        he: 'ה-Persol PO3092 מיוצר בגימור יד באיטליה מאצטט Havana המהולל של הבית — גווני צב חמים בליטוש עמוק. מערכת הזרועות הגמישות Meflecto מסירה לחץ מצידי הראש, וצירי ה-Supreme Arrow האיקוניים מוסיפים נגיעת פלדה. צללית מרובעת עם אופי מורשת אמיתי.',
+      },
+      specs: { lensWidth: '50 mm', bridge: '19 mm', temple: '145 mm', weight: '29 g', lensOpts: { en: 'Single-vision · Progressive · Photochromic', he: 'חד-מוקד · פרוגרסיב · פוטוכרומי' } },
+    },
+    3: {
+      desc: {
+        en: 'The Prada Symbole PR 17WS is a statement cat-eye carved from thick, glossy acetate with the triangle logo inlaid in enamel at each temple. Sharp modernist lines soften around the lens for all-day wearability, and the generous fit flatters medium to wide faces. Runway presence, engineered for daily life.',
+        he: 'ה-Prada Symbole PR 17WS הוא הצהרת חתול-עין מאצטט עבה ומבריק, עם לוגו המשולש משובץ אמייל בכל זרוע. קווים מודרניסטיים חדים מתרככים סביב העדשה לנוחות לאורך כל היום, וההתאמה הנדיבה מחמיאה לפנים בינוניות עד רחבות. נוכחות מסלול, מהונדסת לחיי היומיום.',
+      },
+      specs: { lensWidth: '49 mm', bridge: '20 mm', temple: '140 mm', weight: '34 g', lensOpts: { en: 'Single-vision · Progressive · Blue-light', he: 'חד-מוקד · פרוגרסיב · סינון אור כחול' } },
+    },
+    4: {
+      desc: {
+        en: 'Tiffany & Co.’s TF2233B pairs a refined oval front with the maison’s jewelled sensibility — a delicate Tiffany Blue® enamel accent and crystal detailing at the hinges. The slim metal frame all but disappears on the face, letting the craftsmanship speak in close-up. Elegant, feminine, unmistakably Tiffany.',
+        he: 'ה-TF2233B של Tiffany & Co. משלב חזית אובלית מעודנת עם חוש התכשיטנות של הבית — נגיעת אמייל בגוון Tiffany Blue® ועיטורי קריסטל בצירים. מסגרת המתכת הדקה כמעט נעלמת על הפנים ומניחה לאומנות לדבר מקרוב. אלגנטי, נשי, טיפאני ללא ספק.',
+      },
+      specs: { lensWidth: '52 mm', bridge: '16 mm', temple: '140 mm', weight: '27 g', lensOpts: { en: 'Single-vision · Progressive', he: 'חד-מוקד · פרוגרסיב' } },
+    },
+    5: {
+      desc: {
+        en: 'Bold and unapologetic, the Versace VE4361 fronts a strong square acetate frame with the golden Medusa medallion commanding each temple. The deep profile and saturated finishes give it real presence, while sprung hinges keep the fit secure through long days. For wearers who treat eyewear as jewellery.',
+        he: 'נועז וללא התנצלויות — ה-Versace VE4361 מציג מסגרת אצטט מרובעת וחזקה עם מדליון המדוזה הזהוב בכל זרוע. הפרופיל העמוק והגימורים הרוויים מעניקים נוכחות אמיתית, וצירים קפיציים שומרים על התאמה יציבה לאורך ימים ארוכים. למי שרואים במשקפיים תכשיט.',
+      },
+      specs: { lensWidth: '53 mm', bridge: '18 mm', temple: '140 mm', weight: '38 g', lensOpts: { en: 'Single-vision · Progressive · Blue-light', he: 'חד-מוקד · פרוגרסיב · סינון אור כחול' } },
+    },
+    6: {
+      desc: {
+        en: 'The Dolce & Gabbana DG4416 rounds a Sicilian-print acetate into a soft, artistic silhouette. Each frame’s pattern falls differently across the front, making every pair subtly one-of-a-kind. Lightweight construction and a neutral bridge make it an easy everyday companion with a couture accent.',
+        he: 'ה-DG4416 של Dolce & Gabbana מעגל אצטט בהדפס סיציליאני לצללית רכה ואמנותית. הדוגמה נופלת אחרת על כל מסגרת, כך שכל זוג הוא ייחודי בעדינות. מבנה קל וגשר ניטרלי הופכים אותו לבן לוויה יומיומי עם נגיעת קוטור.',
+      },
+      specs: { lensWidth: '51 mm', bridge: '20 mm', temple: '140 mm', weight: '31 g', lensOpts: { en: 'Single-vision · Blue-light', he: 'חד-מוקד · סינון אור כחול' } },
+    },
+    7: {
+      desc: {
+        en: 'The original pilot’s sunglass since 1937, the Ray-Ban Aviator Classic RB3025 needs no introduction. Teardrop crystal lenses block 100% UVA/UVB, the gold-tone frame stays featherweight, and the bayonet temples slide cleanly under a cap or headset. Offered here with G-15 green and gradient lens options.',
+        he: 'משקפי הטייסים המקוריים מאז 1937 — ה-Ray-Ban Aviator Classic RB3025 לא זקוק להקדמות. עדשות קריסטל בצורת טיפה חוסמות 100% UVA/UVB, המסגרת בגוון זהב נשארת קלה במיוחד, והזרועות הישרות מחליקות בקלות מתחת לכובע. זמין עם עדשות G-15 ירוקות או מדורגות.',
+      },
+      specs: { lensWidth: '58 mm', bridge: '14 mm', temple: '135 mm', weight: '31 g', lensOpts: { en: 'G-15 · Gradient · Polarized · Prescription sun', he: 'G-15 · מדורג · מקוטב · שמש אופטי' } },
+    },
+    8: {
+      desc: {
+        en: 'A masterpiece of engineering, the Persol PO0714 is the world’s first folding sunglass — collapsing at the bridge and temples to pocket size without a single compromise in stability. Steve McQueen made it legend; the Havana acetate and crystal lenses keep it timeless. Supplied with a dedicated folding case.',
+        he: 'יצירת מופת הנדסית — ה-Persol PO0714 הוא משקף השמש המתקפל הראשון בעולם, מתקפל בגשר ובזרועות לגודל כיס ללא שום פשרה ביציבות. סטיב מקווין הפך אותו לאגדה; אצטט ה-Havana ועדשות הקריסטל שומרים עליו על-זמני. מגיע עם נרתיק קיפול ייעודי.',
+      },
+      specs: { lensWidth: '54 mm', bridge: '21 mm', temple: '140 mm', weight: '36 g', lensOpts: { en: 'Crystal · Polarized', he: 'קריסטל · מקוטב' } },
+    },
+    9: {
+      desc: {
+        en: 'The Versace VE2199 is a sculpted metal shield with the Medusa Biggie motif studding the browline. A single sweeping lens delivers full coverage and a fashion-forward stance, backed by adjustable nose pads for a precise fit. Statement sun protection, Milan style.',
+        he: 'ה-Versace VE2199 הוא מגן מתכת מפוסל עם מוטיב Medusa Biggie לאורך קו הגבות. עדשה אחת רחבה מעניקה כיסוי מלא ועמדה אופנתית, עם אפי אף מתכווננים להתאמה מדויקת. הגנת שמש הצהרתית, בסגנון מילאנו.',
+      },
+      specs: { lensWidth: '38 mm', bridge: '125 mm shield', temple: '145 mm', weight: '42 g', lensOpts: { en: 'Grey shield · Gold mirror', he: 'מגן אפור · מראה זהב' } },
+    },
+    10: {
+      desc: {
+        en: 'ACUVUE OASYS bi-weekly lenses with HYDRACLEAR® PLUS keep eyes comfortable in demanding, screen-heavy environments. Class-1 UV blocking (the highest available in a contact lens) and a smooth wetting agent woven through the material make dry, tired eyes a rarity. Six lenses per box.',
+        he: 'עדשות ACUVUE OASYS דו-שבועיות עם HYDRACLEAR® PLUS שומרות על נוחות גם בסביבות מסך תובעניות. הגנת UV Class-1 (הגבוהה ביותר בעדשות מגע) וחומר הרטבה חלק הארוג בחומר הופכים עיניים יבשות ועייפות לנדירות. שש עדשות באריזה.',
+      },
+      specs: { lensWidth: '14.0 mm diameter', bridge: '8.4 base curve', temple: '—', weight: '38% water', lensOpts: { en: 'Spherical · Astigmatism · Multifocal', he: 'ספרי · אסטיגמציה · מולטיפוקל' } },
+    },
+    11: {
+      desc: {
+        en: 'DAILIES TOTAL1® is the first water-gradient daily lens: nearly 100% water at the surface, a breathable silicone-hydrogel core inside. The result feels like wearing nothing at all, from the first blink to the end of the day — then you simply throw the pair away. Thirty fresh lenses per box.',
+        he: 'DAILIES TOTAL1® היא עדשת היומיום הראשונה עם מפל מים: כמעט 100% מים על פני השטח וליבת סיליקון-הידרוג׳ל נושמת בפנים. התוצאה מרגישה כאילו אין כלום על העין — מהמצמוץ הראשון עד סוף היום, ואז פשוט זורקים. שלושים עדשות טריות באריזה.',
+      },
+      specs: { lensWidth: '14.1 mm diameter', bridge: '8.5 base curve', temple: '—', weight: '33–80% water gradient', lensOpts: { en: 'Spherical · Multifocal', he: 'ספרי · מולטיפוקל' } },
+    },
+    12: {
+      desc: {
+        en: 'Biofinity® monthly lenses use Aquaform® Technology to lock moisture into a naturally wettable silicone hydrogel — no surface treatments, no additives. High oxygen transmissibility keeps eyes white and healthy across a full month of daily wear, at an everyday price. Six lenses per box.',
+        he: 'עדשות Biofinity® החודשיות משתמשות בטכנולוגיית Aquaform® שנועלת לחות בסיליקון-הידרוג׳ל רטיב טבעית — בלי ציפויים ובלי תוספים. חדירות חמצן גבוהה שומרת על עיניים לבנות ובריאות לאורך חודש שלם של שימוש יומי, במחיר נגיש. שש עדשות באריזה.',
+      },
+      specs: { lensWidth: '14.0 mm diameter', bridge: '8.6 base curve', temple: '—', weight: '48% water', lensOpts: { en: 'Spherical · Toric · Multifocal', he: 'ספרי · טורי · מולטיפוקל' } },
+    },
+  }
+}
+
+module.exports = { defaultContent, productDetails }

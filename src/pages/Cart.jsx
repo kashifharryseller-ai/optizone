@@ -31,13 +31,17 @@ export function Cart({ cart, setCart, go, openCatalog }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {cart.map((it, idx) => (
             <div key={idx} className="oz-cart-item" style={{ display: 'flex', gap: 18, padding: 16, background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)', alignItems: 'center' }}>
-              <div style={{ width: 92, height: 92, borderRadius: 'var(--radius-sm)', background: 'var(--cream-300)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
-                <GlassesMark size={26} color={(it.colors && it.colors[0]) || 'var(--pine-500)'} />
+              <div style={{ width: 92, height: 92, borderRadius: 'var(--radius-sm)', background: 'var(--cream-300)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto', overflow: 'hidden' }}>
+                {it.image
+                  ? <img src={it.image} alt={it.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  : <GlassesMark size={26} color={(it.colors && it.colors[0]) || 'var(--pine-500)'} />}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-accent)' }}>{it.brand}</div>
                 <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-strong)', margin: '3px 0 6px' }}>{it.name}</div>
                 <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t.lineNote}</div>
+                {/* Try Mirror custom frame size follows the line item */}
+                {it.customSize && <div style={{ fontSize: 12.5, color: 'var(--text-accent)', marginTop: 3 }}>{t.customSize(it.customSize)}</div>}
               </div>
               <QuantityStepper value={it.qty} onChange={(q) => setQty(idx, q)} size="sm" />
               <div style={{ width: 90, textAlign: 'end' }}><Price amount={it.amount * it.qty} /></div>

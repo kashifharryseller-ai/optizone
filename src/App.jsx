@@ -43,11 +43,16 @@ export default function App() {
     if (tab) setAccountTab(tab)
     go('account')
   }
-  const addToCart = (p) => {
+  // opts.customSize (e.g. "110%" from Try Mirror) creates its own cart line so
+  // the chosen size follows the item through cart → checkout → order summary.
+  const addToCart = (p, opts = {}) => {
+    const customSize = opts.customSize || p.customSize || null
+    const lineKey = (i) => `${i.id}|${i.customSize || ''}`
+    const key = `${p.id}|${customSize || ''}`
     setCart((c) => {
-      const found = c.find((i) => i.id === p.id)
-      if (found) return c.map((i) => (i.id === p.id ? { ...i, qty: i.qty + 1 } : i))
-      return [...c, { ...p, qty: 1 }]
+      const found = c.find((i) => lineKey(i) === key)
+      if (found) return c.map((i) => (lineKey(i) === key ? { ...i, qty: i.qty + 1 } : i))
+      return [...c, { ...p, customSize, qty: 1 }]
     })
     setToast({ name: p.name, brand: p.brand })
     clearTimeout(toastTimer.current)

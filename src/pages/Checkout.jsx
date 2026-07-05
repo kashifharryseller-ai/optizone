@@ -3,6 +3,7 @@ import { Button, Input, Select, Icon, DiamondRule, Price, GlassesMark } from '..
 import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
 import { useAuth } from '../auth/AuthProvider.jsx'
+import { AddressAutocomplete } from '../components/AddressAutocomplete.jsx'
 import { api } from '../api.js'
 
 function Step({ n, label, active, done }) {
@@ -16,13 +17,23 @@ function Step({ n, label, active, done }) {
   )
 }
 
-function PayOption({ id, sel, onSel, icon, title, sub }) {
-  const active = sel === id
+// disabled + badge: renders a greyed, non-selectable option (e.g. the card
+// method with a "Coming Soon" tag) — visible in the list but never active.
+function PayOption({ id, sel, onSel, icon, title, sub, disabled = false, badge }) {
+  const active = !disabled && sel === id
   return (
-    <button onClick={() => onSel(id)} style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', textAlign: 'start', padding: '14px 16px', borderRadius: 'var(--radius-md)', border: `1.5px solid ${active ? 'var(--pine-700)' : 'var(--border-hair)'}`, background: active ? 'var(--pine-50)' : 'var(--white)', cursor: 'pointer', transition: 'all var(--dur-fast) var(--ease-out)' }}>
+    <button
+      onClick={() => !disabled && onSel(id)}
+      disabled={disabled}
+      aria-disabled={disabled}
+      style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', textAlign: 'start', padding: '14px 16px', borderRadius: 'var(--radius-md)', border: `1.5px solid ${active ? 'var(--pine-700)' : 'var(--border-hair)'}`, background: active ? 'var(--pine-50)' : 'var(--white)', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.55 : 1, transition: 'all var(--dur-fast) var(--ease-out)' }}
+    >
       <span style={{ width: 40, height: 40, borderRadius: 'var(--radius-sm)', background: 'var(--surface-sunken)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={20} color="var(--pine-700)" /></span>
       <span style={{ flex: 1 }}>
-        <span style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--text-strong)' }}>{title}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 600, color: 'var(--text-strong)' }}>
+          {title}
+          {badge && <span style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pine-950)', background: 'var(--amber-500)', borderRadius: 'var(--radius-pill)', padding: '3px 9px' }}>{badge}</span>}
+        </span>
         <span style={{ display: 'block', fontSize: 13, color: 'var(--text-muted)' }}>{sub}</span>
       </span>
       <span style={{ width: 20, height: 20, borderRadius: 999, border: `2px solid ${active ? 'var(--pine-700)' : 'var(--border-strong)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -37,7 +48,7 @@ function SectionTitle({ children }) {
 }
 
 export function Checkout({ cart, subtotal, go, onComplete }) {
-  const { t: root, L } = useLang()
+  const { t: root, L, lang } = useLang()
   const { content } = useContent()
   const settings = content.settings || {}
   const branches = content.stores || []
@@ -46,8 +57,13 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
   const t = root.checkout
   const { user } = useAuth()
   const [step, setStep] = useState(0)
-  const [pay, setPay] = useState('card')
+  // Cash on Delivery is the only active method (card is "Coming Soon").
+  const [pay, setPay] = useState('cod')
   const [ship, setShip] = useState('delivery')
+  // Google Places verification state for the shipping address.
+  const [addrResolved, setAddrResolved] = useState(null)   // normalized geocoded address
+  const [addrMode, setAddrMode] = useState('loading')      // 'ready' | 'fallback' | 'loading'
+  const [addrErr, setAddrErr] = useState('')
   // Prefill contact details from the signed-in customer's profile.
   const [contact, setContact] = useState(() => {
     const parts = (user?.name || '').split(/\s+/)
@@ -57,16 +73,49 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
       email: user?.email || '',
       phone: user?.phone || '',
       address: '',
+      city: 'נתניה',
+      postal: '4237512',
     }
   })
   useEffect(() => { window.scrollTo({ top: 0 }) }, [step])
   const shipping = ship === 'pickup' || subtotal > threshold ? 0 : fee
   const total = subtotal + shipping
 
+  // On selection, auto-populate street / city / postal from the geocoded place.
+  const onAddrResolved = (addr) => {
+    setAddrResolved(addr)
+    if (addr) {
+      setAddrErr('')
+      setContact((c) => ({
+        ...c,
+        address: addr.street || addr.formatted || c.address,
+        city: addr.city || c.city,
+        postal: addr.postal || c.postal,
+      }))
+    }
+  }
+
+  // Gate "Continue to payment": with Places active a verified pick is required;
+  // in fallback mode (no key / script blocked) a non-empty address is required.
+  const toPayment = () => {
+    if (ship === 'delivery') {
+      if (addrMode === 'ready' && !addrResolved) { setAddrErr(t.addrError); return }
+      if (!contact.address.trim()) { setAddrErr(t.addrManualError); return }
+    }
+    setAddrErr('')
+    setStep(2)
+  }
+
   const placeOrder = () => {
     api.createOrder({
-      customer: { name: `${contact.firstName} ${contact.lastName}`.trim(), email: contact.email, phone: contact.phone, address: contact.address },
-      items: cart.map((it) => ({ id: it.id, name: it.name, brand: it.brand, amount: it.amount, qty: it.qty })),
+      customer: {
+        name: `${contact.firstName} ${contact.lastName}`.trim(),
+        email: contact.email, phone: contact.phone,
+        address: contact.address, city: contact.city, postal: contact.postal,
+        geo: addrResolved ? { formatted: addrResolved.formatted, placeId: addrResolved.placeId, lat: addrResolved.lat, lng: addrResolved.lng } : undefined,
+      },
+      addressVerified: !!addrResolved,
+      items: cart.map((it) => ({ id: it.id, name: it.name, brand: it.brand, amount: it.amount, qty: it.qty, customSize: it.customSize || undefined })),
       subtotal, shipping, total, payment: pay, fulfilment: ship,
     }).catch(() => { /* still confirm to the shopper */ })
     setStep(3)
@@ -121,13 +170,30 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 4 }}>
                   <SectionTitle>{t.addrTitle}</SectionTitle>
                   <div className="oz-split21" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
-                    <Input placeholder={t.street} value={contact.address} onChange={(e) => setContact({ ...contact, address: e.target.value })} />
+                    {/* Live Google Places suggestions; falls back to a plain input
+                        when no Maps key is configured or the script can't load. */}
+                    <AddressAutocomplete
+                      mapsKey={settings.mapsKey || ''}
+                      lang={lang}
+                      value={contact.address}
+                      onChange={(v) => setContact((c) => ({ ...c, address: v }))}
+                      onResolved={onAddrResolved}
+                      onStatus={setAddrMode}
+                      resolved={!!addrResolved}
+                      placeholder={addrMode === 'ready' ? t.addrSearch : t.street}
+                      verifiedLabel={t.addrVerifiedMsg}
+                    />
                     <Input placeholder={t.apt} />
                   </div>
                   <div className="oz-split21" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
-                    <Input placeholder={t.city} defaultValue="נתניה" />
-                    <Input placeholder={t.postal} defaultValue="4237512" />
+                    <Input placeholder={t.city} value={contact.city} onChange={(e) => setContact({ ...contact, city: e.target.value })} />
+                    <Input placeholder={t.postal} value={contact.postal} onChange={(e) => setContact({ ...contact, postal: e.target.value })} />
                   </div>
+                  {addrErr && (
+                    <span role="alert" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--danger)' }}>
+                      <Icon name="info" size={15} color="var(--danger)" /> {addrErr}
+                    </span>
+                  )}
                 </div>
               )}
               {ship === 'pickup' && (
@@ -137,7 +203,7 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
               )}
               <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
                 <Button variant="ghost" onClick={() => setStep(0)}>{t.back}</Button>
-                <Button variant="primary" size="lg" block onClick={() => setStep(2)} endIcon={<Icon name="arrow-right" size={18} color="currentColor" />}>{t.toPayment}</Button>
+                <Button variant="primary" size="lg" block onClick={toPayment} endIcon={<Icon name="arrow-right" size={18} color="currentColor" />}>{t.toPayment}</Button>
               </div>
             </>
           )}
@@ -145,29 +211,16 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
           {step === 2 && (
             <>
               <SectionTitle>{t.payTitle}</SectionTitle>
-              <PayOption id="card" sel={pay} onSel={setPay} icon="credit-card" title={t.card} sub={t.cardSub} />
-              <PayOption id="bit" sel={pay} onSel={setPay} icon="smartphone" title={t.bit} sub={t.bitSub} />
-              <PayOption id="installments" sel={pay} onSel={setPay} icon="layers" title={t.installments} sub={t.installmentsSub} />
-              {pay === 'card' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 4 }}>
-                  <Input placeholder={t.cardNumber} defaultValue="4580 •••• •••• 1234" />
-                  <div className="oz-g2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    <Input placeholder={t.expiry} defaultValue="09 / 28" />
-                    <Input placeholder={t.cvv} defaultValue="•••" />
-                  </div>
-                </div>
-              )}
-              {pay === 'installments' && (
-                <div style={{ marginTop: 4 }}>
-                  <Select options={[3, 6, 12].map((n) => ({ value: String(n), label: t.instOpt(n, Math.round(total / n)) }))} />
-                </div>
-              )}
+              {/* Exactly two methods: Cash on Delivery (active, default) and
+                  Card (visible but disabled — "Coming Soon", no card fields). */}
+              <PayOption id="cod" sel={pay} onSel={setPay} icon="package" title={t.cod} sub={t.codSub} />
+              <PayOption id="card" sel={pay} onSel={setPay} icon="credit-card" title={t.card} sub={t.cardSoonNote} disabled badge={t.comingSoon} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>
                 <Icon name="lock" size={14} /> {t.secure}
               </div>
               <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
                 <Button variant="ghost" onClick={() => setStep(1)}>{t.back}</Button>
-                <Button variant="primary" size="lg" block onClick={placeOrder} startIcon={<Icon name="lock" size={17} color="currentColor" />}>{t.pay(total.toLocaleString('he-IL'))}</Button>
+                <Button variant="primary" size="lg" block onClick={placeOrder} startIcon={<Icon name="check" size={17} color="currentColor" />}>{t.placeOrder(total.toLocaleString('he-IL'))}</Button>
               </div>
             </>
           )}
@@ -179,8 +232,16 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
             {cart.map((it, i) => (
               <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <span style={{ width: 44, height: 44, borderRadius: 'var(--radius-sm)', background: 'var(--cream-300)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><GlassesMark size={18} color={(it.colors && it.colors[0]) || 'var(--pine-500)'} /></span>
-                <span style={{ flex: 1, fontSize: 13.5 }}><b style={{ color: 'var(--text-strong)' }}>{it.name}</b><br /><span style={{ color: 'var(--text-muted)' }}>{t.qty(it.qty)}</span></span>
+                <span style={{ width: 44, height: 44, borderRadius: 'var(--radius-sm)', background: 'var(--cream-300)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto', overflow: 'hidden' }}>
+                  {it.image
+                    ? <img src={it.image} alt={it.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    : <GlassesMark size={18} color={(it.colors && it.colors[0]) || 'var(--pine-500)'} />}
+                </span>
+                <span style={{ flex: 1, fontSize: 13.5 }}>
+                  <b style={{ color: 'var(--text-strong)' }}>{it.name}</b><br />
+                  <span style={{ color: 'var(--text-muted)' }}>{t.qty(it.qty)}</span>
+                  {it.customSize && <><br /><span style={{ color: 'var(--text-accent)', fontSize: 12.5 }}>{root.cart.customSize(it.customSize)}</span></>}
+                </span>
                 <span style={{ fontSize: 13.5, fontWeight: 600 }}>₪{(it.amount * it.qty).toLocaleString('he-IL')}</span>
               </div>
             ))}

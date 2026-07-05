@@ -91,7 +91,7 @@ const STRINGS = {
       freeShip: 'Free shipping over ₪400', reserveFit: 'Reserve & fit in-store',
       tabs: { desc: 'Description', specs: 'Specs', reviews: 'Reviews' },
       descLong: (name, shape, material) => `The ${name} pairs a timeless ${shape.toLowerCase()} shape with OPTIZONE's precision fitting. Hand-finished ${material.toLowerCase()}, sprung hinges, and adjustable nose pads for all-day comfort. Compatible with single-vision, progressive, and blue-light lenses.`,
-      specLabels: { brand: 'Brand', shape: 'Shape', material: 'Material', gender: 'Gender', lensWidth: 'Lens width', bridge: 'Bridge', temple: 'Temple', tryMirror: 'Try Mirror' },
+      specLabels: { brand: 'Brand', shape: 'Shape', material: 'Material', gender: 'Gender', lensWidth: 'Lens width', bridge: 'Bridge', temple: 'Temple length', weight: 'Weight', colorOpts: 'Color options', lensOpts: 'Lens options', tryMirror: 'Try Mirror' },
       yes: 'Yes', no: 'No',
       reviewsLine: (n, r) => `${n} verified reviews · ${r}/5 average. Reviews module (Phase 2) with moderation.`,
       consentEyebrow: 'Try Mirror', consentTitle: 'Camera & try-on consent',
@@ -99,6 +99,13 @@ const STRINGS = {
       notNow: 'Not now', allowCamera: 'Allow camera',
       mirrorLive: 'Try Mirror · Live', mirrorPreview: 'Camera preview (mock)',
       capture: 'Capture look', mirrorAdd: 'Add to Cart',
+      mirrorStart: 'Start camera', mirrorPhotoAlt: 'or try on a photo',
+      mirrorSize: 'Frame size', mirrorDownload: 'Download photo',
+      mirrorLoading: 'Loading face tracking…',
+      mirrorNoFace: 'No face detected — try a clear, front-facing photo.',
+      mirrorCamBlocked: 'Camera permission blocked — you can upload a photo instead.',
+      mirrorCamUnavailable: 'Camera is not available here — upload a photo instead.',
+      mirrorPrivacy: 'Everything runs on your device — no image ever leaves your browser.',
     },
 
     booking: {
@@ -117,6 +124,7 @@ const STRINGS = {
     cart: {
       emptyH1: 'Your cart is empty', emptyP: 'Find a frame you love — and try it on before you buy.', shop: 'Shop Frames',
       title: 'Your cart', lineNote: 'Frame + lens · configured',
+      customSize: (v) => `Custom size · ${v}`,
       summary: 'Summary', subtotal: 'Subtotal', shipping: 'Shipping', free: 'Free',
       promo: 'Promo code', apply: 'Apply', total: 'TOTAL',
       checkout: 'Checkout', reserve: 'Reserve & fit in-store',
@@ -179,6 +187,13 @@ const STRINGS = {
       instOpt: (n, x) => `${n} payments · ₪${x}/mo`,
       secure: 'No card data touches our servers · PCI-DSS via gateway',
       pay: (total) => `Pay ₪${total}`,
+      cod: 'Cash on Delivery', codSub: 'Pay in cash when your order arrives',
+      comingSoon: 'Coming Soon', cardSoonNote: 'Card payments coming soon.',
+      placeOrder: (total) => `Place order · ₪${total}`,
+      addrSearch: 'Street & number — start typing for suggestions',
+      addrVerifiedMsg: 'Address verified',
+      addrError: 'Please choose a verified address from the suggestions.',
+      addrManualError: 'Please enter your shipping address.',
       confirmedH1: 'Order confirmed',
       confirmedP: (total) => `Order #OZ-24902 · ₪${total}`,
       confirmedNote: 'A tax invoice (חשבונית מס) and tracking link are on the way via email & WhatsApp.',
@@ -268,7 +283,7 @@ const STRINGS = {
       freeShip: 'משלוח חינם מעל ₪400', reserveFit: 'שריון והתאמה בסניף',
       tabs: { desc: 'תיאור', specs: 'מפרט', reviews: 'ביקורות' },
       descLong: (name, shape, material) => `${name} משלב צורת ${ATTR_HE[shape] || shape} נצחית עם התאמה מדויקת של OPTIZONE. ${ATTR_HE[material] || material} בגימור ידני, צירים קפיציים ומשענות אף מתכווננות לנוחות לאורך כל היום. מתאים לעדשות חד-מוקדיות, פרוגרסיביות וסינון אור כחול.`,
-      specLabels: { brand: 'מותג', shape: 'צורה', material: 'חומר', gender: 'מגדר', lensWidth: 'רוחב עדשה', bridge: 'גשר', temple: 'זרוע', tryMirror: 'Try Mirror' },
+      specLabels: { brand: 'מותג', shape: 'צורה', material: 'חומר', gender: 'מגדר', lensWidth: 'רוחב עדשה', bridge: 'גשר', temple: 'אורך זרוע', weight: 'משקל', colorOpts: 'אפשרויות צבע', lensOpts: 'אפשרויות עדשה', tryMirror: 'Try Mirror' },
       yes: 'כן', no: 'לא',
       reviewsLine: (n, r) => `${n} ביקורות מאומתות · ממוצע ${r}/5. מודול הביקורות (שלב 2) עם ניהול תוכן.`,
       consentEyebrow: 'Try Mirror', consentTitle: 'הסכמה למצלמה ולמדידה',
@@ -276,6 +291,13 @@ const STRINGS = {
       notNow: 'לא עכשיו', allowCamera: 'אישור מצלמה',
       mirrorLive: 'Try Mirror · חי', mirrorPreview: 'תצוגת מצלמה (הדגמה)',
       capture: 'צילום הלוק', mirrorAdd: 'הוספה לעגלה',
+      mirrorStart: 'הפעלת מצלמה', mirrorPhotoAlt: 'או מדידה על תמונה',
+      mirrorSize: 'גודל מסגרת', mirrorDownload: 'הורדת תמונה',
+      mirrorLoading: 'טוען זיהוי פנים…',
+      mirrorNoFace: 'לא זוהו פנים — נסו תמונה ברורה, פנים קדימה.',
+      mirrorCamBlocked: 'הרשאת המצלמה נחסמה — אפשר להעלות תמונה במקום.',
+      mirrorCamUnavailable: 'המצלמה אינה זמינה כאן — העלו תמונה במקום.',
+      mirrorPrivacy: 'הכול רץ על המכשיר שלכם — אף תמונה לא עוזבת את הדפדפן.',
     },
 
     booking: {
@@ -294,6 +316,7 @@ const STRINGS = {
     cart: {
       emptyH1: 'העגלה שלך ריקה', emptyP: 'מצאו מסגרת שאתם אוהבים — ומדדו אותה לפני הקנייה.', shop: 'לקולקציית המסגרות',
       title: 'העגלה שלך', lineNote: 'מסגרת + עדשה · מותאם',
+      customSize: (v) => `מידה מותאמת · ${v}`,
       summary: 'סיכום', subtotal: 'סכום ביניים', shipping: 'משלוח', free: 'חינם',
       promo: 'קוד קופון', apply: 'החל', total: 'סה״כ',
       checkout: 'לתשלום', reserve: 'שריון והתאמה בסניף',
@@ -356,6 +379,13 @@ const STRINGS = {
       instOpt: (n, x) => `${n} תשלומים · ₪${x} לחודש`,
       secure: 'פרטי הכרטיס אינם נשמרים בשרתים שלנו · PCI-DSS דרך הסליקה',
       pay: (total) => `לתשלום ₪${total}`,
+      cod: 'תשלום במזומן בעת האספקה', codSub: 'משלמים במזומן כשההזמנה מגיעה אליכם',
+      comingSoon: 'בקרוב', cardSoonNote: 'תשלום בכרטיס אשראי — בקרוב.',
+      placeOrder: (total) => `ביצוע הזמנה · ₪${total}`,
+      addrSearch: 'רחוב ומספר — התחילו להקליד להצעות',
+      addrVerifiedMsg: 'הכתובת אומתה',
+      addrError: 'יש לבחור כתובת מאומתת מרשימת ההצעות.',
+      addrManualError: 'נא להזין כתובת למשלוח.',
       confirmedH1: 'ההזמנה אושרה',
       confirmedP: (total) => `הזמנה #OZ-24902 · ₪${total}`,
       confirmedNote: 'חשבונית מס וקישור למעקב בדרך אליכם באימייל ובוואטסאפ.',
@@ -380,13 +410,25 @@ const STRINGS = {
 
 const LangContext = createContext(null)
 
+const LANG_KEY = 'oz_lang'
+
 export function LangProvider({ children, defaultLang = 'en' }) {
-  const [lang, setLang] = useState(defaultLang === 'he' ? 'he' : 'en')
+  // The default stays exactly as configured (no geolocation/auto-detection);
+  // a manual choice from the header toggle is persisted and wins on return
+  // visits, so the language stays consistent across listing/PDP/cart/checkout.
+  const [lang, setLang] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LANG_KEY)
+      if (saved === 'he' || saved === 'en') return saved
+    } catch { /* private mode */ }
+    return defaultLang === 'he' ? 'he' : 'en'
+  })
   const dir = lang === 'he' ? 'rtl' : 'ltr'
 
   useEffect(() => {
     document.documentElement.dir = dir
     document.documentElement.lang = lang
+    try { localStorage.setItem(LANG_KEY, lang) } catch { /* private mode */ }
   }, [lang, dir])
 
   const value = useMemo(() => {

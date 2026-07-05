@@ -37,12 +37,22 @@ function fillMissing(target, defaults) {
 // connects to real data (e.g. category pages, product categories added later).
 // Additive only — existing content/customizations are preserved.
 async function migrateContent(store) {
-  const { defaultContent } = require('../seed-data')
+  const { defaultContent, productDetails } = require('../seed-data')
   const content = await store.getContent()
   let changed = fillMissing(content, defaultContent())
+  const details = productDetails()
   for (const p of content.products || []) {
     if (!p.category) { p.category = 'eyeglasses'; changed = true }
     if (p.image === undefined) { p.image = ''; changed = true }
+    // Backfill per-product PDP content (description + specs) from the seed
+    // catalog so every product has unique copy; admin edits are never touched.
+    const d = details[p.id]
+    if (d) {
+      if (!p.desc) { p.desc = d.desc; changed = true }
+      if (!p.specs) { p.specs = d.specs; changed = true }
+    }
+    if (p.images === undefined) { p.images = []; changed = true }
+    if (p.tryMirrorImg === undefined) { p.tryMirrorImg = ''; changed = true }
   }
   if (changed) {
     content.updatedAt = new Date().toISOString()

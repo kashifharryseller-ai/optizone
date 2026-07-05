@@ -70,6 +70,12 @@ const config = {
     clientId: process.env.GOOGLE_CLIENT_ID || '1034284379097-2qh5htoh5ma02cln4pvu8i4p9qnj5bhr.apps.googleusercontent.com',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   },
+
+  // Google Maps (Places Autocomplete + Geocoding at checkout). This is a
+  // browser key — restrict it by HTTP referrer (your Vercel/Hostinger domains)
+  // in Google Cloud Console. Accepts the NEXT_PUBLIC_* name for parity with
+  // the Vercel env naming the shop owner uses.
+  mapsKey: (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '').trim(),
 }
 
 config.useMysql = bool(process.env.USE_MYSQL, !!(config.db.host && config.db.database && config.db.user))

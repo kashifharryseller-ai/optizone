@@ -15,11 +15,17 @@ function securityHeaders() {
       useDefaults: true,
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        // Third-party allowances (each pinned to a specific need):
+        //  - maps.googleapis.com: Maps JS + Places/Geocoding at checkout
+        //  - cdn.jsdelivr.net / unpkg.com: MediaPipe tasks-vision (Try Mirror)
+        //  - storage.googleapis.com: MediaPipe face_landmarker model file
+        //  - 'wasm-unsafe-eval': MediaPipe compiles its WASM module in-browser
+        scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'https://maps.googleapis.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com'],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'blob:'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https://maps.googleapis.com', 'https://maps.gstatic.com'],
         fontSrc: ["'self'", 'data:'],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", 'https://maps.googleapis.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com', 'https://storage.googleapis.com'],
+        workerSrc: ["'self'", 'blob:'],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],

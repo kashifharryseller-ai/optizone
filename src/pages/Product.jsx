@@ -4,11 +4,15 @@ import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import { ImageSlot } from '../components/ImageSlot.jsx'
+import { TryMirror } from '../components/TryMirror.jsx'
 
-function MarkThumb({ active, onClick, tint }) {
+// Thumbnail: real product photo when the admin uploaded one, mark fallback.
+function MarkThumb({ active, onClick, tint, src }) {
   return (
-    <button onClick={onClick} style={{ width: 64, height: 64, borderRadius: 'var(--radius-sm)', border: `1.5px solid ${active ? 'var(--pine-700)' : 'var(--border-hair)'}`, background: 'var(--cream-300)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-      <GlassesMark size={20} color={tint || 'var(--pine-500)'} />
+    <button onClick={onClick} style={{ width: 64, height: 64, borderRadius: 'var(--radius-sm)', border: `1.5px solid ${active ? 'var(--pine-700)' : 'var(--border-hair)'}`, background: 'var(--cream-300)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, overflow: 'hidden' }}>
+      {src
+        ? <img src={src} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        : <GlassesMark size={20} color={tint || 'var(--pine-500)'} />}
     </button>
   )
 }
@@ -46,6 +50,13 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
   const total = p.amount + lensPrice
   const summaryParts = [`${t.index} ${index}`, ar && t.antiReflective, blue && t.blueLight, photo && t.photochromic].filter(Boolean)
 
+  // Gallery images from the admin portal (main photo + extra angles).
+  const gallery = [p.image, ...(p.images || [])].filter(Boolean)
+  const mainSrc = gallery.length ? gallery[Math.min(img, gallery.length - 1)] : undefined
+  // Per-product content from the admin portal (with graceful fallbacks).
+  const richDesc = L(p.desc)
+  const sp = p.specs || {}
+
   return (
     <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '28px 28px 72px' }}>
       <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => openCatalog(p.category || 'eyeglasses')}>{t.backTo(catLabel)}</span>
@@ -54,11 +65,19 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
         {/* GALLERY */}
         <div style={{ display: 'flex', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[0, 1, 2, 3].map((i) => <MarkThumb key={i} active={img === i} onClick={() => setImg(i)} tint={p.colors[i % p.colors.length]} />)}
+            {(gallery.length ? gallery.slice(0, 4) : [0, 1, 2, 3]).map((g, i) => (
+              <MarkThumb key={i} active={img === i} onClick={() => setImg(i)} src={gallery.length ? g : undefined} tint={p.colors[i % (p.colors.length || 1)]} />
+            ))}
           </div>
           <div style={{ flex: 1, position: 'relative', aspectRatio: '1', background: 'var(--cream-300)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-hair)', overflow: 'hidden' }}>
-            <ImageSlot src={p.image || undefined} placeholder={t.photoSlot} shape="rounded" radius={12} fit="cover" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+            <ImageSlot src={mainSrc} alt={`${p.brand} ${p.name}`} placeholder={t.photoSlot} shape="rounded" radius={12} fit="cover" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
             {p.tryMirror && <span style={{ position: 'absolute', top: 16, insetInlineStart: 16, zIndex: 2, pointerEvents: 'none' }}><Badge variant="try">Try Mirror</Badge></span>}
+            {/* Try Mirror entry point right on the product image */}
+            {p.tryMirror && (
+              <span style={{ position: 'absolute', bottom: 16, insetInlineStart: 16, zIndex: 2 }}>
+                <Button variant="solid" size="sm" onClick={() => setConsent(true)} startIcon={<Icon name="camera" size={15} color="currentColor" />}>{t.tryMirror}</Button>
+              </span>
+            )}
             <IconButton variant="outline" round style={{ position: 'absolute', bottom: 16, insetInlineEnd: 16, background: 'var(--white)', zIndex: 2 }}><Icon name="maximize-2" size={16} /></IconButton>
           </div>
         </div>
@@ -73,7 +92,9 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
             <span style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600 }}>{t.inStock}</span>
           </div>
           <Price amount={total} original={p.original ? p.original + lensPrice : undefined} size="lg" />
-          <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--text-body)', margin: '18px 0 22px', maxWidth: 460 }}>{t.desc(p.shape, p.material)}</p>
+          <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--text-body)', margin: '18px 0 22px', maxWidth: 460 }}>
+            {richDesc ? `${richDesc.split(/(?<=\.)\s+/)[0]}` : t.desc(p.shape, p.material)}
+          </p>
 
           {/* colors */}
           <div style={{ marginBottom: 22 }}>
@@ -124,12 +145,32 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
       <div style={{ marginTop: 56, maxWidth: 780 }}>
         <Tabs tabs={[{ value: 'desc', label: t.tabs.desc }, { value: 'specs', label: t.tabs.specs }, { value: 'reviews', label: t.tabs.reviews }]} value={tab} onChange={setTab} />
         <div style={{ padding: '24px 2px', fontSize: 15, lineHeight: 1.7, color: 'var(--text-body)' }}>
-          {tab === 'desc' && <p style={{ margin: 0 }}>{t.descLong(p.name, p.shape, p.material)}</p>}
+          {/* Rich per-product description from the admin portal (paragraphs
+              split on newlines); generic copy only as a last-resort fallback. */}
+          {tab === 'desc' && (
+            richDesc
+              ? richDesc.split(/\n+/).map((para, i) => <p key={i} style={{ margin: i ? '14px 0 0' : 0 }}>{para}</p>)
+              : <p style={{ margin: 0 }}>{t.descLong(p.name, p.shape, p.material)}</p>
+          )}
+          {/* Structured specs table — values come from the product's admin
+              record (p.specs); rows with no data are simply omitted. */}
           {tab === 'specs' && (
-            <div className="oz-g2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 40px', maxWidth: 520 }}>
-              {[[t.specLabels.brand, p.brand], [t.specLabels.shape, A(p.shape)], [t.specLabels.material, A(p.material)], [t.specLabels.gender, A(p.gender)], [t.specLabels.lensWidth, '50 mm'], [t.specLabels.bridge, '21 mm'], [t.specLabels.temple, '145 mm'], [t.specLabels.tryMirror, p.tryMirror ? t.yes : t.no]].map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-hair)', paddingBottom: 8 }}>
-                  <span style={{ color: 'var(--text-muted)' }}>{k}</span><span style={{ color: 'var(--text-strong)', fontWeight: 600 }}>{v}</span>
+            <div className="oz-g2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 40px', maxWidth: 620 }}>
+              {[
+                [t.specLabels.brand, p.brand],
+                [t.specLabels.shape, A(p.shape)],
+                [t.specLabels.material, A(p.material)],
+                [t.specLabels.gender, A(p.gender)],
+                [t.specLabels.lensWidth, sp.lensWidth],
+                [t.specLabels.bridge, sp.bridge],
+                [t.specLabels.temple, sp.temple],
+                [t.specLabels.weight, sp.weight],
+                [t.specLabels.colorOpts, (p.colors || []).length ? String(p.colors.length) : ''],
+                [t.specLabels.lensOpts, L(sp.lensOpts)],
+                [t.specLabels.tryMirror, p.tryMirror ? t.yes : t.no],
+              ].filter(([, v]) => v).map(([k, v]) => (
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 14, borderBottom: '1px solid var(--border-hair)', paddingBottom: 8 }}>
+                  <span style={{ color: 'var(--text-muted)', flex: '0 0 auto' }}>{k}</span><span style={{ color: 'var(--text-strong)', fontWeight: 600, textAlign: 'end' }}>{v}</span>
                 </div>
               ))}
             </div>
@@ -147,32 +188,15 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
         {t.consentBody}
       </Dialog>
 
-      {/* TRY MIRROR MOCK */}
-      {mirror && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'var(--pine-950)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', color: 'var(--cream-100)' }}>
-            <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.14em', textTransform: 'uppercase', fontSize: 13, color: 'var(--amber-500)' }}>{t.mirrorLive}</span>
-            <IconButton variant="ghost" onClick={() => setMirror(false)} style={{ color: 'var(--cream-100)' }}><Icon name="x" color="var(--cream-100)" /></IconButton>
-          </div>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-            <div style={{ width: 'min(70vh,520px)', aspectRatio: '3/4', borderRadius: 'var(--radius-lg)', background: 'linear-gradient(160deg,var(--pine-700),var(--pine-900))', border: '1px solid var(--border-on-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-              <Icon name="user" size={160} color="rgba(255,255,255,0.12)" />
-              <div className="oz-scan-line" />
-              <div style={{ position: 'absolute', top: '34%', animation: 'oz-float 4s var(--ease-in-out) infinite' }}><GlassesMark size={70} color={p.colors[img % p.colors.length]} /></div>
-              <span style={{ position: 'absolute', bottom: 16, fontSize: 12, color: 'var(--pine-200)', letterSpacing: '0.06em' }}>{t.mirrorPreview}</span>
-            </div>
-          </div>
-          <div style={{ padding: '18px 24px 28px', display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: 10 }}>
-              {p.colors.map((c, i) => <button key={i} onClick={() => setImg(i)} style={{ width: 36, height: 36, borderRadius: 999, background: c, border: `2px solid ${img === i ? 'var(--amber-500)' : 'transparent'}`, cursor: 'pointer' }} />)}
-            </div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Button variant="outline" style={{ color: 'var(--cream-100)', borderColor: 'var(--cream-100)' }} startIcon={<Icon name="camera" size={18} color="currentColor" />}>{t.capture}</Button>
-              <Button variant="primary" onClick={() => { addToCart({ ...p, amount: total }); setMirror(false) }} startIcon={<Icon name="shopping-bag" size={18} color="currentColor" />}>{t.mirrorAdd}</Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* TRY MIRROR — real client-side try-on (MediaPipe Face Landmarker).
+          The chosen frame size travels with the cart line as customSize. */}
+      <TryMirror
+        open={mirror}
+        onClose={() => setMirror(false)}
+        product={p}
+        strings={t}
+        onAddToCart={(customSize) => addToCart({ ...p, amount: total }, { customSize })}
+      />
     </div>
   )
 }
