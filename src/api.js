@@ -37,6 +37,8 @@ export const api = {
   // Customer auth + account
   register: (data) => req('/auth/register', { method: 'POST', body: data }),
   loginUser: (email, password) => req('/auth/login', { method: 'POST', body: { email, password } }),
+  forgotPassword: (email) => req('/auth/forgot', { method: 'POST', body: { email } }),
+  resetPassword: (email, code, password) => req('/auth/reset', { method: 'POST', body: { email, code, password } }),
   accountMe: () => req('/account/me', { auth: 'user' }),
   updateProfile: (patch) => req('/account/profile', { method: 'PUT', auth: 'user', body: patch }),
   changePassword: (current, next) => req('/account/password', { method: 'PUT', auth: 'user', body: { current, next } }),

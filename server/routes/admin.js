@@ -10,6 +10,7 @@ const config = require('../config')
 const { store } = require('../store')
 const { issueToken, requireAuth, hashPassword, verifyPassword } = require('../auth')
 const { sendMail, mailEnabled, otpEmail } = require('../mailer')
+const { isLimited, recordFailure, clearKey } = require('../limiter')
 
 const router = express.Router()
 const rid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 10)
@@ -59,24 +60,25 @@ async function emailChallenge(purpose, adminEmail) {
   return { challenge: challenge.id, sent }
 }
 
-// Simple failure limiter: 8 wrong passwords → 10-minute lockout (per instance).
-let fails = { count: 0, until: 0 }
+// Persistent lockout: 6 wrong owner passwords → 15-minute lockout (survives
+// restarts and applies across instances).
+const ADMIN_LOGIN_KEY = 'alogin'
+const ADMIN_LOGIN_MAX = 6
+const ADMIN_LOGIN_WINDOW = 15 * 60 * 1000
 
 // --- Login (public) -----------------------------------------------------------
 router.post('/login', async (req, res, next) => {
   try {
     const { username, email, password } = req.body || {}
-    if (fails.count >= 8 && Date.now() < fails.until) {
-      return res.status(429).json({ error: 'Too many attempts — try again in a few minutes' })
-    }
+    const limited = await isLimited(ADMIN_LOGIN_KEY, ADMIN_LOGIN_MAX)
+    if (limited.limited) return res.status(429).json({ error: 'Too many attempts — try again in a few minutes' })
     const admin = await getAdmin()
     const em = String(email || username || '').trim().toLowerCase()
     if (!admin || em !== admin.email || !verifyPassword(password, admin.passwordHash)) {
-      fails.count += 1
-      if (fails.count >= 8) fails.until = Date.now() + 10 * 60 * 1000
+      await recordFailure(ADMIN_LOGIN_KEY, ADMIN_LOGIN_WINDOW)
       return res.status(401).json({ error: 'Wrong email or password' })
     }
-    fails = { count: 0, until: 0 }
+    await clearKey(ADMIN_LOGIN_KEY)
     if (otpOn()) {
       const { challenge, sent } = await emailChallenge('login', admin.email)
       return res.json({ otp: true, challenge, email: maskEmail(admin.email), sent })

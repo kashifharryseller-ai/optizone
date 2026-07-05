@@ -37,6 +37,8 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => applySession(await api.loginUser(email, password)), [applySession])
   const register = useCallback(async (data) => applySession(await api.register(data)), [applySession])
+  // Sign in from a {token, user} response (used after a password reset).
+  const resetSignIn = useCallback((sessionResponse) => applySession(sessionResponse), [applySession])
   const logout = useCallback(() => { setUserToken(null); setUser(null); setWishlist([]) }, [])
 
   const updateProfile = useCallback(async (patch) => {
@@ -54,9 +56,9 @@ export function AuthProvider({ children }) {
   const value = useMemo(() => ({
     user, checking, wishlist, oauthError,
     clearOauthError: () => setOauthError(''),
-    login, register, logout, updateProfile, toggleWishlist,
+    login, register, resetSignIn, logout, updateProfile, toggleWishlist,
     inWishlist: (id) => wishlist.includes(id),
-  }), [user, checking, wishlist, oauthError, login, register, logout, updateProfile, toggleWishlist])
+  }), [user, checking, wishlist, oauthError, login, register, resetSignIn, logout, updateProfile, toggleWishlist])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

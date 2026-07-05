@@ -1,32 +1,28 @@
-// Customer auth + account API — register, login, profile, orders, appointments,
-// wishlist, settings. Passwords are bcrypt-hashed; sessions are JWTs (role: customer).
+// Customer auth + account API — register, login, forgot/reset, profile, orders,
+// appointments, wishlist. Passwords are bcrypt-hashed; sessions are JWTs.
 const express = require('express')
+const crypto = require('crypto')
 const { customAlphabet } = require('nanoid')
 const { store } = require('../store')
 const { issueUserToken, requireUser, hashPassword, verifyPassword } = require('../auth')
+const { isLimited, recordFailure, clearKey } = require('../limiter')
+const { sendMail, mailEnabled, resetEmail } = require('../mailer')
 
 const router = express.Router()
 const uid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 12)
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex')
 const sanitize = (u) => u && ({
   id: u.id, name: u.name, email: u.email, phone: u.phone || '',
   createdAt: u.createdAt, active: u.active !== false, wishlist: u.wishlist || [],
 })
 
-// Tiny in-memory login limiter: 8 failures per email → 10 min lockout.
-const attempts = new Map()
-function locked(email) {
-  const a = attempts.get(email)
-  return a && a.count >= 8 && Date.now() < a.until
-}
-function fail(email) {
-  const a = attempts.get(email) || { count: 0, until: 0 }
-  a.count += 1
-  if (a.count >= 8) a.until = Date.now() + 10 * 60 * 1000
-  attempts.set(email, a)
-}
-const clearFails = (email) => attempts.delete(email)
+// Persistent per-account login lockout (8 failures / 15 min) — survives restarts
+// and applies across instances, so it can't be bypassed by rotating IPs.
+const LOGIN_MAX = 8
+const LOGIN_WINDOW = 15 * 60 * 1000
+const loginKey = (email) => `clogin:${email}`
 
 // --- Register ----------------------------------------------------------------
 router.post('/auth/register', async (req, res, next) => {
@@ -59,15 +55,59 @@ router.post('/auth/login', async (req, res, next) => {
   try {
     const email = String((req.body || {}).email || '').trim().toLowerCase()
     const password = String((req.body || {}).password || '')
-    if (locked(email)) return res.status(429).json({ error: 'Too many attempts — try again in a few minutes' })
+    const limited = await isLimited(loginKey(email), LOGIN_MAX)
+    if (limited.limited) return res.status(429).json({ error: 'Too many attempts — try again in a few minutes' })
     const user = await store().findUserByEmail(email)
     if (!user || !verifyPassword(password, user.passwordHash)) {
-      fail(email)
+      await recordFailure(loginKey(email), LOGIN_WINDOW)
       return res.status(401).json({ error: 'Wrong email or password' })
     }
     if (user.active === false) return res.status(403).json({ error: 'This account is disabled — contact the store' })
-    clearFails(email)
+    await clearKey(loginKey(email))
     res.json({ token: issueUserToken(user), user: sanitize(user) })
+  } catch (err) { next(err) }
+})
+
+// --- Forgot password: email a reset code -------------------------------------
+// Always responds success (never reveals whether an email is registered).
+router.post('/auth/forgot', async (req, res, next) => {
+  try {
+    const email = String((req.body || {}).email || '').trim().toLowerCase()
+    if (EMAIL_RE.test(email)) {
+      const user = await store().findUserByEmail(email)
+      if (user && user.active !== false && user.passwordHash) {
+        const code = String(crypto.randomInt(100000, 1000000))
+        await store().updateUser(user.id, { resetCodeHash: sha(code), resetExpiresAt: Date.now() + 15 * 60 * 1000, resetAttempts: 0 })
+        const mail = resetEmail(code)
+        let sent = false
+        try { const r = await sendMail({ to: email, ...mail }); sent = !!r.sent } catch (e) { console.error('[account] reset email failed:', e.message) }
+        if (!sent) console.log('[account] password reset code for %s: %s', email, code)
+      }
+    }
+    res.json({ ok: true, mail: mailEnabled() })
+  } catch (err) { next(err) }
+})
+
+// --- Reset password with the emailed code ------------------------------------
+router.post('/auth/reset', async (req, res, next) => {
+  try {
+    const email = String((req.body || {}).email || '').trim().toLowerCase()
+    const code = String((req.body || {}).code || '').trim()
+    const password = String((req.body || {}).password || '')
+    if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' })
+    const user = await store().findUserByEmail(email)
+    if (!user || !user.resetCodeHash || !user.resetExpiresAt || Date.now() > user.resetExpiresAt) {
+      return res.status(400).json({ error: 'This code has expired — request a new one' })
+    }
+    if ((user.resetAttempts || 0) >= 5) return res.status(429).json({ error: 'Too many wrong codes — request a new one' })
+    if (sha(code) !== user.resetCodeHash) {
+      await store().updateUser(user.id, { resetAttempts: (user.resetAttempts || 0) + 1 })
+      return res.status(401).json({ error: 'Wrong code — check the email and try again' })
+    }
+    const updated = await store().updateUser(user.id, { passwordHash: hashPassword(password), resetCodeHash: null, resetExpiresAt: null, resetAttempts: 0 })
+    await clearKey(loginKey(email))
+    // Sign them straight in — they proved ownership of the inbox.
+    res.json({ token: issueUserToken(updated), user: sanitize(updated) })
   } catch (err) { next(err) }
 })
 

@@ -51,4 +51,21 @@ function otpEmail(code) {
   return { subject, text, html }
 }
 
-module.exports = { sendMail, mailEnabled, otpEmail }
+function resetEmail(code) {
+  const subject = `${code} — reset your OPTIZONE password`
+  const text = `Use this code to reset your OPTIZONE password: ${code}. It expires in 15 minutes. If you didn't request a reset, you can ignore this email.`
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:440px;margin:0 auto;border:1px solid #E2DBCF;border-radius:10px;overflow:hidden">
+    <div style="background:#274A3B;padding:22px;text-align:center">
+      <span style="color:#FFFFFF;font-size:20px;letter-spacing:4px;font-weight:bold">OPTI<span style="color:#E08A2A">ZONE</span></span>
+    </div>
+    <div style="padding:26px;text-align:center">
+      <p style="color:#3A342A;font-size:14px;margin:0 0 14px">Your password reset code:</p>
+      <div style="font-size:34px;letter-spacing:10px;font-weight:bold;color:#274A3B;padding:12px 0">${code}</div>
+      <p style="color:#736A5C;font-size:12.5px;margin:14px 0 0">Expires in 15 minutes. If you didn't request a reset, ignore this email — your password stays unchanged.</p>
+    </div>
+  </div>`
+  return { subject, text, html }
+}
+
+module.exports = { sendMail, mailEnabled, otpEmail, resetEmail }

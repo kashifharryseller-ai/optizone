@@ -36,57 +36,104 @@ function GoogleG({ size = 18 }) {
   )
 }
 
-// --- Login / Register --------------------------------------------------------
+// --- Login / Register / Forgot / Reset ---------------------------------------
 function AuthCard({ t }) {
-  const { login, register, oauthError, clearOauthError } = useAuth()
-  const [mode, setMode] = useState('login') // login | register
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' })
+  const { login, register, resetSignIn, oauthError, clearOauthError } = useAuth()
+  const [mode, setMode] = useState('login') // login | register | forgot | reset
+  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', code: '' })
   const [err, setErr] = useState('')
+  const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
   const googleSignIn = () => { window.location.href = '/api/auth/google' }
+  const rf = t.reset || {}
+  const go = (m) => { setMode(m); setErr(''); setMsg('') }
 
   const submit = async (e) => {
     e && e.preventDefault()
-    setBusy(true); setErr('')
+    setBusy(true); setErr(''); setMsg('')
     try {
       if (mode === 'login') await login(form.email, form.password)
-      else await register(form)
+      else if (mode === 'register') await register(form)
+      else if (mode === 'forgot') {
+        await api.forgotPassword(form.email)
+        setMode('reset'); setMsg(rf.sentNote)
+      } else if (mode === 'reset') {
+        const session = await api.resetPassword(form.email, form.code, form.password)
+        resetSignIn(session) // signs in with the new password
+      }
     } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
   }
+
+  const heading =
+    mode === 'login' ? t.welcome : mode === 'register' ? t.registerTitle : mode === 'forgot' ? rf.forgotTitle : rf.resetTitle
+  const sub =
+    mode === 'login' ? t.signinSub : mode === 'register' ? t.registerSub : mode === 'forgot' ? rf.forgotSub : rf.resetSub
 
   return (
     <div style={{ maxWidth: 440, margin: '60px auto 110px', padding: '0 28px' }}>
       <form onSubmit={submit} className="oz-route" style={{ background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)', padding: '38px 34px' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <GlassesMark size={46} color="var(--pine-700)" />
-          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 26, color: 'var(--text-strong)', margin: '14px 0 4px' }}>
-            {mode === 'login' ? t.welcome : t.registerTitle}
-          </h1>
-          <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0 }}>{mode === 'login' ? t.signinSub : t.registerSub}</p>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 26, color: 'var(--text-strong)', margin: '14px 0 4px' }}>{heading}</h1>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0 }}>{sub}</p>
         </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {mode === 'register' && <Input placeholder={t.name} value={form.name} onChange={set('name')} autoComplete="name" />}
-          <Input type="email" placeholder={t.email} value={form.email} onChange={set('email')} autoComplete="email" />
+          {(mode === 'login' || mode === 'register' || mode === 'forgot') && (
+            <Input type="email" placeholder={t.email} value={form.email} onChange={set('email')} autoComplete="email" />
+          )}
           {mode === 'register' && <Input placeholder={t.phone} value={form.phone} onChange={set('phone')} autoComplete="tel" />}
-          <Input type="password" placeholder={t.password} value={form.password} onChange={set('password')}
-            helper={mode === 'register' ? t.pwHint : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
-          <ErrorNote>{err || oauthError}</ErrorNote>
+          {mode === 'reset' && (
+            <Input placeholder={rf.code} value={form.code} onChange={set('code')} inputMode="numeric" maxLength={6} style={{ letterSpacing: '0.4em', fontSize: 18 }} />
+          )}
+          {(mode === 'login' || mode === 'register' || mode === 'reset') && (
+            <Input type="password" placeholder={mode === 'reset' ? rf.newPassword : t.password} value={form.password} onChange={set('password')}
+              helper={mode === 'login' ? undefined : t.pwHint} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+          )}
+
+          {/* Forgot-password link, on the login screen only */}
+          {mode === 'login' && (
+            <div style={{ textAlign: 'end', marginTop: -4 }}>
+              <a onClick={() => go('forgot')} style={{ fontSize: 13, color: 'var(--amber-700)', cursor: 'pointer' }}>{rf.forgotLink}</a>
+            </div>
+          )}
+
+          <ErrorNote>{err || (mode === 'login' ? oauthError : '')}</ErrorNote>
+          {msg && <div style={{ fontSize: 13, color: 'var(--success)', background: '#E4F0E7', borderRadius: 'var(--radius-sm)', padding: '9px 12px' }}>{msg}</div>}
+
           <Button variant="primary" block size="lg" onClick={submit} disabled={busy}>
-            {busy ? '…' : mode === 'login' ? t.signin : t.signup}
+            {busy ? '…'
+              : mode === 'login' ? t.signin
+              : mode === 'register' ? t.signup
+              : mode === 'forgot' ? rf.sendCode
+              : rf.resetCta}
           </Button>
         </div>
-        <div style={{ margin: '22px 0' }}><DiamondRule label={t.or} /></div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <button type="button" onClick={() => { clearOauthError(); googleSignIn() }}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, height: 46, border: '1px solid var(--border-strong)', background: 'var(--white)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 14.5, fontWeight: 600, color: 'var(--text-strong)' }}>
-            <GoogleG /> {t.google}
-          </button>
-          <Button variant="outline" block onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setErr('') }}
-            startIcon={<Icon name={mode === 'login' ? 'user-plus' : 'user'} size={17} color="currentColor" />}>
-            {mode === 'login' ? t.toRegister : t.toLogin}
-          </Button>
-        </div>
+
+        {(mode === 'login' || mode === 'register') && (
+          <>
+            <div style={{ margin: '22px 0' }}><DiamondRule label={t.or} /></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button type="button" onClick={() => { clearOauthError(); googleSignIn() }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, height: 46, border: '1px solid var(--border-strong)', background: 'var(--white)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 14.5, fontWeight: 600, color: 'var(--text-strong)' }}>
+                <GoogleG /> {t.google}
+              </button>
+              <Button variant="outline" block onClick={() => go(mode === 'login' ? 'register' : 'login')}
+                startIcon={<Icon name={mode === 'login' ? 'user-plus' : 'user'} size={17} color="currentColor" />}>
+                {mode === 'login' ? t.toRegister : t.toLogin}
+              </Button>
+            </div>
+          </>
+        )}
+
+        {(mode === 'forgot' || mode === 'reset') && (
+          <div style={{ textAlign: 'center', marginTop: 18 }}>
+            <a onClick={() => go('login')} style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }}>{rf.backToLogin}</a>
+          </div>
+        )}
+
         <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', marginTop: 18, lineHeight: 1.6 }}>{t.protected}</p>
       </form>
     </div>
