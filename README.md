@@ -11,6 +11,27 @@ panel** for managing everything on the site.
 - **Deploys as one Node.js app** — ready for Hostinger Cloud Startup. See
   **[DEPLOY-HOSTINGER.md](./DEPLOY-HOSTINGER.md)**.
 
+## One deployment = the whole site
+
+The customer website and the admin panel ship together in a single deployment:
+
+| URL path | What it serves |
+|---|---|
+| `/` | **Customer storefront** — home, catalog, product, cart, checkout, booking, stores, account |
+| `/admin` | **Admin panel** — products, homepage content, stores/settings, orders, appointments |
+| `/api/*` | JSON API used by both |
+
+Default admin login is `admin` / `optizone-admin` — override with the
+`ADMIN_USERNAME` / `ADMIN_PASSWORD` environment variables before going live.
+
+### Deploy targets
+- **Vercel (preview/demo):** import this repo at [vercel.com/new](https://vercel.com/new) —
+  `vercel.json` configures the Vite build, the serverless API (`api/index.js`)
+  and SPA routing automatically. Note: on Vercel, admin edits and uploads are
+  **ephemeral** (serverless `/tmp`); use it to preview, not as the production store.
+- **Hostinger / any Node host (production):** persistent MySQL + disk uploads.
+  Follow [DEPLOY-HOSTINGER.md](./DEPLOY-HOSTINGER.md).
+
 ## Features
 
 ### Storefront
