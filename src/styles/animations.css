@@ -34,6 +34,47 @@ a, button {
     border-color var(--dur-fast) var(--ease-out);
 }
 
+/* Primary navigation — professional hover/active treatment on the pine header. */
+.oz-nav { display: flex; align-items: center; gap: 0; flex-wrap: nowrap; }
+.oz-nav a {
+  position: relative;
+  padding: 9px 11px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--cream-100);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.oz-nav a:hover { color: #fff; background: rgba(255, 255, 255, 0.07); }
+.oz-nav a::after {
+  content: '';
+  position: absolute;
+  inset-inline: 11px;
+  bottom: 5px;
+  height: 2px;
+  background: var(--amber-500);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.oz-nav a:hover::after { transform: scaleX(0.55); }
+.oz-nav a.active { color: var(--amber-500); }
+.oz-nav a.active::after { transform: scaleX(1); }
+/* "Book an Exam" call-to-action pill */
+.oz-nav a.oz-nav-cta {
+  border: 1px solid var(--amber-500);
+  color: var(--amber-500);
+  border-radius: var(--radius-pill);
+  padding: 8px 14px;
+  margin-inline-start: 6px;
+}
+.oz-nav a.oz-nav-cta::after { display: none; }
+.oz-nav a.oz-nav-cta:hover { background: var(--amber-600); border-color: var(--amber-600); color: var(--pine-950); }
+.oz-nav a.oz-nav-cta.active { background: var(--amber-600); border-color: var(--amber-600); color: var(--pine-950); }
+
 /* The glasses-mark, diamond rule, icons and lockups read the same both directions;
    keep them from being flipped by the ambient RTL context. */
 [dir="rtl"] svg { }

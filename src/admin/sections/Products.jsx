@@ -1,11 +1,18 @@
 import React from 'react'
-import { Panel, Row, Field, Text, Num, SelectField, Toggle, Bilingual, ImageField, ListEditor, Btn } from '../ui.jsx'
+import { Panel, Row, Field, Text, Num, SelectField, Toggle, Bilingual, ImageField, ListEditor, StringList, Btn } from '../ui.jsx'
 
 const BADGE_VARIANTS = [
   { value: 'sale', label: 'Sale (amber)' },
   { value: 'new', label: 'New (pine)' },
   { value: 'bestseller', label: 'Bestseller' },
   { value: 'try', label: 'Try' },
+]
+
+// Which navbar page the product appears on.
+const CATEGORIES = [
+  { value: 'eyeglasses', label: 'Eyeglasses' },
+  { value: 'sunglasses', label: 'Sunglasses' },
+  { value: 'contacts', label: 'Contact Lenses' },
 ]
 
 function ColorList({ colors = [], onChange }) {
@@ -29,15 +36,17 @@ export default function Products({ content, setContent }) {
   const nextId = () => (products.reduce((m, p) => Math.max(m, Number(p.id) || 0), 0) + 1)
 
   return (
-    <Panel title="Products & catalog" desc="Add, edit, reorder or remove the frames shown across the storefront.">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <Panel title="Products & catalog" desc="Every product belongs to a category — that decides which navbar page (Eyeglasses / Sunglasses / Contact Lenses) it appears on.">
       <ListEditor
         items={products}
         onChange={setProducts}
         addLabel="Add product"
-        makeNew={() => ({ id: nextId(), brand: '', name: 'New frame', amount: 0, original: 0, rating: 5, reviews: 0, badge: null, tryMirror: true, colors: ['#274A3B'], shape: 'Round', material: 'Acetate', gender: 'Unisex', image: '' })}
+        makeNew={() => ({ id: nextId(), category: 'eyeglasses', brand: '', name: 'New frame', amount: 0, original: 0, rating: 5, reviews: 0, badge: null, tryMirror: true, colors: ['#274A3B'], shape: 'Round', material: 'Acetate', gender: 'Unisex', image: '' })}
         render={(p, set) => (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <Row cols="1fr 1fr">
+            <Row cols="220px 1fr 1fr">
+              <Field label="Category (page)"><SelectField value={p.category || 'eyeglasses'} onChange={(v) => set({ ...p, category: v })} options={CATEGORIES} /></Field>
               <Field label="Brand"><Text value={p.brand} onChange={(v) => set({ ...p, brand: v })} /></Field>
               <Field label="Model name"><Text value={p.name} onChange={(v) => set({ ...p, name: v })} /></Field>
             </Row>
@@ -48,9 +57,9 @@ export default function Products({ content, setContent }) {
               <Field label="Reviews"><Num value={p.reviews} onChange={(v) => set({ ...p, reviews: v })} /></Field>
             </Row>
             <Row cols="repeat(3,1fr)">
-              <Field label="Shape"><SelectField value={p.shape} onChange={(v) => set({ ...p, shape: v })} options={filters['Frame Shape'] || []} /></Field>
-              <Field label="Material"><SelectField value={p.material} onChange={(v) => set({ ...p, material: v })} options={filters.Material || []} /></Field>
-              <Field label="Gender"><SelectField value={p.gender} onChange={(v) => set({ ...p, gender: v })} options={filters.Gender || []} /></Field>
+              <Field label="Shape / type"><SelectField value={p.shape} onChange={(v) => set({ ...p, shape: v })} options={[...new Set([...(filters['Frame Shape'] || []), 'Daily', 'Bi-weekly', 'Monthly', p.shape].filter(Boolean))]} /></Field>
+              <Field label="Material"><SelectField value={p.material} onChange={(v) => set({ ...p, material: v })} options={[...new Set([...(filters.Material || []), 'Silicone Hydrogel', 'Water Gradient', p.material].filter(Boolean))]} /></Field>
+              <Field label="Gender"><SelectField value={p.gender} onChange={(v) => set({ ...p, gender: v })} options={[...new Set([...(filters.Gender || []), p.gender].filter(Boolean))]} /></Field>
             </Row>
             <Row cols="1fr 1fr">
               <Field label="Colours"><ColorList colors={p.colors || []} onChange={(v) => set({ ...p, colors: v })} /></Field>
@@ -70,5 +79,10 @@ export default function Products({ content, setContent }) {
         )}
       />
     </Panel>
+
+    <Panel title="Brands" desc="Shown on the Brands page; customers can browse all products of a brand.">
+      <StringList items={content.brands || []} onChange={(v) => setContent({ ...content, brands: v })} placeholder="Brand name" />
+    </Panel>
+    </div>
   )
 }

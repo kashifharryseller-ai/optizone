@@ -5,7 +5,9 @@ import { useContent } from '../content/ContentProvider.jsx'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import { useScrolled } from '../lib/anim.jsx'
 
-const navTo = (key) => (key === 'eyeglasses' ? 'catalog' : key === 'book' ? 'booking' : key === 'stores' ? 'stores' : 'catalog')
+// Each navbar item opens its own page: category pages for eyeglasses /
+// sunglasses / contacts, a Brands index, Stores, and the booking CTA.
+
 
 // VisionExpress-style account dropdown under the user icon.
 function AccountMenu({ open, onClose, openAccount }) {
@@ -60,14 +62,20 @@ function AccountMenu({ open, onClose, openAccount }) {
   )
 }
 
-export function Header({ route, go, cartCount, onSearch, openAccount }) {
-  const { lang, t, toggle, L } = useLang()
+export function Header({ navActive, go, openCatalog, cartCount, onSearch, openAccount }) {
+  const { t, toggle, L } = useLang()
   const { content, nav } = useContent()
   const { user } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const scrolled = useScrolled(4)
   const ann = content.announcement || {}
   const loggedIn = !!user
+  const navGo = (key) => {
+    if (key === 'eyeglasses' || key === 'sunglasses' || key === 'contacts') return openCatalog(key)
+    if (key === 'brands') return go('brands')
+    if (key === 'stores') return go('stores')
+    if (key === 'book') return go('booking')
+  }
   return (
     <header style={{ position: 'sticky', top: 0, zIndex: 50, boxShadow: scrolled ? 'var(--shadow-md)' : 'none', transition: 'box-shadow var(--dur-base) var(--ease-out)' }}>
       {ann.enabled !== false && (
@@ -76,25 +84,22 @@ export function Header({ route, go, cartCount, onSearch, openAccount }) {
         </div>
       )}
       <div style={{ background: 'var(--pine-700)', borderBottom: '1px solid var(--border-on-dark)' }}>
-        <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 28px', height: 74, display: 'flex', alignItems: 'center', gap: 28 }}>
+        <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 20px', height: 74, display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ cursor: 'pointer' }} onClick={() => go('home')}>
-            <Logo variant="horizontal" theme="dark" size={22} tagline={false} />
+            <Logo variant="horizontal" theme="dark" size={20} tagline={false} />
           </div>
-          <nav style={{ display: 'flex', gap: 26, marginInlineStart: 12, flexWrap: 'wrap' }}>
-            {nav.map((n) => {
-              const active = route === navTo(n.key) || (n.key === 'eyeglasses' && route === 'catalog')
-              return (
-                <a
-                  key={n.key}
-                  onClick={() => go(navTo(n.key))}
-                  style={{ cursor: 'pointer', fontFamily: 'var(--font-display)', fontSize: 13, letterSpacing: '0.1em', textTransform: 'uppercase', color: active ? 'var(--amber-500)' : 'var(--cream-100)', paddingBottom: 2, borderBottom: `2px solid ${active ? 'var(--amber-500)' : 'transparent'}` }}
-                >
-                  {L(n.label)}
-                </a>
-              )
-            })}
+          <nav className="oz-nav" style={{ marginInlineStart: 6 }}>
+            {nav.map((n) => (
+              <a
+                key={n.key}
+                onClick={() => navGo(n.key)}
+                className={(navActive === n.key ? 'active ' : '') + (n.key === 'book' ? 'oz-nav-cta' : '')}
+              >
+                {L(n.label)}
+              </a>
+            ))}
           </nav>
-          <div style={{ marginInlineStart: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ marginInlineStart: 'auto', display: 'flex', alignItems: 'center', gap: 2 }}>
             <IconButton variant="ghost" onClick={onSearch} aria-label={t.aria.search} style={{ color: 'var(--cream-100)' }}><Icon name="search" color="var(--cream-100)" /></IconButton>
             <IconButton variant="ghost" onClick={() => openAccount('wishlist')} aria-label={t.aria.wishlist} style={{ color: 'var(--cream-100)' }}><Icon name="heart" color="var(--cream-100)" /></IconButton>
             <div style={{ position: 'relative' }}>
@@ -120,15 +125,16 @@ export function Header({ route, go, cartCount, onSearch, openAccount }) {
   )
 }
 
-export function Footer({ go }) {
+export function Footer({ go, openCatalog }) {
   const { t, L } = useLang()
   const { content } = useContent()
   const s = content.settings || {}
   const c = s.contact || {}
-  const routes = [
-    ['catalog', 'catalog', 'catalog', 'catalog', 'catalog'],
-    ['booking', 'catalog', 'catalog', 'stores', 'catalog'],
-    ['home', 'stores', 'home', 'home', 'stores'],
+  // Column links → their destinations (category pages, booking, stores…).
+  const actions = [
+    [() => openCatalog('eyeglasses'), () => openCatalog('sunglasses'), () => openCatalog('contacts'), () => openCatalog('all'), () => openCatalog('all')],
+    [() => go('booking'), () => openCatalog('eyeglasses'), () => openCatalog('contacts'), () => go('stores'), () => go('booking')],
+    [() => go('home'), () => go('stores'), () => go('home'), () => go('home'), () => go('stores')],
   ]
   return (
     <footer style={{ background: 'var(--pine-800)', color: 'var(--cream-200)', marginTop: 0 }}>
@@ -145,7 +151,7 @@ export function Footer({ go }) {
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--amber-500)', marginBottom: 16 }}>{col.h}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {col.items.map((i, ii) => (
-                <a key={i} onClick={() => go && go(routes[ci][ii])} style={{ fontSize: 14, color: 'var(--cream-200)', cursor: 'pointer' }}>{i}</a>
+                <a key={i} onClick={() => actions[ci]?.[ii]?.()} style={{ fontSize: 14, color: 'var(--cream-200)', cursor: 'pointer' }}>{i}</a>
               ))}
             </div>
           </div>

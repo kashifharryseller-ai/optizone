@@ -17,7 +17,7 @@ function ServiceTile({ s, L }) {
   )
 }
 
-export function Home({ go, addToCart }) {
+export function Home({ go, openCatalog, addToCart }) {
   const { lang, L, t: root } = useLang()
   const { content } = useContent()
   const hero = content.hero || {}
@@ -40,7 +40,7 @@ export function Home({ go, addToCart }) {
             </h1>
             <p style={{ ...rise(220), fontSize: 18, lineHeight: 1.6, color: 'var(--pine-100)', maxWidth: 440, marginTop: 20 }}>{L(hero.subtitle)}</p>
             <div style={{ ...rise(320), display: 'flex', gap: 14, marginTop: 30, flexWrap: 'wrap' }}>
-              <Button variant="primary" size="lg" onClick={() => go('catalog')}>{L(hero.ctaShop)}</Button>
+              <Button variant="primary" size="lg" onClick={() => openCatalog('eyeglasses')}>{L(hero.ctaShop)}</Button>
               <Button variant="outline" size="lg" onClick={() => go('booking')} style={{ color: 'var(--cream-100)', borderColor: 'var(--cream-100)' }} startIcon={<Icon name="calendar" size={18} color="currentColor" />}>{L(hero.ctaBook)}</Button>
             </div>
             <div style={{ ...rise(420), marginTop: 40, maxWidth: 320 }}>
@@ -78,7 +78,7 @@ export function Home({ go, addToCart }) {
             <Reveal key={c.key} delay={i * 80}>
               <div style={{ background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
                 <ImageSlot src={media['cat-' + c.key]} placeholder={L(c.slot)} shape="rect" fit="cover" style={{ display: 'block', width: '100%', height: 210 }} />
-                <div onClick={() => go('catalog')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px' }}>
+                <div onClick={() => openCatalog(c.key)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px' }}>
                   <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-strong)' }}>{L(c.label)}</span>
                   <Icon name="arrow-right" size={16} color="var(--amber-700)" style={{ transform: he ? 'scaleX(-1)' : 'none' }} />
                 </div>
@@ -95,7 +95,7 @@ export function Home({ go, addToCart }) {
             <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--amber-700)' }}>{L(sec.bestsellers?.eyebrow)}</span>
             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 32, color: 'var(--text-strong)', margin: '8px 0 0' }}>{L(sec.bestsellers?.title)}</h2>
           </div>
-          <Button variant="link" onClick={() => go('catalog')} endIcon={<Icon name="arrow-right" size={16} color="currentColor" style={{ transform: he ? 'scaleX(-1)' : 'none' }} />}>{L(sec.bestsellers?.viewall)}</Button>
+          <Button variant="link" onClick={() => openCatalog('eyeglasses')} endIcon={<Icon name="arrow-right" size={16} color="currentColor" style={{ transform: he ? 'scaleX(-1)' : 'none' }} />}>{L(sec.bestsellers?.viewall)}</Button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 20 }}>
           {(content.products || []).slice(0, 4).map((p, i) => (
@@ -116,7 +116,7 @@ export function Home({ go, addToCart }) {
               <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--amber-500)' }}>{L(sec.tryMirror?.eyebrow)}</span>
               <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 34, color: 'var(--cream-100)', margin: '12px 0 10px' }}>{L(sec.tryMirror?.title)}</h2>
               <p style={{ fontSize: 16, color: 'var(--pine-100)', maxWidth: 440, lineHeight: 1.6 }}>{L(sec.tryMirror?.subtitle)}</p>
-              <div style={{ marginTop: 22 }}><Button variant="primary" size="lg" onClick={() => go('catalog')}>{L(sec.tryMirror?.cta)}</Button></div>
+              <div style={{ marginTop: 22 }}><Button variant="primary" size="lg" onClick={() => openCatalog('eyeglasses')}>{L(sec.tryMirror?.cta)}</Button></div>
             </div>
             <GlassesMark size={96} color="var(--amber-500)" style={{ flex: '0 0 auto', opacity: 0.9 }} />
           </div>

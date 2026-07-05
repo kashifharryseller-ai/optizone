@@ -54,13 +54,35 @@ function defaultContent() {
     ],
 
     products: [
-      { id: 1, brand: 'Ray-Ban', name: 'Round Metal RB3447', amount: 390, original: 490, rating: 4.5, reviews: 128, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#22402F', '#3A342A', '#E08A2A'], shape: 'Round', material: 'Metal', gender: 'Unisex', image: '' },
-      { id: 2, brand: 'Persol', name: 'PO3092 Havana', amount: 720, original: 0, rating: 5, reviews: 64, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#6B4423', '#1A1A17'], shape: 'Square', material: 'Acetate', gender: 'Men', image: '' },
-      { id: 3, brand: 'Prada', name: 'PR 17WS Symbole', amount: 1290, original: 0, rating: 4.5, reviews: 41, badge: { variant: 'bestseller', label: { en: 'Bestseller', he: 'רב מכר' } }, tryMirror: true, colors: ['#1A1A17', '#7E4310'], shape: 'Cat-eye', material: 'Acetate', gender: 'Women', image: '' },
-      { id: 4, brand: 'Tiffany & Co.', name: 'TF2233B', amount: 980, original: 0, rating: 4, reviews: 22, badge: null, tryMirror: false, colors: ['#22402F', '#B4CEC0'], shape: 'Oval', material: 'Metal', gender: 'Women', image: '' },
-      { id: 5, brand: 'Versace', name: 'VE4361 Medusa', amount: 860, original: 1050, rating: 4.5, reviews: 77, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#1A1A17', '#E08A2A'], shape: 'Square', material: 'Acetate', gender: 'Men', image: '' },
-      { id: 6, brand: 'Dolce & Gabbana', name: 'DG4416 Print', amount: 690, original: 0, rating: 4, reviews: 18, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#6B4423', '#3A342A'], shape: 'Round', material: 'Acetate', gender: 'Women', image: '' },
+      { id: 1, category: 'eyeglasses', brand: 'Ray-Ban', name: 'Round Metal RB3447', amount: 390, original: 490, rating: 4.5, reviews: 128, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#22402F', '#3A342A', '#E08A2A'], shape: 'Round', material: 'Metal', gender: 'Unisex', image: '' },
+      { id: 2, category: 'eyeglasses', brand: 'Persol', name: 'PO3092 Havana', amount: 720, original: 0, rating: 5, reviews: 64, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#6B4423', '#1A1A17'], shape: 'Square', material: 'Acetate', gender: 'Men', image: '' },
+      { id: 3, category: 'eyeglasses', brand: 'Prada', name: 'PR 17WS Symbole', amount: 1290, original: 0, rating: 4.5, reviews: 41, badge: { variant: 'bestseller', label: { en: 'Bestseller', he: 'רב מכר' } }, tryMirror: true, colors: ['#1A1A17', '#7E4310'], shape: 'Cat-eye', material: 'Acetate', gender: 'Women', image: '' },
+      { id: 4, category: 'eyeglasses', brand: 'Tiffany & Co.', name: 'TF2233B', amount: 980, original: 0, rating: 4, reviews: 22, badge: null, tryMirror: false, colors: ['#22402F', '#B4CEC0'], shape: 'Oval', material: 'Metal', gender: 'Women', image: '' },
+      { id: 5, category: 'eyeglasses', brand: 'Versace', name: 'VE4361 Medusa', amount: 860, original: 1050, rating: 4.5, reviews: 77, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#1A1A17', '#E08A2A'], shape: 'Square', material: 'Acetate', gender: 'Men', image: '' },
+      { id: 6, category: 'eyeglasses', brand: 'Dolce & Gabbana', name: 'DG4416 Print', amount: 690, original: 0, rating: 4, reviews: 18, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#6B4423', '#3A342A'], shape: 'Round', material: 'Acetate', gender: 'Women', image: '' },
+      { id: 7, category: 'sunglasses', brand: 'Ray-Ban', name: 'Aviator Classic RB3025', amount: 520, original: 620, rating: 4.5, reviews: 214, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#3A342A', '#E08A2A'], shape: 'Aviator', material: 'Metal', gender: 'Unisex', image: '' },
+      { id: 8, category: 'sunglasses', brand: 'Persol', name: 'PO0714 Folding', amount: 1150, original: 0, rating: 5, reviews: 89, badge: { variant: 'bestseller', label: { en: 'Bestseller', he: 'רב מכר' } }, tryMirror: true, colors: ['#6B4423', '#1A1A17'], shape: 'Square', material: 'Acetate', gender: 'Men', image: '' },
+      { id: 9, category: 'sunglasses', brand: 'Versace', name: 'VE2199 Shield', amount: 890, original: 0, rating: 4, reviews: 33, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#1A1A17'], shape: 'Aviator', material: 'Metal', gender: 'Women', image: '' },
+      { id: 10, category: 'contacts', brand: 'Acuvue', name: 'Oasys · 6 pack', amount: 145, original: 0, rating: 4.5, reviews: 320, badge: { variant: 'bestseller', label: { en: 'Bestseller', he: 'רב מכר' } }, tryMirror: false, colors: [], shape: 'Bi-weekly', material: 'Silicone Hydrogel', gender: 'Unisex', image: '' },
+      { id: 11, category: 'contacts', brand: 'Dailies', name: 'TOTAL1 · 30 pack', amount: 210, original: 0, rating: 4.5, reviews: 187, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: false, colors: [], shape: 'Daily', material: 'Water Gradient', gender: 'Unisex', image: '' },
+      { id: 12, category: 'contacts', brand: 'Biofinity', name: 'Monthly · 6 pack', amount: 165, original: 0, rating: 4, reviews: 141, badge: null, tryMirror: false, colors: [], shape: 'Monthly', material: 'Silicone Hydrogel', gender: 'Unisex', image: '' },
     ],
+
+    // Editable header for each category page (title + subtitle, bilingual).
+    categoryPages: {
+      eyeglasses: {
+        title: { en: 'Eyeglasses', he: 'משקפי ראייה' },
+        subtitle: { en: 'Prescription-ready frames, hand-finished and fitted to you.', he: 'מסגרות מוכנות למרשם, בגימור ידני ובהתאמה אישית.' },
+      },
+      sunglasses: {
+        title: { en: 'Sunglasses', he: 'משקפי שמש' },
+        subtitle: { en: 'Full UV protection with signature style.', he: 'הגנת UV מלאה עם סטייל ייחודי.' },
+      },
+      contacts: {
+        title: { en: 'Contact Lenses', he: 'עדשות מגע' },
+        subtitle: { en: 'Daily, bi-weekly and monthly lenses from leading labs.', he: 'עדשות יומיות, דו-שבועיות וחודשיות מהמעבדות המובילות.' },
+      },
+    },
 
     filters: {
       'Frame Shape': ['Round', 'Square', 'Cat-eye', 'Oval', 'Aviator'],
@@ -68,7 +90,7 @@ function defaultContent() {
       Gender: ['Women', 'Men', 'Unisex', 'Kids'],
     },
 
-    brands: ['Ray-Ban', 'Prada', 'Versace', 'Dolce & Gabbana', 'Tiffany & Co.', 'Persol'],
+    brands: ['Ray-Ban', 'Prada', 'Versace', 'Dolce & Gabbana', 'Tiffany & Co.', 'Persol', 'Acuvue', 'Dailies', 'Biofinity'],
 
     bookingServices: [
       { en: 'Eye Exam', he: 'בדיקת ראייה' },

@@ -94,7 +94,7 @@ function AuthCard({ t }) {
 }
 
 // --- Dashboard ----------------------------------------------------------------
-function Dashboard({ go, tab, setTab, t }) {
+function Dashboard({ go, openCatalog, tab, setTab, t }) {
   const { user, logout, wishlist, toggleWishlist, updateProfile } = useAuth()
   const { content } = useContent()
   const { A, L, lang } = useLang()
@@ -162,7 +162,7 @@ function Dashboard({ go, tab, setTab, t }) {
             orders.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
                 <p style={{ marginBottom: 18 }}>{t.emptyOrders}</p>
-                <Button variant="primary" onClick={() => go('catalog')}>{t.startShopping}</Button>
+                <Button variant="primary" onClick={() => openCatalog('eyeglasses')}>{t.startShopping}</Button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -215,7 +215,7 @@ function Dashboard({ go, tab, setTab, t }) {
             wishProducts.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
                 <p style={{ marginBottom: 18 }}>{t.emptyWishlist}</p>
-                <Button variant="primary" onClick={() => go('catalog')}>{t.browse}</Button>
+                <Button variant="primary" onClick={() => openCatalog('eyeglasses')}>{t.browse}</Button>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
@@ -264,10 +264,10 @@ function Dashboard({ go, tab, setTab, t }) {
   )
 }
 
-export function Account({ go, tab, setTab }) {
+export function Account({ go, openCatalog, tab, setTab }) {
   const { t: root } = useLang()
   const { user, checking } = useAuth()
   const t = root.account
   if (checking) return <div style={{ padding: '80px 0', textAlign: 'center', color: 'var(--text-muted)' }}>…</div>
-  return user ? <Dashboard go={go} tab={tab} setTab={setTab} t={t} /> : <AuthCard t={t} />
+  return user ? <Dashboard go={go} openCatalog={openCatalog} tab={tab} setTab={setTab} t={t} /> : <AuthCard t={t} />
 }

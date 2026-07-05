@@ -210,6 +210,7 @@ export const SEED_CONTENT = {
   "products": [
     {
       "id": 1,
+      "category": "eyeglasses",
       "brand": "Ray-Ban",
       "name": "Round Metal RB3447",
       "amount": 390,
@@ -236,6 +237,7 @@ export const SEED_CONTENT = {
     },
     {
       "id": 2,
+      "category": "eyeglasses",
       "brand": "Persol",
       "name": "PO3092 Havana",
       "amount": 720,
@@ -261,6 +263,7 @@ export const SEED_CONTENT = {
     },
     {
       "id": 3,
+      "category": "eyeglasses",
       "brand": "Prada",
       "name": "PR 17WS Symbole",
       "amount": 1290,
@@ -286,6 +289,7 @@ export const SEED_CONTENT = {
     },
     {
       "id": 4,
+      "category": "eyeglasses",
       "brand": "Tiffany & Co.",
       "name": "TF2233B",
       "amount": 980,
@@ -305,6 +309,7 @@ export const SEED_CONTENT = {
     },
     {
       "id": 5,
+      "category": "eyeglasses",
       "brand": "Versace",
       "name": "VE4361 Medusa",
       "amount": 860,
@@ -330,6 +335,7 @@ export const SEED_CONTENT = {
     },
     {
       "id": 6,
+      "category": "eyeglasses",
       "brand": "Dolce & Gabbana",
       "name": "DG4416 Print",
       "amount": 690,
@@ -352,8 +358,180 @@ export const SEED_CONTENT = {
       "material": "Acetate",
       "gender": "Women",
       "image": ""
+    },
+    {
+      "id": 7,
+      "category": "sunglasses",
+      "brand": "Ray-Ban",
+      "name": "Aviator Classic RB3025",
+      "amount": 520,
+      "original": 620,
+      "rating": 4.5,
+      "reviews": 214,
+      "badge": {
+        "variant": "sale",
+        "label": {
+          "en": "Sale",
+          "he": "מבצע"
+        }
+      },
+      "tryMirror": true,
+      "colors": [
+        "#3A342A",
+        "#E08A2A"
+      ],
+      "shape": "Aviator",
+      "material": "Metal",
+      "gender": "Unisex",
+      "image": ""
+    },
+    {
+      "id": 8,
+      "category": "sunglasses",
+      "brand": "Persol",
+      "name": "PO0714 Folding",
+      "amount": 1150,
+      "original": 0,
+      "rating": 5,
+      "reviews": 89,
+      "badge": {
+        "variant": "bestseller",
+        "label": {
+          "en": "Bestseller",
+          "he": "רב מכר"
+        }
+      },
+      "tryMirror": true,
+      "colors": [
+        "#6B4423",
+        "#1A1A17"
+      ],
+      "shape": "Square",
+      "material": "Acetate",
+      "gender": "Men",
+      "image": ""
+    },
+    {
+      "id": 9,
+      "category": "sunglasses",
+      "brand": "Versace",
+      "name": "VE2199 Shield",
+      "amount": 890,
+      "original": 0,
+      "rating": 4,
+      "reviews": 33,
+      "badge": {
+        "variant": "new",
+        "label": {
+          "en": "New",
+          "he": "חדש"
+        }
+      },
+      "tryMirror": true,
+      "colors": [
+        "#1A1A17"
+      ],
+      "shape": "Aviator",
+      "material": "Metal",
+      "gender": "Women",
+      "image": ""
+    },
+    {
+      "id": 10,
+      "category": "contacts",
+      "brand": "Acuvue",
+      "name": "Oasys · 6 pack",
+      "amount": 145,
+      "original": 0,
+      "rating": 4.5,
+      "reviews": 320,
+      "badge": {
+        "variant": "bestseller",
+        "label": {
+          "en": "Bestseller",
+          "he": "רב מכר"
+        }
+      },
+      "tryMirror": false,
+      "colors": [],
+      "shape": "Bi-weekly",
+      "material": "Silicone Hydrogel",
+      "gender": "Unisex",
+      "image": ""
+    },
+    {
+      "id": 11,
+      "category": "contacts",
+      "brand": "Dailies",
+      "name": "TOTAL1 · 30 pack",
+      "amount": 210,
+      "original": 0,
+      "rating": 4.5,
+      "reviews": 187,
+      "badge": {
+        "variant": "new",
+        "label": {
+          "en": "New",
+          "he": "חדש"
+        }
+      },
+      "tryMirror": false,
+      "colors": [],
+      "shape": "Daily",
+      "material": "Water Gradient",
+      "gender": "Unisex",
+      "image": ""
+    },
+    {
+      "id": 12,
+      "category": "contacts",
+      "brand": "Biofinity",
+      "name": "Monthly · 6 pack",
+      "amount": 165,
+      "original": 0,
+      "rating": 4,
+      "reviews": 141,
+      "badge": null,
+      "tryMirror": false,
+      "colors": [],
+      "shape": "Monthly",
+      "material": "Silicone Hydrogel",
+      "gender": "Unisex",
+      "image": ""
     }
   ],
+  "categoryPages": {
+    "eyeglasses": {
+      "title": {
+        "en": "Eyeglasses",
+        "he": "משקפי ראייה"
+      },
+      "subtitle": {
+        "en": "Prescription-ready frames, hand-finished and fitted to you.",
+        "he": "מסגרות מוכנות למרשם, בגימור ידני ובהתאמה אישית."
+      }
+    },
+    "sunglasses": {
+      "title": {
+        "en": "Sunglasses",
+        "he": "משקפי שמש"
+      },
+      "subtitle": {
+        "en": "Full UV protection with signature style.",
+        "he": "הגנת UV מלאה עם סטייל ייחודי."
+      }
+    },
+    "contacts": {
+      "title": {
+        "en": "Contact Lenses",
+        "he": "עדשות מגע"
+      },
+      "subtitle": {
+        "en": "Daily, bi-weekly and monthly lenses from leading labs.",
+        "he": "עדשות יומיות, דו-שבועיות וחודשיות מהמעבדות המובילות."
+      }
+    }
+  },
   "filters": {
     "Frame Shape": [
       "Round",
@@ -380,7 +558,10 @@ export const SEED_CONTENT = {
     "Versace",
     "Dolce & Gabbana",
     "Tiffany & Co.",
-    "Persol"
+    "Persol",
+    "Acuvue",
+    "Dailies",
+    "Biofinity"
   ],
   "bookingServices": [
     {

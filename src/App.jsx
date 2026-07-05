@@ -4,6 +4,7 @@ import { useLang } from './i18n/index.jsx'
 import { Header, Footer } from './pages/Chrome.jsx'
 import { Home } from './pages/Home.jsx'
 import { Catalog } from './pages/Catalog.jsx'
+import { Brands } from './pages/Brands.jsx'
 import { Product } from './pages/Product.jsx'
 import { Booking } from './pages/Booking.jsx'
 import { Cart } from './pages/Cart.jsx'
@@ -20,6 +21,10 @@ export default function App() {
   const [toast, setToast] = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [accountTab, setAccountTab] = useState('orders')
+  // Which category the catalog page shows, and an optional brand filter
+  // (set when arriving from the Brands page).
+  const [catalogCat, setCatalogCat] = useState('eyeglasses')
+  const [catalogBrand, setCatalogBrand] = useState(null)
   const toastTimer = useRef(null)
 
   const go = (r, p) => {
@@ -27,7 +32,13 @@ export default function App() {
     setRoute(r)
     window.scrollTo({ top: 0 })
   }
-  // Open the account area on a specific tab (from the header menu / wishlist heart).
+  // Open a category page (eyeglasses / sunglasses / contacts / 'all'),
+  // optionally narrowed to a single brand.
+  const openCatalog = (cat = 'eyeglasses', brand = null) => {
+    setCatalogCat(cat)
+    setCatalogBrand(brand)
+    go('catalog')
+  }
   const openAccount = (tab) => {
     if (tab) setAccountTab(tab)
     go('account')
@@ -44,22 +55,31 @@ export default function App() {
   }
   const subtotal = cart.reduce((s, i) => s + i.amount * i.qty, 0)
 
+  // Which navbar item is highlighted.
+  const navActive =
+    route === 'catalog' ? (catalogBrand || catalogCat === 'all' ? 'brands' : catalogCat)
+    : route === 'brands' ? 'brands'
+    : route === 'booking' ? 'book'
+    : route === 'stores' ? 'stores'
+    : ''
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Header route={route} go={go} cartCount={cart.reduce((s, i) => s + i.qty, 0)} onSearch={() => setSearchOpen(true)} openAccount={openAccount} />
+      <Header navActive={navActive} go={go} openCatalog={openCatalog} cartCount={cart.reduce((s, i) => s + i.qty, 0)} onSearch={() => setSearchOpen(true)} openAccount={openAccount} />
       <main style={{ flex: 1 }}>
-        <div key={route} className="oz-route">
-          {route === 'home' && <Home go={go} addToCart={addToCart} />}
-          {route === 'catalog' && <Catalog go={go} addToCart={addToCart} />}
-          {route === 'product' && <Product product={product} go={go} addToCart={addToCart} openAccount={openAccount} />}
+        <div key={route + ':' + catalogCat + ':' + (catalogBrand || '')} className="oz-route">
+          {route === 'home' && <Home go={go} openCatalog={openCatalog} addToCart={addToCart} />}
+          {route === 'catalog' && <Catalog category={catalogCat} brand={catalogBrand} go={go} openCatalog={openCatalog} addToCart={addToCart} />}
+          {route === 'brands' && <Brands openCatalog={openCatalog} />}
+          {route === 'product' && <Product product={product} go={go} openCatalog={openCatalog} addToCart={addToCart} openAccount={openAccount} />}
           {route === 'booking' && <Booking go={go} />}
-          {route === 'cart' && <Cart cart={cart} setCart={setCart} go={go} />}
+          {route === 'cart' && <Cart cart={cart} setCart={setCart} go={go} openCatalog={openCatalog} />}
           {route === 'stores' && <StoreLocator go={go} />}
-          {route === 'account' && <Account go={go} tab={accountTab} setTab={setAccountTab} />}
+          {route === 'account' && <Account go={go} openCatalog={openCatalog} tab={accountTab} setTab={setAccountTab} />}
           {route === 'checkout' && <Checkout cart={cart} subtotal={subtotal} go={go} onComplete={() => setCart([])} />}
         </div>
       </main>
-      <Footer go={go} />
+      <Footer go={go} openCatalog={openCatalog} />
 
       <Search open={searchOpen} onClose={() => setSearchOpen(false)} go={go} />
 

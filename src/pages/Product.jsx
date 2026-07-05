@@ -22,13 +22,15 @@ function LensRow({ label, children }) {
   )
 }
 
-export function Product({ product, go, addToCart, openAccount }) {
-  const { t: root, A, lang } = useLang()
-  const { content } = useContent()
+export function Product({ product, go, openCatalog, addToCart, openAccount }) {
+  const { t: root, A, L, lang } = useLang()
+  const { content, nav } = useContent()
   const { user, inWishlist, toggleWishlist } = useAuth()
   const t = root.product
   const p = product || (content.products || [])[0] || {}
   const wished = user ? inWishlist(p.id) : false
+  const cat = p.category || 'eyeglasses'
+  const catLabel = L((content.categoryPages || {})[cat]?.title) || L((nav.find((n) => n.key === cat) || {}).label) || ''
   const onHeart = () => { user ? toggleWishlist(p.id) : openAccount && openAccount('wishlist') }
   const [img, setImg] = useState(0)
   const [tab, setTab] = useState('desc')
@@ -46,7 +48,7 @@ export function Product({ product, go, addToCart, openAccount }) {
 
   return (
     <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '28px 28px 72px' }}>
-      <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => go('catalog')}>{t.back}</span>
+      <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => openCatalog(p.category || 'eyeglasses')}>{t.backTo(catLabel)}</span>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, marginTop: 20, alignItems: 'start' }}>
         {/* GALLERY */}

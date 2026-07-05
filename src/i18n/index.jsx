@@ -15,6 +15,8 @@ const ATTR_HE = {
   'Myopia Control': 'שליטה בקוצר ראייה',
   'In lab': 'במעבדה', Collected: 'נאסף', Shipped: 'נשלח',
   New: 'חדש', Cancelled: 'בוטל', Confirmed: 'אושר', Completed: 'הושלם',
+  Daily: 'יומיות', 'Bi-weekly': 'דו-שבועיות', Monthly: 'חודשיות',
+  'Silicone Hydrogel': 'סיליקון הידרוג׳ל', 'Water Gradient': 'גרדיאנט מים',
 }
 
 // ---------------------------------------------------------------------------
@@ -58,6 +60,7 @@ const STRINGS = {
     },
 
     catalog: {
+      home: 'Home',
       crumb: 'Home / Eyeglasses', title: 'Eyeglasses',
       filters: 'Filters', clear: 'Clear', tryOnly: 'Try Mirror only',
       count: (n) => `${n} frames`, empty: 'No frames match these filters.',
@@ -66,6 +69,7 @@ const STRINGS = {
 
     product: {
       back: '← Back to Eyeglasses',
+      backTo: (l) => `← Back to ${l}`,
       inStock: 'In stock · Netanya, Tel Aviv',
       photoSlot: 'Drop product photo',
       desc: (shape, material) => `A refined ${shape.toLowerCase()} silhouette in premium ${material.toLowerCase()}. Lightweight, precisely balanced, and ready for your prescription.`,
@@ -173,6 +177,12 @@ const STRINGS = {
       summary: 'Order summary', qty: (n) => `Qty ${n}`, subtotal: 'Subtotal', shipping: 'Shipping', free: 'Free', total: 'TOTAL',
     },
 
+    brands: {
+      eyebrow: 'Our Partners', title: 'Shop by Brand',
+      sub: 'The houses we carry — 100% authentic, with full manufacturer warranty.',
+      count: (n) => `${n} ${n === 1 ? 'product' : 'products'}`,
+    },
+
     stores: {
       eyebrow: 'Find us', h1: 'Our branches',
       branch: 'Branch', bookHere: 'Book at this branch', directions: 'Get directions',
@@ -218,6 +228,7 @@ const STRINGS = {
     },
 
     catalog: {
+      home: 'בית',
       crumb: 'בית / משקפי ראייה', title: 'משקפי ראייה',
       filters: 'סינון', clear: 'ניקוי', tryOnly: 'רק Try Mirror',
       count: (n) => `${n} מסגרות`, empty: 'אין מסגרות התואמות לסינון.',
@@ -226,6 +237,7 @@ const STRINGS = {
 
     product: {
       back: 'חזרה למשקפי ראייה →',
+      backTo: (l) => `חזרה ל${l} →`,
       inStock: 'במלאי · נתניה, תל אביב',
       photoSlot: 'גררו תמונת מוצר',
       desc: (shape, material) => `צללית ${ATTR_HE[shape] || shape} מוקפדת ב${ATTR_HE[material] || material} איכותי. קלה, מאוזנת במדויק ומוכנה למרשם שלך.`,
@@ -331,6 +343,12 @@ const STRINGS = {
       confirmedNote: 'חשבונית מס וקישור למעקב בדרך אליכם באימייל ובוואטסאפ.',
       thankYou: 'תודה', trackOrder: 'מעקב הזמנה', continueShopping: 'המשך קנייה',
       summary: 'סיכום הזמנה', qty: (n) => `כמות ${n}`, subtotal: 'סכום ביניים', shipping: 'משלוח', free: 'חינם', total: 'סה״כ',
+    },
+
+    brands: {
+      eyebrow: 'המותגים שלנו', title: 'קנייה לפי מותג',
+      sub: 'המותגים שאנחנו מציעים — מקוריים לחלוטין, באחריות יצרן מלאה.',
+      count: (n) => `${n} ${n === 1 ? 'מוצר' : 'מוצרים'}`,
     },
 
     stores: {

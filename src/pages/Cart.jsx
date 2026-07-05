@@ -3,7 +3,7 @@ import { Button, Icon, QuantityStepper, Price, Card, Input, GlassesMark } from '
 import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
 
-export function Cart({ cart, setCart, go }) {
+export function Cart({ cart, setCart, go, openCatalog }) {
   const t = useLang().t.cart
   const s = useContent().content.settings || {}
   const threshold = s.shippingThreshold ?? 400
@@ -19,7 +19,7 @@ export function Cart({ cart, setCart, go }) {
         <GlassesMark size={64} color="var(--pine-300)" />
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 30, color: 'var(--text-strong)', margin: '20px 0 8px' }}>{t.emptyH1}</h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: 22 }}>{t.emptyP}</p>
-        <Button variant="primary" size="lg" onClick={() => go('catalog')}>{t.shop}</Button>
+        <Button variant="primary" size="lg" onClick={() => openCatalog('eyeglasses')}>{t.shop}</Button>
       </div>
     )
   }

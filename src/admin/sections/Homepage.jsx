@@ -77,7 +77,25 @@ export default function Homepage({ content, setContent }) {
         />
       </Panel>
 
-      <Panel title="Category tiles" desc="The three shop-by-category cards and their photos.">
+      <Panel title="Category pages" desc="The header (title + subtitle) shown at the top of each navbar page — Eyeglasses, Sunglasses, Contact Lenses.">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {[['eyeglasses', 'Eyeglasses page'], ['sunglasses', 'Sunglasses page'], ['contacts', 'Contact Lenses page']].map(([key, name]) => {
+            const cp = (content.categoryPages || {})[key] || {}
+            const setCp = (patch) => set({ categoryPages: { ...(content.categoryPages || {}), [key]: { ...cp, ...patch } } })
+            return (
+              <div key={key} style={{ borderTop: '1px solid var(--border-hair)', paddingTop: 14 }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-accent)', marginBottom: 10 }}>{name}</div>
+                <Row cols="1fr 1fr">
+                  <Bilingual label="Page title" value={cp.title} onChange={(v) => setCp({ title: v })} />
+                  <Bilingual label="Subtitle" value={cp.subtitle} onChange={(v) => setCp({ subtitle: v })} />
+                </Row>
+              </div>
+            )
+          })}
+        </div>
+      </Panel>
+
+      <Panel title="Category tiles" desc="The three shop-by-category cards and their photos on the homepage.">
         <ListEditor
           items={content.categories || []}
           onChange={(v) => set({ categories: v })}
