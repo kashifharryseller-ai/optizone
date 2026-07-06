@@ -247,6 +247,25 @@ const cleanBilingual = (v) => (v && typeof v === 'object'
   : typeof v === 'string' ? stripTags(v) : v)
 const clamp = (n, lo, hi, dflt = 0) => { const x = Number(n); return Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : dflt }
 
+// A try-on asset reference is a URL/path or a data: URI. Strip tags, block the
+// javascript: scheme, cap length. Returns '' for anything unusable.
+const cleanAssetRef = (v) => {
+  const s = stripTags(String(v || '')).trim().slice(0, 2000)
+  return /^javascript:/i.test(s) ? '' : s
+}
+// tryMirrorImg / tryMirrorModel may be a single string (legacy) or a
+// { "#hex": url } map. Sanitise every value; drop empties.
+const cleanAssetMap = (v) => {
+  if (!v) return undefined
+  if (typeof v === 'string') return cleanAssetRef(v) || undefined
+  if (typeof v === 'object' && !Array.isArray(v)) {
+    const out = {}
+    for (const k of Object.keys(v).slice(0, 40)) { const u = cleanAssetRef(v[k]); if (u) out[String(k).slice(0, 40)] = u }
+    return Object.keys(out).length ? out : undefined
+  }
+  return undefined
+}
+
 // Server-side validation for product records — the UI validates too, but the
 // API must not trust the client (types/ranges per the catalog contract).
 function validateProducts(products) {
@@ -264,6 +283,18 @@ function validateProducts(products) {
       for (const k of ['lensWidth', 'bridge', 'temple', 'weight']) if (p.specs[k] != null) p.specs[k] = stripTags(p.specs[k]).slice(0, 80)
       if (p.specs.lensOpts) p.specs.lensOpts = cleanBilingual(p.specs.lensOpts)
     }
+    // Try-on assets: transparent-PNG map, 3D-model map, and calibration meta.
+    const img = cleanAssetMap(p.tryMirrorImg); if (img === undefined) delete p.tryMirrorImg; else p.tryMirrorImg = img
+    const mdl = cleanAssetMap(p.tryMirrorModel); if (mdl === undefined) delete p.tryMirrorModel; else p.tryMirrorModel = mdl
+    if (p.tryMirrorMeta && typeof p.tryMirrorMeta === 'object' && !Array.isArray(p.tryMirrorMeta)) {
+      const m = p.tryMirrorMeta
+      p.tryMirrorMeta = {
+        modelForwardAxis: ['x', 'y', 'z'].includes(m.modelForwardAxis) ? m.modelForwardAxis : 'z',
+        scaleMultiplier: clamp(m.scaleMultiplier, 0.2, 5, 1),
+        bridgeYOffset: clamp(m.bridgeYOffset, -200, 200, 0),
+        frameRealWidthMm: clamp(m.frameRealWidthMm, 0, 400, 0),
+      }
+    } else if (p.tryMirrorMeta != null) { delete p.tryMirrorMeta }
   }
   return { ok: true }
 }

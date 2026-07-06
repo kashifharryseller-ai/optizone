@@ -6,6 +6,9 @@
 // flag. Route every Try-Mirror gate (storefront badges/buttons, catalog filter,
 // admin asset uploader) through canTryMirror() so the rule lives in one place.
 
+// Per-colour try-on asset resolver (3D model / 2D PNG / calibration meta).
+export { resolveTryonAsset } from '../components/tryon/config.js'
+
 // Categories a face-worn frame overlay applies to. Matched case-insensitively.
 export const TRY_MIRROR_CATEGORIES = new Set(['eyeglasses', 'sunglasses'])
 

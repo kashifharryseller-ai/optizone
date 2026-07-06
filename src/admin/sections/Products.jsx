@@ -166,7 +166,11 @@ export default function Products({ content, setContent, initialQuery }) {
                 />
               ))}
             </Row>
-            {isTryMirrorCategory(p.category) && <ImageField label="Try-on frame PNG (transparent — overlaid on the face in Try Mirror)" value={p.tryMirrorImg || ''} onChange={(v) => set({ ...p, tryMirrorImg: v })} />}
+            {isTryMirrorCategory(p.category) && (
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)' }}>
+                Try-on assets (per-colour 3D model / frame PNG) are managed in <strong>Try-Mirror / AR</strong>.
+              </p>
+            )}
             <Bilingual label="Description (PDP · rich text, blank line = new paragraph)" area value={p.desc || { en: '', he: '' }} onChange={(v) => set({ ...p, desc: v })} />
             <Row cols="repeat(4,1fr)">
               <Field label="Lens width"><Text value={(p.specs || {}).lensWidth || ''} onChange={(v) => set({ ...p, specs: { ...(p.specs || {}), lensWidth: v } })} /></Field>

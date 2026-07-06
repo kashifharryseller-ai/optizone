@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Button, Icon, IconButton } from '../ds/index.js'
 import { useFaceLandmarker } from './useFaceLandmarker.js'
+import { resolveTryonAsset } from './tryon/config.js'
+// GlassesEngine (and its Three.js dependency) is loaded on demand — only when a
+// product actually has a 3D model — so it never weighs down the storefront bundle.
+let _EnginePromise = null
+const loadEngine = () => (_EnginePromise ||= import('./tryon/GlassesEngine.js').then((m) => m.GlassesEngine))
 
 /**
  * TryMirror — per-product virtual try-on with three input modes:
@@ -90,7 +95,6 @@ const MODES = [
 export function TryMirror({ open, onClose, product, frameAsset, strings, onAddToCart }) {
   const p = product || {}
   const t = strings
-  const asset = frameAsset || p.tryMirrorImg || ''
 
   const { status, get: getEngine, setRunningMode, retry } = useFaceLandmarker(open)
 
@@ -107,7 +111,11 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
   const canvasRef = useRef(null)
   const photoInputRef = useRef(null)
   const videoInputRef = useRef(null)
-  const frameRef = useRef(null)          // loaded PNG Image (or null → vector)
+  const frameRef = useRef(null)          // loaded 2D PNG Image (or null)
+  const engineRef = useRef(null)         // lazily-created 3D GlassesEngine (or null)
+  const modelUrlRef = useRef('')         // active colour's 3D model URL (or '')
+  const metaRef = useRef({})             // active colour's tryMirrorMeta
+  const paintRef = useRef(null)          // latest paint() (avoids hook ordering)
   const sourceRef = useRef(null)         // current drawable: <video> or <img>
   const photoDetRef = useRef(null)       // { l, mat } for the static photo
   const smoothRef = useRef({})
@@ -128,16 +136,49 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
   const smoothReset = () => { smoothRef.current = {} }
   const prepCanvas = (w, h) => { const c = canvasRef.current; if (c) { c.width = w; c.height = h } }
 
-  // Load the product's transparent-PNG frame asset once per open.
+  // Resolve + load the selected colour's try-on assets (fallback chain:
+  // 3D model → 2D PNG → drawn vector). Runs on open and on every colour change.
+  const colorHex = (p.colors || [])[colorIdx]
+  // Legacy `frameAsset` (a single PNG URL) still works as an all-colours override.
+  const legacy = typeof frameAsset === 'string' && frameAsset ? { ...p, tryMirrorImg: frameAsset } : p
+  const { model: modelUrl, png: pngUrl, meta } = resolveTryonAsset(legacy, colorHex)
   useEffect(() => {
     if (!open) return
+    let alive = true
+    metaRef.current = meta
+    // 2D PNG (fallback + used while a 3D model is still loading).
     frameRef.current = null
-    if (!asset) return
-    const img = new Image(); img.crossOrigin = 'anonymous'
-    img.onload = () => { frameRef.current = img }
-    img.src = asset
-    return () => { frameRef.current = null }
-  }, [open, asset])
+    if (pngUrl) {
+      const img = new Image(); img.crossOrigin = 'anonymous'
+      img.onload = () => { if (alive) { frameRef.current = img; repaintPhoto() } }
+      img.src = pngUrl
+    }
+    // 3D model (primary). Create the WebGL engine lazily — only when a model
+    // asset actually exists — and degrade gracefully if WebGL is unavailable.
+    modelUrlRef.current = ''
+    if (modelUrl) {
+      loadEngine().then((GlassesEngine) => {
+        if (!alive) return
+        if (!engineRef.current) { try { engineRef.current = new GlassesEngine(640, 480) } catch (e) { console.warn('[tryon] WebGL unavailable, using 2D overlay:', e?.message || e); return } }
+        return engineRef.current.setModel(modelUrl).then((okModel) => {
+          if (!alive) return
+          modelUrlRef.current = okModel ? modelUrl : ''
+          repaintPhoto()
+        })
+      }).catch((e) => console.warn('[tryon] engine load failed, using 2D overlay:', e?.message || e))
+    }
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, modelUrl, pngUrl])
+
+  // Repaint the static photo (live/video redraw themselves each frame).
+  const repaintPhoto = useCallback(() => {
+    if (photoDetRef.current && sourceRef.current) {
+      const { l, mat } = photoDetRef.current
+      paintRef.current && paintRef.current(l, mat, { smooth: false, detActive: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── shared paint ───────────────────────────────────────────────────────────
   const paint = useCallback((landmarks, mat, { smooth, detActive }) => {
@@ -150,16 +191,27 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
     if (detActive) setFace(!!landmarks)
     if (!landmarks) return
     const frameImg = frameRef.current
-    if (frameImg && landmarks[33] && landmarks[263] && landmarks[168]) {
+    const engine = engineRef.current
+    const modelReady = engine && modelUrlRef.current && engine.hasModel(modelUrlRef.current)
+    // Fallback chain: 3D model → 2D PNG → drawn vector.
+    if (modelReady && landmarks[33] && landmarks[263]) {
+      // The 2D canvas is CSS-mirrored for Live; render the scene in video space
+      // and let that single CSS flip apply — so pass mirrored=false here.
+      engine.resize(W, H)
+      engine.update(landmarks, metaRef.current, sizeRef.current, false)
+      try { ctx.drawImage(engine.render(), 0, 0, W, H) } catch { /* gl not ready */ }
+    } else if (frameImg && landmarks[33] && landmarks[263] && landmarks[168]) {
       let a = { x: landmarks[33].x * W, y: landmarks[33].y * H }
       let b = { x: landmarks[263].x * W, y: landmarks[263].y * H }
       let n = { x: landmarks[168].x * W, y: landmarks[168].y * H }
       if (smooth) { const s = smoothRef.current; a = s.a = ema(s.a, a, EMA_ALPHA); b = s.b = ema(s.b, b, EMA_ALPHA); n = s.n = ema(s.n, n, EMA_ALPHA) }
       drawPng(ctx, frameImg, a, b, n, mat, sizeRef.current)
-    } else if (!frameImg) {
+    } else if (!frameImg && !modelUrlRef.current) {
+      // Last resort only — no 3D and no 2D asset for this product/colour.
       drawVector(ctx, landmarks, W, H, vectorStyle(p, (p.colors || [])[colorRef.current]), sizeRef.current)
     }
   }, [p])
+  paintRef.current = paint
 
   // ── loop control ───────────────────────────────────────────────────────────
   const stopLoops = useCallback(() => {
@@ -298,6 +350,8 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
     stopLoops()
     if (objUrlRef.current) { URL.revokeObjectURL(objUrlRef.current); objUrlRef.current = null }
     const v = videoRef.current; if (v) { v.srcObject = null; v.removeAttribute('src') }
+    if (engineRef.current) { try { engineRef.current.dispose() } catch { /* noop */ } engineRef.current = null }
+    modelUrlRef.current = ''
   }, [open, stopLoops])
   useEffect(() => stopLoops, [stopLoops])
 
@@ -400,7 +454,7 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
           <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, minWidth: 44, textAlign: 'center', color: 'var(--amber-500)' }}>{sizePct}</span>
         </div>
 
-        {!asset && (p.colors || []).length > 0 && (
+        {(p.colors || []).length > 0 && (
           <div style={{ display: 'flex', gap: 10 }}>
             {p.colors.map((c, i) => (
               <button key={i} onClick={() => setColorIdx(i)} aria-label={`color ${i + 1}`} style={{ width: 30, height: 30, borderRadius: 999, background: c, border: `2px solid ${colorIdx === i ? 'var(--amber-500)' : 'transparent'}`, cursor: 'pointer' }} />

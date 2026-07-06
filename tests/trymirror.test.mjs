@@ -34,7 +34,7 @@ const GRAY_PHOTO = encodePNG(320, 240, [170, 170, 170])
 
 // Fixed face: eyes at y=0.45 (x 0.35 / 0.65), nose bridge at centre; identity pose.
 const MOCK = `window.__OZ_FACE_MOCK__ = {
-  landmarks: { 33:{x:0.35,y:0.45}, 133:{x:0.44,y:0.45}, 263:{x:0.65,y:0.45}, 362:{x:0.56,y:0.45}, 168:{x:0.5,y:0.5}, 234:{x:0.28,y:0.5}, 454:{x:0.72,y:0.5} },
+  landmarks: { 1:{x:0.5,y:0.52}, 10:{x:0.5,y:0.28}, 33:{x:0.35,y:0.45}, 133:{x:0.44,y:0.45}, 168:{x:0.5,y:0.5}, 175:{x:0.5,y:0.72}, 234:{x:0.28,y:0.5}, 263:{x:0.65,y:0.45}, 362:{x:0.56,y:0.45}, 454:{x:0.72,y:0.5} },
   matrix: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1],
 }`
 
@@ -131,6 +131,70 @@ await page.getByRole('button', { name: 'Upload photo', exact: true }).click()
 await page.getByRole('button', { name: /Add to Cart · 140%/ }).click()
 await page.getByRole('banner').getByRole('button', { name: 'Cart' }).click()
 expect(await page.getByText('Custom size · 140%').isVisible(), 'cart line shows custom size 140%')
+
+// Count pixels darker than the gray (170) photo — the demo 3D frame is near-black.
+const darkCount = (pg) => pg.evaluate(() => {
+  const c = document.querySelector('canvas'); if (!c) return -1
+  const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data
+  let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 90 && d[i + 1] < 90 && d[i + 2] < 90) n++
+  return n
+})
+async function openTryon(pg, mutate) {
+  await pg.addInitScript(MOCK)
+  await pg.route('**/api/content', async (route) => {
+    const res = await route.fetch(); const json = await res.json()
+    const prod = (json.products || []).find((p) => p.name === 'CONNECTED FRAME') || json.products[0]
+    if (prod) { prod.tryMirror = true; mutate(prod) }
+    await route.fulfill({ response: res, body: JSON.stringify(json) })
+  })
+  await pg.goto(BASE, { waitUntil: 'networkidle' })
+  await pg.getByText('CONNECTED FRAME').first().click()
+  await pg.locator('main').getByRole('button', { name: 'Try Mirror' }).first().click()
+  await pg.getByRole('button', { name: 'Allow camera' }).click()
+  await pg.getByRole('button', { name: 'Upload photo', exact: true }).click()
+  await pg.locator('input[type="file"][accept="image/*"]').setInputFiles({ name: 'face.png', mimeType: 'image/png', buffer: GRAY_PHOTO })
+}
+
+console.log('\n== 3D model overlay (primary path) ==')
+{
+  const p3 = await (await browser.newContext({ viewport: { width: 1280, height: 950 } })).newPage()
+  let modelFetched = false
+  p3.on('request', (r) => { if (r.url().includes('/tryon/models/demo-frame.glb')) modelFetched = true })
+  const warns = []
+  p3.on('console', (m) => m.type() === 'warning' && warns.push(m.text()))
+  await openTryon(p3, (prod) => { prod.tryMirrorModel = { [prod.colors[0]]: '/tryon/models/demo-frame.glb' }; delete prod.tryMirrorImg })
+  // wait for the model to load and the engine to render dark frame pixels
+  await p3.waitForFunction(() => {
+    const c = document.querySelector('canvas'); if (!c) return false
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data
+    let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 90 && d[i + 1] < 90 && d[i + 2] < 90) n++
+    return n > 200
+  }, { timeout: 12000 }).catch(() => {})
+  expect(modelFetched, 'the .gltf 3D model was fetched (engine loaded it)')
+  expect(await darkCount(p3) > 200, `3D frame rendered onto the face (${await darkCount(p3)} px)`)
+  expect(!warns.some((w) => w.includes('[tryon]') && /fail/i.test(w)), 'no model-load failure warning on the valid model')
+  await p3.context().close()
+}
+
+console.log('\n== Fallback chain: broken model → 2D PNG ==')
+{
+  const pf = await (await browser.newContext({ viewport: { width: 1280, height: 950 } })).newPage()
+  const warns = []
+  pf.on('console', (m) => m.type() === 'warning' && warns.push(m.text()))
+  await openTryon(pf, (prod) => {
+    prod.tryMirrorModel = { [prod.colors[0]]: '/tryon/models/does-not-exist.glb' }
+    prod.tryMirrorImg = { [prod.colors[0]]: MAGENTA_FRAME }
+  })
+  await pf.waitForFunction(() => {
+    const c = document.querySelector('canvas'); if (!c) return false
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data
+    for (let i = 0; i < d.length; i += 4) if (d[i] > 200 && d[i + 1] < 90 && d[i + 2] > 200) return true
+    return false
+  }, { timeout: 8000 }).catch(() => {})
+  expect(await magentaCount(pf) > 0, `broken 3D model falls back to the 2D PNG overlay (${await magentaCount(pf)} px)`)
+  expect(warns.some((w) => w.includes('[tryon]')), 'a console warning flags the missing 3D asset')
+  await pf.context().close()
+}
 
 console.log('')
 expect(errors.length === 0, `no console errors (${errors.length})`)
