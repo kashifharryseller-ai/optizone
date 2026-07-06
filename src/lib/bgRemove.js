@@ -42,11 +42,39 @@ function sampleBackground(data, w, h) {
   return { color: mean, stdev: Math.sqrt(v / m) }
 }
 
+// One border flood-fill pass at a given neighbour tolerance. Returns the
+// background mask and the fraction of pixels kept (not background).
+function floodPass(d, w, h, step2) {
+  const N = w * h
+  const bg = new Uint8Array(N)
+  const stack = new Int32Array(N)
+  let sp = 0
+  const seedAt = (p) => { if (!bg[p]) { bg[p] = 1; stack[sp++] = p } }
+  for (let x = 0; x < w; x++) { seedAt(x); seedAt((h - 1) * w + x) }
+  for (let y = 0; y < h; y++) { seedAt(y * w); seedAt(y * w + (w - 1)) }
+  while (sp) {
+    const p = stack[--sp]
+    const i = p * 4, r = d[i], g = d[i + 1], b = d[i + 2]
+    const x = p % w, y = (p / w) | 0
+    const test = (n) => { const j = n * 4; const dr = d[j] - r, dg = d[j + 1] - g, db = d[j + 2] - b; if (dr * dr + dg * dg + db * db < step2) { bg[n] = 1; stack[sp++] = n } }
+    if (x > 0 && !bg[p - 1]) test(p - 1)
+    if (x < w - 1 && !bg[p + 1]) test(p + 1)
+    if (y > 0 && !bg[p - w]) test(p - w)
+    if (y < h - 1 && !bg[p + w]) test(p + w)
+  }
+  let kept = 0
+  for (let p = 0; p < N; p++) if (!bg[p]) kept++
+  return { bg, keptFrac: kept / N }
+}
+
 /**
  * Remove a plain background.
  * @param src File | Blob | URL | HTMLImageElement
  * @param opts.tolerance 0..1 (default 0.14) — higher removes more
- * @returns { dataUrl, width, height, coverage, symmetry, plainBg }
+ * @param opts.auto true → ignore `tolerance` and self-tune it: start tight (so
+ *        anti-aliased / JPEG-soft frame edges are not leaked through) and step
+ *        up only while the background clearly isn't being removed.
+ * @returns { dataUrl, width, height, coverage, symmetry, plainBg, usedTolerance }
  *   coverage  — opaque fraction after cut-out (very low = over-removed)
  *   symmetry  — 0..1 left/right alpha symmetry (low = likely an angled photo)
  *   plainBg   — whether the border looked like a plain background
@@ -63,39 +91,41 @@ export async function removeBackground(src, opts = {}) {
   const d = imgData.data
 
   const border = sampleBackground(d, w, h)
-  const tol = Math.max(0.02, Math.min(0.6, opts.tolerance ?? 0.14))
   const MAXD = 441.673 // max RGB euclidean distance (255·√3)
   const N = w * h
+  const distIdx = (p, r, g, b) => { const i = p * 4; const dr = d[i] - r, dg = d[i + 1] - g, db = d[i + 2] - b; return dr * dr + dg * dg + db * db }
 
   // ── Flood-fill / "magic wand" from the border ───────────────────────────────
-  // A single average-colour key can't remove a gradient / shadowed / multi-tone
-  // backdrop. Instead, seed the outer border as background and grow INWARD:
-  // a neighbour joins the background only if it's close to the pixel it grew
-  // from. Small local steps follow gradual colour change (gradients, soft
-  // shadows) but stop at the sharp contrast of the frame edge.
-  const bg = new Uint8Array(N)      // 1 = background
-  const stack = new Int32Array(N)   // DFS stack of pixel indices
-  let sp = 0
-  const distIdx = (p, r, g, b) => { const i = p * 4; const dr = d[i] - r, dg = d[i + 1] - g, db = d[i + 2] - b; return dr * dr + dg * dg + db * db }
-  const seedAt = (p) => { if (!bg[p]) { bg[p] = 1; stack[sp++] = p } }
-  for (let x = 0; x < w; x++) { seedAt(x); seedAt((h - 1) * w + x) }         // top + bottom
-  for (let y = 0; y < h; y++) { seedAt(y * w); seedAt(y * w + (w - 1)) }     // left + right
-
-  const step2 = Math.max(15, tol * MAXD * 0.6) ** 2 // neighbour-to-neighbour tolerance
-  while (sp) {
-    const p = stack[--sp]
-    const i = p * 4, r = d[i], g = d[i + 1], b = d[i + 2]
-    const x = p % w, y = (p / w) | 0
-    if (x > 0)     { const n = p - 1; if (!bg[n] && distIdx(n, r, g, b) < step2) { bg[n] = 1; stack[sp++] = n } }
-    if (x < w - 1) { const n = p + 1; if (!bg[n] && distIdx(n, r, g, b) < step2) { bg[n] = 1; stack[sp++] = n } }
-    if (y > 0)     { const n = p - w; if (!bg[n] && distIdx(n, r, g, b) < step2) { bg[n] = 1; stack[sp++] = n } }
-    if (y < h - 1) { const n = p + w; if (!bg[n] && distIdx(n, r, g, b) < step2) { bg[n] = 1; stack[sp++] = n } }
+  // Seed the border as background and grow inward; a neighbour joins only when
+  // it's close to the pixel it grew from, so smooth gradients/shadows flood but
+  // the fill stops at the frame's edge contrast. The per-step tolerance is the
+  // critical knob: too high and the fill LEAKS through anti-aliased / JPEG-soft
+  // edges and eats the product. In auto mode, climb a ladder from tight to
+  // loose and stop at the first pass that plausibly separated the frame.
+  let tol = Math.max(0.02, Math.min(0.6, opts.tolerance ?? 0.14))
+  let pass
+  if (opts.auto) {
+    const ladder = [0.05, 0.08, 0.12, 0.16, 0.22, 0.3]
+    let best = null
+    for (const t of ladder) {
+      const cand = floodPass(d, w, h, Math.max(12, t * MAXD * 0.6) ** 2)
+      // plausible product cut-out: some of the image kept, most of it removed
+      if (cand.keptFrac >= 0.02 && cand.keptFrac <= 0.8) { pass = cand; tol = t; break }
+      // background not removed yet (kept almost everything) → loosen and retry;
+      // remember the least-destructive failing pass as a fallback.
+      if (!best || Math.abs(cand.keptFrac - 0.3) < Math.abs(best.pass.keptFrac - 0.3)) best = { pass: cand, t }
+    }
+    if (!pass) { pass = best.pass; tol = best.t }
+  } else {
+    pass = floodPass(d, w, h, Math.max(15, tol * MAXD * 0.6) ** 2)
   }
+  const bg = pass.bg
 
   // Enclosed background (e.g. see-through lens interiors ringed by the frame,
   // which the border flood can't reach): clear remaining pixels that closely
-  // match the sampled backdrop colour.
-  const enc2 = (tol * MAXD * 0.9) ** 2
+  // match the sampled backdrop colour. Uses a floor so tight auto tolerances
+  // still clear near-background lens interiors.
+  const enc2 = (Math.max(tol, 0.12) * MAXD * 0.9) ** 2
   for (let p = 0; p < N; p++) if (!bg[p] && distIdx(p, border.color[0], border.color[1], border.color[2]) < enc2) bg[p] = 1
 
   // ── Feathered alpha (3×3 average of the keep-mask → 1px anti-aliased edge) ───
@@ -130,6 +160,7 @@ export async function removeBackground(src, opts = {}) {
     // Border variance: a gradient/shadow is fine (the flood-fill handles it) —
     // only flag a genuinely busy/multi-tone backdrop.
     plainBg: border.stdev < 45,
+    usedTolerance: tol,
   }
 }
 

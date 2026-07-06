@@ -19,13 +19,18 @@ function FrameAssetField({ hex, value, onChange }) {
   const [tol, setTol] = useState(0.14)
   const [preview, setPreview] = useState(null) // { dataUrl, coverage, symmetry, plainBg }
 
+  // First pass self-tunes the tolerance (anti-aliased edges need a tight step);
+  // the slider then re-runs manually from wherever auto landed.
   const process = async (file, t) => {
     setBusy(true); setErr('')
-    try { setPreview(await removeBackground(file, { tolerance: t })) }
-    catch (e) { setErr(e.message || 'Could not process image') }
+    try {
+      const r = await removeBackground(file, t == null ? { auto: true } : { tolerance: t })
+      setPreview(r)
+      if (t == null && r.usedTolerance) setTol(r.usedTolerance)
+    } catch (e) { setErr(e.message || 'Could not process image') }
     finally { setBusy(false) }
   }
-  const pick = (file) => { if (!file) return; fileRef.current = file; setTol(0.14); process(file, 0.14) }
+  const pick = (file) => { if (!file) return; fileRef.current = file; process(file, null) }
   const retune = (t) => { setTol(t); if (fileRef.current) process(fileRef.current, t) }
 
   const uploadBlob = async (blob, name) => {

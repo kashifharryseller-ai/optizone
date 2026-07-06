@@ -238,6 +238,29 @@ console.log('\n== Auto-apply: product photo → cut-out → 3D try-on ==')
   await pa.context().close()
 }
 
+console.log('\n== Auto-apply on a REAL studio JPEG (soft edges — the live-site bug) ==')
+{
+  // A real render has anti-aliased/JPEG-soft edges: a fixed flood tolerance
+  // leaks through them and eats the frame (live bug). The adaptive ladder must
+  // keep the aviator's green lenses + gold rims and put them on the face.
+  const pr = await (await browser.newContext({ viewport: { width: 1280, height: 950 } })).newPage()
+  await openTryon(pr, (prod) => { delete prod.tryMirrorImg; delete prod.tryMirrorModel; prod.image = '/products/rayban-rb3025-aviator.jpg' })
+  await pr.waitForFunction(() => {
+    const c = document.querySelector('canvas'); if (!c) return false
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data
+    let green = 0
+    for (let i = 0; i < d.length; i += 4) { const r = d[i], g = d[i + 1], b = d[i + 2]; if (g > r + 15 && g > b + 10 && g > 40 && g < 160) green++ }
+    return green > 800
+  }, { timeout: 15000 }).catch(() => {})
+  const green = await pr.evaluate(() => {
+    const c = document.querySelector('canvas'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data
+    let n = 0; for (let i = 0; i < d.length; i += 4) { const r = d[i], g = d[i + 1], b = d[i + 2]; if (g > r + 15 && g > b + 10 && g > 40 && g < 160) n++ }
+    return n
+  })
+  expect(green > 800, `real aviator JPEG auto-cut and rendered — green lenses on the face (${green} px)`)
+  await pr.context().close()
+}
+
 console.log('')
 expect(errors.length === 0, `no console errors (${errors.length})`)
 errors.slice(0, 5).forEach((e) => console.log('     !! ' + e))

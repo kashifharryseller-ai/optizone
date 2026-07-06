@@ -17,7 +17,7 @@ async function autoDeriveFrame(url) {
   if (!url) return ''
   if (autoCache.has(url)) return autoCache.get(url)
   let out = ''
-  try { const r = await removeBackground(url, { tolerance: 0.16 }); if (r && r.coverage > 0.01 && r.coverage < 0.7) out = r.dataUrl } catch { /* → vector */ }
+  try { const r = await removeBackground(url, { auto: true }); if (r && r.coverage > 0.015 && r.coverage < 0.75) out = r.dataUrl } catch { /* → vector */ }
   autoCache.set(url, out)
   return out
 }
