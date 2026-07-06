@@ -31,6 +31,15 @@ function encodePNG(w, h, [r, g, b]) {
 }
 const MAGENTA_FRAME = 'data:image/png;base64,' + encodePNG(24, 12, [255, 0, 255]).toString('base64')
 const GRAY_PHOTO = encodePNG(320, 240, [170, 170, 170])
+// A dark frame on a white background — a product PHOTO (with a background) that
+// auto-apply should cut out and try on with no dedicated asset.
+function whiteFramePng(w, h) {
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2
+  const raw = Buffer.alloc((w * 3 + 1) * h)
+  for (let y = 0; y < h; y++) { raw[y * (w * 3 + 1)] = 0; for (let x = 0; x < w; x++) { const o = y * (w * 3 + 1) + 1 + x * 3; const ring = Math.abs(Math.hypot(x - w * 0.34, y - h * 0.5) - h * 0.3) < h * 0.09 || Math.abs(Math.hypot(x - w * 0.66, y - h * 0.5) - h * 0.3) < h * 0.09; const v = ring ? 20 : 250; raw[o] = v; raw[o + 1] = v; raw[o + 2] = v } }
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), pngChunk('IHDR', ihdr), pngChunk('IDAT', zlib.deflateSync(raw)), pngChunk('IEND', Buffer.alloc(0))])
+}
+const WHITE_BG_FRAME = 'data:image/png;base64,' + whiteFramePng(200, 120).toString('base64')
 
 // Fixed face: eyes at y=0.45 (x 0.35 / 0.65), nose bridge at centre; identity pose.
 const MOCK = `window.__OZ_FACE_MOCK__ = {
@@ -93,6 +102,18 @@ expect(await page.getByText('Loading face tracking…').count() === 0, 'model in
 expect(await page.getByText(/couldn’t load/).count() === 0, 'no init-failure banner (model ready)')
 const tabs = await page.getByRole('button', { name: /^(Live|Upload photo|Upload video)$/ }).count()
 expect(tabs === 3, `three mode tabs present (got ${tabs})`)
+
+console.log('\n== Product carousel (swipe between frames) ==')
+const cards = page.getByRole('option')
+expect(await cards.count() >= 2, `carousel lists multiple frames with prices (${await cards.count()})`)
+expect(await page.locator('[role="option"]').first().getByText('₪', { exact: false }).count() > 0, 'carousel cards show a price')
+// switching a card changes the tried-on frame (modal header updates)
+await cards.filter({ hasText: 'Persol' }).first().click()
+await page.getByText(/· Persol/).first().waitFor({ timeout: 4000 })
+ok('clicking a carousel card switches the active frame (header updated)')
+// back to the opened frame for the rest of the flow
+await cards.filter({ hasText: 'CONNECTED FRAME' }).first().click()
+await page.getByText(/· .*CONNECTED FRAME/).first().waitFor({ timeout: 4000 })
 
 console.log('\n== Mode 2: Upload photo renders an overlay ==')
 await page.getByRole('button', { name: 'Upload photo', exact: true }).click()
@@ -197,6 +218,24 @@ console.log('\n== Fallback chain: broken model → 2D PNG ==')
   expect(await magentaCount(pf) > 0, `broken 3D model falls back to the 2D PNG overlay (${await magentaCount(pf)} px)`)
   expect(warns.some((w) => w.includes('[tryon]')), 'a console warning flags the missing 3D asset')
   await pf.context().close()
+}
+
+console.log('\n== Auto-apply: product photo → cut-out → 3D try-on ==')
+{
+  const pa = await (await browser.newContext({ viewport: { width: 1280, height: 950 } })).newPage()
+  let engineChunk = false
+  pa.on('request', (r) => { if (/GlassesEngine/.test(r.url())) engineChunk = true })
+  // No dedicated try-on asset — only a product PHOTO (dark frame on white bg).
+  await openTryon(pa, (prod) => { delete prod.tryMirrorImg; delete prod.tryMirrorModel; prod.image = WHITE_BG_FRAME })
+  await pa.waitForFunction(() => {
+    const c = document.querySelector('canvas'); if (!c) return false
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data
+    let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 90 && d[i + 1] < 90 && d[i + 2] < 90) n++
+    return n > 150
+  }, { timeout: 12000 }).catch(() => {})
+  expect(await darkCount(pa) > 150, `auto-derived frame from the product photo renders on the face (${await darkCount(pa)} px)`)
+  expect(engineChunk, 'auto-derived frame is tracked through the 3D engine (planar)')
+  await pa.context().close()
 }
 
 console.log('')

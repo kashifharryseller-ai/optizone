@@ -197,8 +197,14 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
         open={mirror}
         onClose={() => setMirror(false)}
         product={p}
+        catalog={(content.products || []).filter(canTryMirror)}
         strings={t}
-        onAddToCart={(customSize) => addToCart({ ...p, amount: total }, { customSize })}
+        onAddToCart={(customSize, chosen) => {
+          const prod = chosen || p
+          // The opened product keeps its lens-option total; a carousel-picked
+          // frame is added at its own base price.
+          addToCart({ ...prod, amount: prod.id === p.id ? total : prod.amount }, { customSize })
+        }}
       />
     </div>
   )

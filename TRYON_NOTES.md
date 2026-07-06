@@ -34,6 +34,20 @@ turns, but with no true side profile.
 - Live mode is mirrored by a single CSS `transform: scaleX(-1)` on the canvas;
   the scene is rendered in video space and flipped once (no left/right swaps).
 
+## Auto-apply & the in-mirror carousel
+
+- **Auto-apply to every product.** New eyewear products need no setup: if a
+  product has no `.glb` and no `tryMirrorImg`, TryMirror auto-derives a frame
+  from the product's own photo (`p.image`) via `bgRemove` — cached per image URL,
+  and only accepted when the cut-out looks plausible (coverage 1–70%); otherwise
+  it falls through to the drawn vector. So the source chain is:
+  **`.glb` model → explicit `tryMirrorImg` → auto-cut product photo → vector.**
+- **Product carousel.** TryMirror takes a `catalog` prop (all `canTryMirror`
+  products) and renders a swipeable strip of frames (brand · name · price).
+  Selecting a card switches the tried-on frame in place (re-resolving assets,
+  resetting colour); "Add to cart" adds the selected frame. New products appear
+  in the strip automatically.
+
 Key files:
 - `src/components/TryMirror.jsx` — modal, modes, paint loop, fallback chain.
 - `src/components/tryon/GlassesEngine.js` — Three.js scene, landmark→pose math,

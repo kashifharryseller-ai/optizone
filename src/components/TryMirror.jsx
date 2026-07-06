@@ -3,10 +3,24 @@ import { createPortal } from 'react-dom'
 import { Button, Icon, IconButton } from '../ds/index.js'
 import { useFaceLandmarker } from './useFaceLandmarker.js'
 import { resolveTryonAsset } from './tryon/config.js'
+import { removeBackground } from '../lib/bgRemove.js'
 // GlassesEngine (and its Three.js dependency) is loaded on demand — only when a
 // product actually has a 3D model — so it never weighs down the storefront bundle.
 let _EnginePromise = null
 const loadEngine = () => (_EnginePromise ||= import('./tryon/GlassesEngine.js').then((m) => m.GlassesEngine))
+
+// Auto-apply: when a product has no dedicated try-on asset, derive a transparent
+// frame from its own product photo (background removed), cached per image URL.
+// Only accept a plausible cut-out — a busy/failed removal keeps '' → vector.
+const autoCache = new Map()
+async function autoDeriveFrame(url) {
+  if (!url) return ''
+  if (autoCache.has(url)) return autoCache.get(url)
+  let out = ''
+  try { const r = await removeBackground(url, { tolerance: 0.16 }); if (r && r.coverage > 0.01 && r.coverage < 0.7) out = r.dataUrl } catch { /* → vector */ }
+  autoCache.set(url, out)
+  return out
+}
 
 /**
  * TryMirror — per-product virtual try-on with three input modes:
@@ -93,9 +107,12 @@ const MODES = [
   { key: 'video', icon: 'smartphone', label: 'modeVideo' },
 ]
 
-export function TryMirror({ open, onClose, product, frameAsset, strings, onAddToCart }) {
-  const p = product || {}
+export function TryMirror({ open, onClose, product, catalog = [], frameAsset, strings, onAddToCart }) {
   const t = strings
+  // The product currently being tried on — starts as the opened product, but the
+  // in-mirror carousel can switch it to any other frame without leaving the modal.
+  const [active, setActive] = useState(product || {})
+  const p = active
 
   const { status, get: getEngine, setRunningMode, retry } = useFaceLandmarker(open)
 
@@ -134,6 +151,10 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
 
   const sizePct = `${Math.round(size * 100)}%`
   useEffect(() => { openRef.current = open }, [open])
+  // Reset to the opened product each time the modal (re)opens for a new product.
+  useEffect(() => { if (open) { setActive(product || {}); setColorIdx(0); setSize(1) } }, [open, product])
+  // Carousel: switch the tried-on frame in place (reset colour to the new frame).
+  const switchProduct = (prod) => { setActive(prod); setColorIdx(0) }
 
   const setFace = (v) => { if (faceRef.current !== v) { faceRef.current = v; setHasFace(v) } }
   const smoothReset = () => { smoothRef.current = {} }
@@ -144,47 +165,47 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
   const colorHex = (p.colors || [])[colorIdx]
   // Legacy `frameAsset` (a single PNG URL) still works as an all-colours override.
   const legacy = typeof frameAsset === 'string' && frameAsset ? { ...p, tryMirrorImg: frameAsset } : p
-  const { model: modelUrl, png: pngUrl, meta } = resolveTryonAsset(legacy, colorHex)
+  const { model: modelUrl, png: resolvedPng, meta } = resolveTryonAsset(legacy, colorHex)
+  const productImg = p.image || ''
   useEffect(() => {
     if (!open) return
     let alive = true
     metaRef.current = meta
-    // Record what this colour HAS (used by the paint fallback chain) up front,
-    // so a still-loading asset never falls through to the vector tier.
-    pngUrlRef.current = pngUrl
-    modelUrlRef.current = modelUrl
-    // The engine renders the primary content in 3D: a .glb model if present,
-    // otherwise the transparent PNG on a tracked plane. `contentUrl` is what the
-    // engine should show; cleared if it fails so the flat/vector tier takes over.
-    const contentUrl = modelUrl || pngUrl
     contentUrlRef.current = ''
-    // Also decode the PNG as a flat <img> — the WebGL-unavailable fallback.
     frameRef.current = null
-    if (pngUrl) {
-      const img = new Image(); img.crossOrigin = 'anonymous'
-      img.onload = () => { if (alive) { frameRef.current = img; repaintPhoto() } }
-      img.onerror = () => { if (alive && frameRef.current === img) { frameRef.current = null; console.warn('[tryon] frame PNG failed to load:', pngUrl) } }
-      img.src = pngUrl
-    }
-    // Mount 3D content in the engine (lazy WebGL init): try the .glb model, then
-    // the transparent PNG as a tracked plane. If neither mounts (or WebGL is
-    // unavailable), clear contentUrl so paint falls back to the flat PNG / vector.
-    if (contentUrl) {
-      const giveUp = () => { if (alive) { contentUrlRef.current = ''; repaintPhoto() } }
-      const ok = (url) => { if (alive) { contentUrlRef.current = url; repaintPhoto() } }
-      loadEngine().then((GlassesEngine) => {
-        if (!alive) return
-        if (!engineRef.current) { try { engineRef.current = new GlassesEngine(640, 480) } catch (e) { console.warn('[tryon] WebGL unavailable, using 2D overlay:', e?.message || e); giveUp(); return } }
-        const eng = engineRef.current
-        const tryPlane = () => (pngUrl ? eng.setPlane(pngUrl).then((y) => (y ? ok(pngUrl) : giveUp())) : giveUp())
-        return modelUrl
-          ? eng.setModel(modelUrl).then((y) => (y ? ok(modelUrl) : tryPlane()))
-          : tryPlane()
-      }).catch((e) => { console.warn('[tryon] engine load failed, using 2D overlay:', e?.message || e); giveUp() })
-    }
+    const giveUp = () => { if (alive) { contentUrlRef.current = ''; repaintPhoto() } }
+    const ok = (url) => { if (alive) { contentUrlRef.current = url; repaintPhoto() } }
+    ;(async () => {
+      // Fallback chain of SOURCES: explicit PNG → auto-cut product photo.
+      let pngUrl = resolvedPng
+      if (!modelUrl && !pngUrl && productImg) pngUrl = await autoDeriveFrame(productImg)
+      if (!alive) return
+      // Record what this frame HAS up front (paint's vector gate reads these).
+      pngUrlRef.current = pngUrl
+      modelUrlRef.current = modelUrl
+      // Flat <img> decode — the WebGL-unavailable fallback.
+      if (pngUrl) {
+        const img = new Image(); img.crossOrigin = 'anonymous'
+        img.onload = () => { if (alive) { frameRef.current = img; repaintPhoto() } }
+        img.onerror = () => { if (alive && frameRef.current === img) { frameRef.current = null } }
+        img.src = pngUrl
+      }
+      // Mount 3D content (lazy WebGL): .glb model → PNG on a tracked plane. On
+      // failure clear contentUrl so paint falls back to the flat PNG / vector.
+      const contentUrl = modelUrl || pngUrl
+      if (!contentUrl) { repaintPhoto(); return }
+      let GlassesEngine
+      try { GlassesEngine = await loadEngine() } catch (e) { console.warn('[tryon] engine load failed, using 2D overlay:', e?.message || e); giveUp(); return }
+      if (!alive) return
+      if (!engineRef.current) { try { engineRef.current = new GlassesEngine(640, 480) } catch (e) { console.warn('[tryon] WebGL unavailable, using 2D overlay:', e?.message || e); giveUp(); return } }
+      const eng = engineRef.current
+      const tryPlane = () => (pngUrl ? eng.setPlane(pngUrl).then((y) => (y ? ok(pngUrl) : giveUp())) : giveUp())
+      if (modelUrl) await eng.setModel(modelUrl).then((y) => (y ? ok(modelUrl) : tryPlane()))
+      else await tryPlane()
+    })()
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, modelUrl, pngUrl])
+  }, [open, modelUrl, resolvedPng, productImg, p.id])
 
   // Repaint the static photo (live/video redraw themselves each frame).
   const repaintPhoto = useCallback(() => {
@@ -474,6 +495,26 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
         </div>
       )}
 
+      {/* product carousel — swipe through frames without leaving the mirror */}
+      {catalog.length > 1 && (
+        <div role="listbox" aria-label={t.tryMirror} style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '6px 20px 10px', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+          {catalog.map((prod) => {
+            const isActive = prod.id === active.id
+            return (
+              <button key={prod.id} role="option" aria-selected={isActive} onClick={() => switchProduct(prod)}
+                style={{ flex: '0 0 auto', width: 112, scrollSnapAlign: 'center', cursor: 'pointer', textAlign: 'center', padding: 8, borderRadius: 'var(--radius-md)', border: `1.5px solid ${isActive ? 'var(--amber-500)' : 'var(--border-on-dark)'}`, background: isActive ? 'rgba(224,138,42,0.14)' : 'transparent', color: 'var(--cream-100)' }}>
+                <span style={{ height: 44, marginBottom: 6, borderRadius: 6, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {prod.image ? <img src={prod.image} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <Icon name="glasses" size={18} color="var(--pine-300)" />}
+                </span>
+                <span style={{ display: 'block', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--pine-200)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prod.brand}</span>
+                <span style={{ display: 'block', fontSize: 11, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prod.name}</span>
+                <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--amber-500)' }}>₪{prod.amount}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {/* controls */}
       <div style={{ padding: '12px 24px 22px', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--cream-100)' }}>
@@ -494,7 +535,7 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
           <Button variant="ghost" onClick={download} style={{ color: 'var(--pine-100)' }} startIcon={<Icon name="share-2" size={16} color="currentColor" />}>{t.mirrorDownload}</Button>
-          <Button variant="primary" onClick={() => { stopLoops(); onAddToCart(sizePct); onClose() }} startIcon={<Icon name="shopping-bag" size={17} color="currentColor" />}>
+          <Button variant="primary" onClick={() => { stopLoops(); onAddToCart(sizePct, active); onClose() }} startIcon={<Icon name="shopping-bag" size={17} color="currentColor" />}>
             {t.mirrorAdd} · {sizePct}
           </Button>
         </div>
