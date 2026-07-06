@@ -285,7 +285,7 @@ export const SEED_CONTENT = {
       "shape": "Cat-eye",
       "material": "Acetate",
       "gender": "Women",
-      "image": "/products/prada-17ws-cateye.jpg"
+      "image": "/products/prada-17ws-cateye.jpg", "tryMirrorModel": { "#1A1A17": "/tryon/models/demo-frame.glb" }, "tryMirrorMeta": { "modelForwardAxis": "z", "scaleMultiplier": 1.0, "bridgeYOffset": 0, "frameRealWidthMm": 118 }
     },
     {
       "id": 4,
@@ -685,7 +685,7 @@ export const SEED_CONTENT = {
     "shippingThreshold": 400,
     "shippingFee": 30
   },
-  "media": {}
+  "media": {"hero-photo": "/site/hero-photo.jpg", "cat-eyeglasses": "/site/cat-eyeglasses.jpg", "cat-sunglasses": "/site/cat-sunglasses.jpg", "cat-contacts": "/site/cat-contacts.jpg"}
 }
 
 // Navigation is structural (maps to routes), so it stays in code.

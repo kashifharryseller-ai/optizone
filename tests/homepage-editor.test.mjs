@@ -96,13 +96,20 @@ await page.waitForTimeout(250)
 expect(dlg.includes('service tile'), `remove asks for confirmation ("${dlg.slice(0, 50)}…")`)
 
 console.log('\n== Upload: dropzone hints, crop modal, alt text ==')
+const heroPanel = page.locator('section', { hasText: 'The main banner on the homepage' })
+// The seed ships a hero photo — clear it (accepting the confirm dialog) so the
+// empty-dropzone state shows.
+if (await heroPanel.getByRole('button', { name: 'Remove', exact: true }).count()) {
+  page.once('dialog', (d) => d.accept())
+  await heroPanel.getByRole('button', { name: 'Remove', exact: true }).click()
+  await page.waitForTimeout(250)
+}
 expect(await page.getByText(/Recommended 1200 × 900 px/).isVisible(), 'hero dropzone shows recommended dimensions + size hint')
 expect(await page.getByLabel('Alt text (for accessibility & SEO) (English)').first().isVisible(), 'alt-text EN field present')
 expect(await page.getByLabel('Alt text (for accessibility & SEO) (Hebrew)').first().isVisible(), 'alt-text HE field present')
 // choose a file → crop modal appears → apply → uploaded thumb with Replace/Remove
 await page.route('**/api/admin/upload', (route) => route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ url: '/uploads/hero-test.jpg' }) }))
 await page.route('**/uploads/hero-test.jpg', (route) => route.fulfill({ status: 200, contentType: 'image/png', body: png(24, 18) }))
-const heroPanel = page.locator('section', { hasText: 'The main banner on the homepage' })
 await heroPanel.locator('input[type="file"]').setInputFiles({ name: 'hero.png', mimeType: 'image/png', buffer: png(320, 200) })
 await page.getByRole('dialog', { name: 'Crop image' }).waitFor()
 ok('crop modal opens with the chosen photo')

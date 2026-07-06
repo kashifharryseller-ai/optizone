@@ -128,7 +128,7 @@ function defaultContent() {
       shippingFee: 30,
     },
 
-    media: {},
+    media: { 'hero-photo': '/site/hero-photo.jpg', 'cat-eyeglasses': '/site/cat-eyeglasses.jpg', 'cat-sunglasses': '/site/cat-sunglasses.jpg', 'cat-contacts': '/site/cat-contacts.jpg' },
     mediaAlt: {},   // per-image bilingual alt text ({ id: {en,he} })
   }
 }

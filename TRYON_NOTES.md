@@ -89,12 +89,19 @@ with one same-origin fetch). Author it:
 
 **Frame photo → transparent PNG (the easy path).** In **Admin → Try-Mirror / AR**
 you can upload *any* front-facing frame photo — with or without a background.
-The browser removes the background automatically (`src/lib/bgRemove.js`): it
-samples the border to estimate the backdrop, clears every pixel near that colour
-(so the see-through lens areas clear too), feathers the edge and crops to the
-frame. You get a live preview on a transparency checkerboard, a slider to tune
-how much is removed, and a warning if the shot looks angled or the background is
-busy. The result is a transparent PNG rendered as a **3D-tracked plane** (above).
+The browser removes the background automatically (`src/lib/bgRemove.js`) using a
+border flood-fill that follows gradients/shadows and stops at the frame edge:
+- **Self-tuning tolerance** (`auto` mode): starts tight — so anti-aliased /
+  JPEG-soft edges are never leaked through (which would eat the frame) — and
+  loosens only while the background clearly isn't being removed.
+- **Far-colour rescue** (plain backdrops): pixels clearly not background-coloured
+  can't be flooded away, protecting thin metal bridges / wire rims that JPEG
+  chroma-subsampling blurs toward the backdrop.
+- **Morphological close** reconnects nibbled thin structures; enclosed lens
+  interiors are cleared; edges feathered; result cropped to the frame.
+You get a live preview on a transparency checkerboard, a slider to re-tune from
+wherever auto landed, and a warning if the shot looks angled or the background
+is busy. The result renders as a **3D-tracked plane** (above).
 
 Best input: a **front-on** shot on a **plain, light** background. Busy/real-world
 backgrounds are the documented limitation of the no-dependency remover — for
