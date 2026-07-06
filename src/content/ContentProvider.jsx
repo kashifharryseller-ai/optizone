@@ -9,12 +9,35 @@ const POLL_MS = 8000
 // fresh: a lightweight version stamp is polled every few seconds and the page
 // refetches whenever the admin saves changes — plus an immediate check when
 // the tab regains focus. Falls back to the bundled seed if the API is down.
+// True when this window is the admin's live-preview iframe (?ozPreview=1).
+const isPreview = typeof window !== 'undefined' &&
+  window.parent !== window && new URLSearchParams(window.location.search).has('ozPreview')
+
 export function ContentProvider({ children }) {
   const [content, setContent] = useState(SEED_CONTENT)
   const [loading, setLoading] = useState(true)
   const verRef = useRef(null)
 
+  // Live-preview mode: the admin editor postMessages its CURRENT (unsaved)
+  // content into this iframe; render that instead of polling the API.
   useEffect(() => {
+    if (!isPreview) return
+    const onMsg = (e) => {
+      if (e.origin !== window.location.origin) return
+      if (e.data?.type === 'oz-preview' && e.data.content && typeof e.data.content === 'object') {
+        setContent(e.data.content)
+        setLoading(false)
+      }
+    }
+    window.addEventListener('message', onMsg)
+    // Handshake: tell the editor we're mounted so it (re)sends the current
+    // content — otherwise a post that raced the iframe boot would be lost.
+    try { window.parent.postMessage({ type: 'oz-preview-ready' }, window.location.origin) } catch { /* sandboxed */ }
+    return () => window.removeEventListener('message', onMsg)
+  }, [])
+
+  useEffect(() => {
+    if (isPreview) return // preview content comes from postMessage only
     let alive = true
 
     const load = () =>

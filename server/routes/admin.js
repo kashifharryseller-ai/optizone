@@ -278,6 +278,10 @@ router.put('/content', async (req, res, next) => {
       const v = validateProducts(content.products)
       if (v.error) return res.status(400).json({ error: v.error })
     }
+    // Alt-text map: plain bilingual strings only (same XSS defence).
+    if (content.mediaAlt && typeof content.mediaAlt === 'object') {
+      for (const k of Object.keys(content.mediaAlt)) content.mediaAlt[k] = cleanBilingual(content.mediaAlt[k])
+    }
     // Version stamp — the storefront polls this to refresh itself instantly.
     content.updatedAt = new Date().toISOString()
     const saved = await store().setContent(content)

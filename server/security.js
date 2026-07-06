@@ -32,7 +32,9 @@ function securityHeaders() {
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],
-        frameAncestors: ["'none'"],   // clickjacking protection
+        // Clickjacking protection: no third-party site may frame us. 'self'
+        // (not 'none') so the admin's live-preview iframe keeps working.
+        frameAncestors: ["'self'"],
         upgradeInsecureRequests: [],
       },
     },

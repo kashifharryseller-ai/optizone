@@ -125,6 +125,7 @@ function defaultContent() {
     },
 
     media: {},
+    mediaAlt: {},   // per-image bilingual alt text ({ id: {en,he} })
   }
 }
 

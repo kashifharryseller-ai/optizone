@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
 
 // --- Layout ----------------------------------------------------------------
@@ -61,8 +61,26 @@ export function Text({ value, onChange, dir, ...rest }) {
   return <input value={value ?? ''} dir={dir} onChange={(e) => onChange(e.target.value)} style={inputStyle} {...rest} />
 }
 
-export function Area({ value, onChange, dir, rows = 3, ...rest }) {
-  return <textarea value={value ?? ''} dir={dir} rows={rows} onChange={(e) => onChange(e.target.value)} style={{ ...inputStyle, height: 'auto', padding: 12, resize: 'vertical', lineHeight: 1.5 }} {...rest} />
+// Auto-growing textarea — grows with the content so nothing is ever truncated.
+export function Area({ value, onChange, dir, rows = 2, ...rest }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight + 2}px`
+  }, [value])
+  return <textarea ref={ref} value={value ?? ''} dir={dir} rows={rows} onChange={(e) => onChange(e.target.value)} style={{ ...inputStyle, height: 'auto', padding: 12, resize: 'none', overflow: 'hidden', lineHeight: 1.5 }} {...rest} />
+}
+
+// Character counter under a constrained input; turns amber near the limit.
+function Counter({ len, max }) {
+  const warn = len >= max * 0.9
+  return (
+    <span aria-live="polite" style={{ position: 'absolute', bottom: -15, insetInlineEnd: 2, fontSize: 10.5, fontFamily: 'var(--font-display)', letterSpacing: '0.04em', color: len >= max ? 'var(--danger)' : warn ? 'var(--amber-700)' : 'var(--text-faint)' }}>
+      {len}/{max}
+    </span>
+  )
 }
 
 export function Num({ value, onChange, ...rest }) {
@@ -89,20 +107,24 @@ export function Toggle({ checked, onChange, label }) {
 }
 
 // Bilingual { en, he } text field.
-export function Bilingual({ label, value = {}, onChange, area = false }) {
-  const set = (lang, v) => onChange({ ...value, [lang]: v })
+// Bilingual EN/HE pair. `max` adds maxLength clamping + live character
+// counters (amber near the limit); `area` uses auto-growing textareas.
+export function Bilingual({ label, value = {}, onChange, area = false, max }) {
+  const set = (lang, v) => onChange({ ...value, [lang]: max ? String(v).slice(0, max) : v })
   const Ctrl = area ? Area : Text
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {label && <span style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</span>}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, paddingBottom: max ? 12 : 0 }}>
         <div style={{ position: 'relative' }}>
-          <Ctrl value={value.en} onChange={(v) => set('en', v)} placeholder="English" />
+          <Ctrl value={value.en} onChange={(v) => set('en', v)} placeholder="English" aria-label={`${label || 'Text'} (English)`} maxLength={max} />
           <Tag>EN</Tag>
+          {max != null && <Counter len={(value.en || '').length} max={max} />}
         </div>
         <div style={{ position: 'relative' }}>
-          <Ctrl value={value.he} onChange={(v) => set('he', v)} dir="rtl" placeholder="עברית" />
+          <Ctrl value={value.he} onChange={(v) => set('he', v)} dir="rtl" placeholder="עברית" aria-label={`${label || 'Text'} (Hebrew)`} maxLength={max} />
           <Tag>עב</Tag>
+          {max != null && <Counter len={(value.he || '').length} max={max} />}
         </div>
       </div>
     </div>
@@ -146,8 +168,10 @@ export function ImageField({ label, value, onChange }) {
 //    body is COLLAPSED by default and expands via the header / Edit button —
 //    keeps long catalogs (e.g. Products) scannable instead of a huge scroll.
 //  - confirmRemove(item) | string: confirmation prompt before deleting a row.
-export function ListEditor({ items, onChange, render, makeNew, addLabel = 'Add item', itemStyle, summary, confirmRemove, canReorder = true }) {
+export function ListEditor({ items, onChange, render, makeNew, addLabel = 'Add item', itemStyle, summary, confirmRemove, canReorder = true, dragReorder = false }) {
   const [openIdx, setOpenIdx] = useState(summary ? null : -1) // -1 = all open (no summary mode)
+  const [dragIdx, setDragIdx] = useState(null)
+  const [overIdx, setOverIdx] = useState(null)
   const update = (i, next) => onChange(items.map((it, idx) => (idx === i ? next : it)))
   const remove = (i, it) => {
     if (confirmRemove) {
@@ -165,13 +189,43 @@ export function ListEditor({ items, onChange, render, makeNew, addLabel = 'Add i
     else if (openIdx === j) setOpenIdx(i)
   }
   const add = () => { onChange([...items, makeNew()]); if (summary) setOpenIdx(items.length) }
+  // Drag-and-drop reorder (mouse) + arrow keys on the focused grip (keyboard).
+  const dropOn = (target) => {
+    if (dragIdx == null || target === dragIdx) { setDragIdx(null); setOverIdx(null); return }
+    const copy = [...items]
+    const [x] = copy.splice(dragIdx, 1)
+    copy.splice(target, 0, x)
+    onChange(copy)
+    setDragIdx(null); setOverIdx(null)
+  }
+  const gripKeys = (e, i) => {
+    if (e.key === 'ArrowUp') { e.preventDefault(); move(i, -1) }
+    if (e.key === 'ArrowDown') { e.preventDefault(); move(i, 1) }
+  }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: summary ? 8 : 12 }}>
       {items.map((it, i) => {
         const open = !summary || openIdx === i
         return (
-          <div key={i} style={{ border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)', padding: summary && !open ? '10px 14px' : 14, background: 'var(--bg-page-alt)', ...itemStyle }}>
+          <div
+            key={i}
+            onDragOver={dragReorder ? (e) => { e.preventDefault(); setOverIdx(i) } : undefined}
+            onDrop={dragReorder ? (e) => { e.preventDefault(); dropOn(i) } : undefined}
+            style={{ border: `1px ${overIdx === i && dragIdx !== null && dragIdx !== i ? 'dashed var(--amber-600)' : 'solid var(--border-hair)'}`, borderRadius: 'var(--radius-sm)', padding: summary && !open ? '10px 14px' : 14, background: 'var(--bg-page-alt)', opacity: dragIdx === i ? 0.45 : 1, ...itemStyle }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {dragReorder && (
+                <button
+                  type="button"
+                  draggable
+                  aria-label={`Reorder item ${i + 1} of ${items.length} — drag, or press arrow keys`}
+                  title="Drag to reorder (or focus and use ↑/↓)"
+                  onDragStart={(e) => { setDragIdx(i); e.dataTransfer.effectAllowed = 'move' }}
+                  onDragEnd={() => { setDragIdx(null); setOverIdx(null) }}
+                  onKeyDown={(e) => gripKeys(e, i)}
+                  style={{ flex: '0 0 auto', border: 'none', background: 'transparent', cursor: 'grab', color: 'var(--text-faint)', fontSize: 15, lineHeight: 1, padding: '4px 2px', letterSpacing: 1 }}
+                >⋮⋮</button>
+              )}
               {summary && (
                 <div onClick={() => setOpenIdx(open ? null : i)} style={{ flex: 1, minWidth: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
                   {summary(it, i)}
@@ -179,8 +233,8 @@ export function ListEditor({ items, onChange, render, makeNew, addLabel = 'Add i
               )}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginInlineStart: 'auto', flex: '0 0 auto', marginBottom: open && !summary ? 8 : 0 }}>
                 {summary && <Btn variant={open ? 'outline' : 'ghost'} size="sm" onClick={() => setOpenIdx(open ? null : i)}>{open ? 'Close' : 'Edit'}</Btn>}
-                {canReorder && <Btn variant="ghost" size="sm" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">↑</Btn>}
-                {canReorder && <Btn variant="ghost" size="sm" onClick={() => move(i, 1)} disabled={i === items.length - 1} aria-label="Move down">↓</Btn>}
+                {canReorder && !dragReorder && <Btn variant="ghost" size="sm" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">↑</Btn>}
+                {canReorder && !dragReorder && <Btn variant="ghost" size="sm" onClick={() => move(i, 1)} disabled={i === items.length - 1} aria-label="Move down">↓</Btn>}
                 <Btn variant="danger" size="sm" onClick={() => remove(i, it)} aria-label="Remove item">Remove</Btn>
               </div>
             </div>
@@ -189,6 +243,141 @@ export function ListEditor({ items, onChange, render, makeNew, addLabel = 'Add i
         )
       })}
       <div><Btn variant="accent" size="sm" onClick={add}>+ {addLabel}</Btn></div>
+    </div>
+  )
+}
+
+// --- Rich image upload (drag-drop · crop · alt text) --------------------------
+// Fixed-aspect cropper: cover-fit image with drag-to-pan + zoom slider, then
+// canvas-export at the target size as JPEG.
+export function CropModal({ src, aspect = 4 / 3, targetW = 1200, onApply, onCancel }) {
+  const frameW = 420
+  const frameH = Math.round(frameW / aspect)
+  const imgRef = useRef(null)
+  const [nat, setNat] = useState(null)
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const drag = useRef(null)
+  const cover = nat ? Math.max(frameW / nat.w, frameH / nat.h) : 1
+  const dispW = nat ? nat.w * cover * zoom : 0
+  const dispH = nat ? nat.h * cover * zoom : 0
+  const clampPan = (p) => ({ x: Math.min(0, Math.max(frameW - dispW, p.x)), y: Math.min(0, Math.max(frameH - dispH, p.y)) })
+  useEffect(() => { setPan((p) => clampPan(p)) }, [zoom, nat]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!drag.current) return
+      setPan(clampPan({ x: drag.current.px + (e.clientX - drag.current.mx), y: drag.current.py + (e.clientY - drag.current.my) }))
+    }
+    const onUp = () => { drag.current = null }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+  }, [dispW, dispH]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const apply = () => {
+    const img = imgRef.current
+    if (!img || !nat) return
+    const canvas = document.createElement('canvas')
+    canvas.width = targetW
+    canvas.height = Math.round(targetW / aspect)
+    const k = targetW / frameW
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, pan.x * k, pan.y * k, dispW * k, dispH * k)
+    canvas.toBlob((blob) => blob && onApply(blob), 'image/jpeg', 0.85)
+  }
+
+  return (
+    <div role="dialog" aria-label="Crop image" style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(18,36,26,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-md)', padding: 20, boxShadow: 'var(--shadow-lg)', maxWidth: '92vw' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-strong)', marginBottom: 12 }}>Crop image</div>
+        <div
+          onMouseDown={(e) => { drag.current = { mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y }; e.preventDefault() }}
+          style={{ position: 'relative', width: frameW, height: frameH, overflow: 'hidden', borderRadius: 8, background: '#111', cursor: 'grab', touchAction: 'none' }}
+        >
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          <img
+            ref={imgRef}
+            src={src}
+            draggable={false}
+            onLoad={(e) => setNat({ w: e.target.naturalWidth, h: e.target.naturalHeight })}
+            style={{ position: 'absolute', left: pan.x, top: pan.y, width: dispW || '100%', height: dispH || 'auto', maxWidth: 'none', userSelect: 'none' }}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Zoom</span>
+          <input type="range" min="1" max="3" step="0.02" value={zoom} onChange={(e) => setZoom(Number(e.target.value))} aria-label="Zoom" style={{ flex: 1, accentColor: 'var(--amber-600)' }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+          <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
+          <Btn variant="accent" onClick={apply}>Apply crop</Btn>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * UploadField — CMS-grade image slot: drag-and-drop or click to choose,
+ * fixed-aspect cropper, thumbnail preview with replace/remove, recommended
+ * dimensions + max-size hints, and optional bilingual alt text.
+ */
+export function UploadField({ label, value, onChange, aspect = 4 / 3, recommend = '1200 × 900 px', maxMB = 6, targetW = 1200, alt, onAlt }) {
+  const fileRef = useRef(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const [over, setOver] = useState(false)
+  const [cropSrc, setCropSrc] = useState(null)
+
+  const pick = (file) => {
+    setErr('')
+    if (!file) return
+    if (!/^image\//.test(file.type)) { setErr('That file isn’t an image — choose a JPG, PNG or WebP.') ; return }
+    if (file.size > maxMB * 1024 * 1024) { setErr(`Image is too large — max ${maxMB} MB.`); return }
+    setCropSrc(URL.createObjectURL(file))
+  }
+
+  const applyCrop = async (blob) => {
+    URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
+    setBusy(true); setErr('')
+    try {
+      const { url } = await api.upload(new File([blob], 'image.jpg', { type: 'image/jpeg' }))
+      onChange(url)
+    } catch (e) { setErr(e.message) } finally { setBusy(false) }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {label && <span style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</span>}
+      {value ? (
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div style={{ width: 180, aspectRatio: String(aspect), borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: '1px solid var(--border-hair)', background: 'var(--cream-300)' }}>
+            <img src={value} alt={alt?.en || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Btn variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={busy}>{busy ? 'Uploading…' : 'Replace'}</Btn>
+            <Btn variant="danger" size="sm" onClick={() => { if (window.confirm('Remove this image?')) onChange('') }}>Remove</Btn>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setOver(true) }}
+          onDragLeave={() => setOver(false)}
+          onDrop={(e) => { e.preventDefault(); setOver(false); pick(e.dataTransfer.files?.[0]) }}
+          aria-label={`${label || 'Image'} — drop an image here or click to choose`}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 110, padding: 18, border: `2px dashed ${over ? 'var(--amber-600)' : 'var(--border-strong)'}`, borderRadius: 'var(--radius-sm)', background: over ? 'var(--amber-50)' : 'var(--white)', cursor: 'pointer', fontFamily: 'var(--font-body)', color: 'var(--text-muted)' }}
+        >
+          <span style={{ fontSize: 13.5 }}>{busy ? 'Uploading…' : 'Drop an image here, or click to choose'}</span>
+          <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>Recommended {recommend} · JPG/PNG/WebP · max {maxMB} MB · you can crop after choosing</span>
+        </button>
+      )}
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
+      {err && <span role="alert" style={{ fontSize: 12.5, color: 'var(--danger)' }}>{err}</span>}
+      {onAlt && <Bilingual label="Alt text (for accessibility & SEO)" value={alt || { en: '', he: '' }} onChange={onAlt} max={120} />}
+      {cropSrc && <CropModal src={cropSrc} aspect={aspect} targetW={targetW} onApply={applyCrop} onCancel={() => { URL.revokeObjectURL(cropSrc); setCropSrc(null) }} />}
     </div>
   )
 }

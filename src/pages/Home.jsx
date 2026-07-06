@@ -56,7 +56,7 @@ export function Home({ go, openCatalog, addToCart }) {
               src={media['hero-photo']}
               srcSet={media['hero-photo-srcset']}
               sizes="(max-width: 1100px) 92vw, 520px"
-              alt={L(hero.slot)}
+              alt={L((content.mediaAlt || {})['hero-photo']) || L(hero.slot)}
               placeholder={L(hero.slot)}
               priority
               shape="rounded"
@@ -92,7 +92,7 @@ export function Home({ go, openCatalog, addToCart }) {
           {(content.categories || []).map((c, i) => (
             <Reveal key={c.key} delay={i * 80}>
               <div style={{ background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                <ImageSlot src={media['cat-' + c.key]} placeholder={L(c.slot)} shape="rect" fit="cover" style={{ display: 'block', width: '100%', height: 210 }} />
+                <ImageSlot src={media['cat-' + c.key]} alt={L((content.mediaAlt || {})['cat-' + c.key]) || L(c.label)} placeholder={L(c.slot)} shape="rect" fit="cover" style={{ display: 'block', width: '100%', height: 210 }} />
                 <div onClick={() => openCatalog(c.key)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px' }}>
                   <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-strong)' }}>{L(c.label)}</span>
                   <Icon name="arrow-right" size={16} color="var(--amber-700)" style={{ transform: he ? 'scaleX(-1)' : 'none' }} />

@@ -75,6 +75,36 @@ export default function AdminApp() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [dirty])
 
+  // ── Autosave draft ─────────────────────────────────────────────────────────
+  // Unsaved edits are snapshotted to localStorage (debounced) so a crash or
+  // accidental close never loses work; on return, a banner offers to restore.
+  const DRAFT_KEY = 'oz_content_draft'
+  const [draftAt, setDraftAt] = useState(null)     // when the draft was last written
+  const [restorable, setRestorable] = useState(null) // draft found on load
+  useEffect(() => {
+    if (!dirty || !content) return
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ ts: Date.now(), content }))
+        setDraftAt(new Date())
+      } catch { /* storage full/blocked */ }
+    }, 1500)
+    return () => clearTimeout(t)
+  }, [content, dirty])
+  // Offer restore once the server copy is loaded (draft must differ from it).
+  useEffect(() => {
+    if (!original || restorable !== null) return
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY)
+      if (!raw) { setRestorable(false); return }
+      const draft = JSON.parse(raw)
+      const differs = draft?.content && JSON.stringify(draft.content) !== JSON.stringify(original)
+      setRestorable(differs ? draft : false)
+    } catch { setRestorable(false) }
+  }, [original, restorable])
+  const restoreDraft = () => { if (restorable?.content) setContentState(restorable.content); setRestorable(false) }
+  const discardDraft = () => { try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ } setRestorable(false); setDraftAt(null) }
+
   // Save = explicit state machine: idle → Saving… → transient success toast /
   // persistent error toast with the button re-enabled for retry.
   const save = async () => {
@@ -82,6 +112,8 @@ export default function AdminApp() {
     try {
       const saved = await api.saveContent(content)
       setOriginal(saved); setContentState(saved)
+      try { localStorage.removeItem('oz_content_draft') } catch { /* ignore */ }
+      setDraftAt(null)
       setToast({ kind: 'ok', text: 'Changes saved' })
       toastTimer.current = setTimeout(() => setToast(null), 2600)
     } catch (e) {
@@ -141,10 +173,31 @@ export default function AdminApp() {
           </div>
           <div style={{ marginInlineStart: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
             <GlobalSearch content={content} openSection={openSection} />
-            {needsContent && <Btn variant="accent" onClick={save} disabled={!dirty || saving}>{saving ? 'Saving…' : 'Save changes'}</Btn>}
+            {needsContent && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {dirty && (
+                  <span role="status" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--amber-700)', fontFamily: 'var(--font-display)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--amber-600)' }} />
+                    Unsaved changes{draftAt ? ` · draft ${draftAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                  </span>
+                )}
+                <Btn variant="accent" onClick={save} disabled={!dirty || saving}>{saving ? 'Saving…' : 'Save changes'}</Btn>
+              </span>
+            )}
             <AccountMenu owner={owner} open={menuOpen} setOpen={setMenuOpen} onLogout={logout} />
           </div>
         </header>
+
+        {/* Local draft found (e.g. after a crash or accidental close) */}
+        {restorable && restorable !== false && (
+          <div role="alert" style={{ margin: '18px 28px 0', maxWidth: 1024, display: 'flex', alignItems: 'center', gap: 12, background: 'var(--amber-50)', border: '1px solid var(--amber-600)', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 13.5, color: 'var(--text-body)' }}>
+            <span>You have an unsaved local draft from {new Date(restorable.ts).toLocaleString()}. Restore it?</span>
+            <span style={{ marginInlineStart: 'auto', display: 'flex', gap: 8 }}>
+              <Btn variant="accent" size="sm" onClick={restoreDraft}>Restore draft</Btn>
+              <Btn variant="ghost" size="sm" onClick={discardDraft}>Discard</Btn>
+            </span>
+          </div>
+        )}
 
         <div style={{ padding: 28, maxWidth: 1080, width: '100%' }}>
           {!ready ? <Center>Loading content…</Center> : (

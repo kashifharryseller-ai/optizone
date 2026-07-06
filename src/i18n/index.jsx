@@ -445,6 +445,17 @@ export function LangProvider({ children, defaultLang = 'en' }) {
     try { localStorage.setItem(LANG_KEY, lang) } catch { /* private mode */ }
   }, [lang, dir])
 
+  // Admin live-preview iframe: the editor's EN/עברית switch drives language.
+  useEffect(() => {
+    if (window.parent === window) return
+    const onMsg = (e) => {
+      if (e.origin !== window.location.origin) return
+      if (e.data?.type === 'oz-preview-lang' && (e.data.lang === 'en' || e.data.lang === 'he')) setLang(e.data.lang)
+    }
+    window.addEventListener('message', onMsg)
+    return () => window.removeEventListener('message', onMsg)
+  }, [])
+
   const value = useMemo(() => {
     const t = STRINGS[lang]
     // L: pick the right language from a bilingual value ({en,he}) or pass a plain string through.
