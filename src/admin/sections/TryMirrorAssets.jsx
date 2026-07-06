@@ -1,14 +1,18 @@
 import React, { useState } from 'react'
 import { Panel, Field, Toggle, ImageField } from '../ui.jsx'
 import { Icon } from '../../ds/index.js'
+import { isTryMirrorCategory } from '../../lib/tryMirror.js'
 
 // Try-Mirror / AR Assets — manage each product's virtual try-on: toggle it on
 // and upload the transparent frame PNG the AR overlay uses. Saved with the
 // global "Save changes" (edits the same product records the storefront reads).
+// Only glasses & sunglasses are listed — the face overlay doesn't apply to
+// contacts or other non-eyewear categories.
 export default function TryMirrorAssets({ content, setContent }) {
-  const products = content.products || []
+  const allProducts = content.products || []
+  const products = allProducts.filter((p) => isTryMirrorCategory(p.category))
   const [query, setQuery] = useState('')
-  const setProduct = (id, patch) => setContent({ ...content, products: products.map((p) => (p.id === id ? { ...p, ...patch } : p)) })
+  const setProduct = (id, patch) => setContent({ ...content, products: allProducts.map((p) => (p.id === id ? { ...p, ...patch } : p)) })
 
   const q = query.trim().toLowerCase()
   const shown = q ? products.filter((p) => `${p.brand} ${p.name}`.toLowerCase().includes(q)) : products
@@ -20,7 +24,7 @@ export default function TryMirrorAssets({ content, setContent }) {
   return (
     <Panel
       title="Try-Mirror / AR assets"
-      desc={`Virtual try-on is enabled on ${enabled} of ${products.length} products; ${withAsset} have a frame PNG uploaded. Upload a front-facing, tightly-cropped transparent PNG for the best alignment.`}
+      desc={`Virtual try-on is enabled on ${enabled} of ${products.length} eyewear products (glasses & sunglasses); ${withAsset} have a frame PNG uploaded. Upload a front-facing, tightly-cropped transparent PNG for the best alignment.`}
       actions={<input aria-label="Search products" placeholder="Search products…" value={query} onChange={(e) => setQuery(e.target.value)} style={searchStyle} />}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

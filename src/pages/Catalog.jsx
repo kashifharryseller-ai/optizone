@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { ProductCard, Tag, Switch, Select } from '../ds/index.js'
 import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
+import { canTryMirror } from '../lib/tryMirror.js'
 
 const FIELD_OF = { 'Frame Shape': (p) => p.shape, Material: (p) => p.material, Gender: (p) => p.gender }
 
@@ -30,7 +31,7 @@ export function Catalog({ category = 'eyeglasses', brand = null, go, openCatalog
       return [group, vals.filter((v) => present.has(v))]
     })
     .filter(([, vals]) => vals.length > 1)
-  const hasTryMirror = inCategory.some((p) => p.tryMirror)
+  const hasTryMirror = inCategory.some(canTryMirror)
 
   const toggle = (group, val) => {
     setSelected((s) => {
@@ -41,7 +42,7 @@ export function Catalog({ category = 'eyeglasses', brand = null, go, openCatalog
   }
   const activeVals = Object.values(selected).flat()
   let list = inCategory.filter((p) => {
-    if (tryOnly && !p.tryMirror) return false
+    if (tryOnly && !canTryMirror(p)) return false
     for (const [g, vals] of Object.entries(selected)) {
       if (!vals.length) continue
       if (!vals.includes((FIELD_OF[g] || (() => null))(p))) return false
@@ -114,7 +115,7 @@ export function Catalog({ category = 'eyeglasses', brand = null, go, openCatalog
             <div className="oz-g3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
               {list.map((p) => (
                 <ProductCard key={p.id} image={p.image || undefined} brand={p.brand} name={p.name} amount={p.amount} original={p.original || undefined}
-                  rating={p.rating} reviewCount={p.reviews} badge={badgeOf(p)} tryMirror={p.tryMirror} colors={p.colors}
+                  rating={p.rating} reviewCount={p.reviews} badge={badgeOf(p)} tryMirror={canTryMirror(p)} colors={p.colors}
                   onQuickAdd={() => addToCart(p)} style={{ cursor: 'pointer' }} onClick={() => go('product', p)} {...cardLabels} />
               ))}
             </div>

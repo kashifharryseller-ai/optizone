@@ -5,6 +5,7 @@ import { useContent } from '../content/ContentProvider.jsx'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import { ImageSlot } from '../components/ImageSlot.jsx'
 import { TryMirror } from '../components/TryMirror.jsx'
+import { canTryMirror } from '../lib/tryMirror.js'
 
 // Thumbnail: real product photo when the admin uploaded one, mark fallback.
 function MarkThumb({ active, onClick, tint, src }) {
@@ -45,6 +46,8 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
   const [ar, setAr] = useState(true)
   const [blue, setBlue] = useState(false)
   const [photo, setPhoto] = useState(false)
+  // Try Mirror is offered only for glasses & sunglasses (never contacts).
+  const showMirror = canTryMirror(p)
 
   const lensPrice = (index === '1.6' ? 120 : index === '1.67' ? 260 : index === '1.74' ? 420 : 0) + (ar ? 90 : 0) + (blue ? 70 : 0) + (photo ? 180 : 0)
   const total = p.amount + lensPrice
@@ -71,9 +74,9 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
           </div>
           <div style={{ flex: 1, position: 'relative', aspectRatio: '1', background: 'var(--cream-300)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-hair)', overflow: 'hidden' }}>
             <ImageSlot src={mainSrc} alt={`${p.brand} ${p.name}`} placeholder={t.photoSlot} shape="rounded" radius={12} fit="cover" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
-            {p.tryMirror && <span style={{ position: 'absolute', top: 16, insetInlineStart: 16, zIndex: 2, pointerEvents: 'none' }}><Badge variant="try">Try Mirror</Badge></span>}
+            {showMirror && <span style={{ position: 'absolute', top: 16, insetInlineStart: 16, zIndex: 2, pointerEvents: 'none' }}><Badge variant="try">Try Mirror</Badge></span>}
             {/* Try Mirror entry point right on the product image */}
-            {p.tryMirror && (
+            {showMirror && (
               <span style={{ position: 'absolute', bottom: 16, insetInlineStart: 16, zIndex: 2 }}>
                 <Button variant="solid" size="sm" onClick={() => setConsent(true)} startIcon={<Icon name="camera" size={15} color="currentColor" />}>{t.tryMirror}</Button>
               </span>
@@ -129,7 +132,7 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
           {/* actions */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <Button variant="primary" size="lg" block onClick={() => addToCart({ ...p, amount: total })} startIcon={<Icon name="shopping-bag" size={18} color="currentColor" />}>{t.addToCart(total)}</Button>
-            {p.tryMirror && <Button variant="solid" size="lg" onClick={() => setConsent(true)} startIcon={<Icon name="camera" size={18} color="currentColor" />}>{t.tryMirror}</Button>}
+            {showMirror && <Button variant="solid" size="lg" onClick={() => setConsent(true)} startIcon={<Icon name="camera" size={18} color="currentColor" />}>{t.tryMirror}</Button>}
             <IconButton variant="outline" size="lg" onClick={onHeart} aria-label="wishlist">
               <Icon name="heart" size={20} color={wished ? 'var(--danger)' : 'var(--pine-700)'} fill={wished ? 'var(--danger)' : 'none'} />
             </IconButton>
@@ -167,7 +170,7 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
                 [t.specLabels.weight, sp.weight],
                 [t.specLabels.colorOpts, (p.colors || []).length ? String(p.colors.length) : ''],
                 [t.specLabels.lensOpts, L(sp.lensOpts)],
-                [t.specLabels.tryMirror, p.tryMirror ? t.yes : t.no],
+                [t.specLabels.tryMirror, showMirror ? t.yes : t.no],
               ].filter(([, v]) => v).map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 14, borderBottom: '1px solid var(--border-hair)', paddingBottom: 8 }}>
                   <span style={{ color: 'var(--text-muted)', flex: '0 0 auto' }}>{k}</span><span style={{ color: 'var(--text-strong)', fontWeight: 600, textAlign: 'end' }}>{v}</span>

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Icon, Badge, Price } from '../ds/index.js'
 import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
+import { canTryMirror } from '../lib/tryMirror.js'
 
 export function Search({ open, onClose, go }) {
   const { t: root, L } = useLang()
@@ -67,7 +68,7 @@ export function Search({ open, onClose, go }) {
                         <span style={{ display: 'block', fontFamily: 'var(--font-display)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-accent)' }}>{p.brand}</span>
                         <span style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--text-strong)' }}>{p.name}</span>
                       </span>
-                      {p.tryMirror && <Badge variant="try">Try Mirror</Badge>}
+                      {canTryMirror(p) && <Badge variant="try">Try Mirror</Badge>}
                       <Price amount={p.amount} original={p.original} size="sm" />
                       <Icon name="arrow-right" size={16} color="var(--text-muted)" />
                     </button>

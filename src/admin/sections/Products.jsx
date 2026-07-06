@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Panel, Row, Field, Text, Num, SelectField, Toggle, Bilingual, ImageField, ListEditor, StringList, Btn, Pager } from '../ui.jsx'
 import { GlassesMark } from '../../ds/index.js'
+import { isTryMirrorCategory } from '../../lib/tryMirror.js'
 
 const BADGE_VARIANTS = [
   { value: 'sale', label: 'Sale (amber)' },
@@ -136,7 +137,7 @@ export default function Products({ content, setContent, initialQuery }) {
             <Row cols="1fr 1fr">
               <Field label="Colours"><ColorList colors={p.colors || []} onChange={(v) => set({ ...p, colors: v })} /></Field>
               <div style={{ display: 'flex', gap: 20, alignItems: 'flex-end', paddingBottom: 8 }}>
-                <Field label="Try Mirror"><Toggle checked={!!p.tryMirror} onChange={(v) => set({ ...p, tryMirror: v })} label={p.tryMirror ? 'On' : 'Off'} /></Field>
+                {isTryMirrorCategory(p.category) && <Field label="Try Mirror"><Toggle checked={!!p.tryMirror} onChange={(v) => set({ ...p, tryMirror: v })} label={p.tryMirror ? 'On' : 'Off'} /></Field>}
                 <Field label="Badge"><Toggle checked={!!p.badge} onChange={(v) => set({ ...p, badge: v ? { variant: 'new', label: { en: 'New', he: 'חדש' } } : null })} label={p.badge ? 'Shown' : 'Hidden'} /></Field>
                 {/* Soft delete: archived products keep their data/history but
                     are hidden from the storefront (server filters them out). */}
@@ -165,7 +166,7 @@ export default function Products({ content, setContent, initialQuery }) {
                 />
               ))}
             </Row>
-            <ImageField label="Try-on frame PNG (transparent — overlaid on the face in Try Mirror)" value={p.tryMirrorImg || ''} onChange={(v) => set({ ...p, tryMirrorImg: v })} />
+            {isTryMirrorCategory(p.category) && <ImageField label="Try-on frame PNG (transparent — overlaid on the face in Try Mirror)" value={p.tryMirrorImg || ''} onChange={(v) => set({ ...p, tryMirrorImg: v })} />}
             <Bilingual label="Description (PDP · rich text, blank line = new paragraph)" area value={p.desc || { en: '', he: '' }} onChange={(v) => set({ ...p, desc: v })} />
             <Row cols="repeat(4,1fr)">
               <Field label="Lens width"><Text value={(p.specs || {}).lensWidth || ''} onChange={(v) => set({ ...p, specs: { ...(p.specs || {}), lensWidth: v } })} /></Field>

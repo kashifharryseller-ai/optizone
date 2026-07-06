@@ -4,6 +4,7 @@ import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
 import { Reveal } from '../lib/anim.jsx'
 import { ImageSlot } from '../components/ImageSlot.jsx'
+import { canTryMirror } from '../lib/tryMirror.js'
 
 function ServiceTile({ s, L }) {
   return (
@@ -116,7 +117,7 @@ export function Home({ go, openCatalog, addToCart }) {
           {(content.products || []).slice(0, 4).map((p, i) => (
             <Reveal key={p.id} delay={i * 80}>
               <ProductCard image={p.image || undefined} brand={p.brand} name={p.name} amount={p.amount} original={p.original || undefined}
-                rating={p.rating} reviewCount={p.reviews} badge={badgeOf(p)} tryMirror={p.tryMirror} colors={p.colors}
+                rating={p.rating} reviewCount={p.reviews} badge={badgeOf(p)} tryMirror={canTryMirror(p)} colors={p.colors}
                 onQuickAdd={() => addToCart(p)} style={{ cursor: 'pointer' }} onClick={() => go('product', p)} {...cardLabels} />
             </Reveal>
           ))}

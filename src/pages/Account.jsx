@@ -5,6 +5,7 @@ import { useContent } from '../content/ContentProvider.jsx'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import { api } from '../api.js'
 import { useCountUp } from '../lib/anim.jsx'
+import { canTryMirror } from '../lib/tryMirror.js'
 
 function StatCard({ label, value, icon, text }) {
   const n = useCountUp(typeof value === 'number' ? value : 0)
@@ -270,7 +271,7 @@ function Dashboard({ go, openCatalog, tab, setTab, t }) {
                   <div key={p.id} style={{ position: 'relative' }}>
                     <ProductCard image={p.image || undefined} brand={p.brand} name={p.name} amount={p.amount} original={p.original || undefined}
                       rating={p.rating} reviewCount={p.reviews} badge={p.badge ? { variant: p.badge.variant, label: L(p.badge.label) } : undefined}
-                      tryMirror={p.tryMirror} colors={p.colors} style={{ cursor: 'pointer' }} onClick={() => go('product', p)} />
+                      tryMirror={canTryMirror(p)} colors={p.colors} style={{ cursor: 'pointer' }} onClick={() => go('product', p)} />
                     <button onClick={() => toggleWishlist(p.id)} aria-label="remove from wishlist"
                       style={{ position: 'absolute', top: 10, insetInlineEnd: 10, width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer', background: 'var(--white)', boxShadow: 'var(--shadow-sm)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Icon name="heart" size={17} color="var(--danger)" fill="var(--danger)" />

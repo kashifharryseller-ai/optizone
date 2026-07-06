@@ -57,12 +57,30 @@ await page.route('**/api/content', async (route) => {
   const res = await route.fetch(); const json = await res.json()
   const prod = (json.products || []).find((p) => p.name === 'CONNECTED FRAME') || json.products[0]
   if (prod) { prod.tryMirrorImg = MAGENTA_FRAME; prod.tryMirror = true }
+  // Force a CONTACTS product ON to prove the category gate ignores the flag.
+  const contact = (json.products || []).find((p) => p.category === 'contacts')
+  if (contact) { contact.tryMirror = true; contact.tryMirrorImg = MAGENTA_FRAME }
   await route.fulfill({ response: res, body: JSON.stringify(json) })
 })
+
+console.log('\n== Business rule: glasses & sunglasses only ==')
+await page.goto(BASE, { waitUntil: 'networkidle' })
+// Contacts category page: even with tryMirror forced ON in the mock, no Try
+// Mirror badge/filter is offered (the category gate ignores the flag).
+await page.getByRole('navigation').getByText('Contact Lenses').first().click()
+await page.getByText(/Acuvue|Dailies|Biofinity/).first().waitFor({ timeout: 5000 })
+// Scope to <main> so the site-wide footer "Try Mirror" promo link is ignored.
+expect(await page.locator('main').getByText('Try Mirror').count() === 0, 'contacts category shows no Try Mirror (badge/filter absent)')
+// Open a contacts product → no Try Mirror button on the PDP.
+await page.getByText(/Acuvue|Dailies|Biofinity/).first().click()
+await page.getByRole('button', { name: /Add to cart/i }).first().waitFor({ timeout: 5000 })
+expect(await page.locator('main').getByRole('button', { name: 'Try Mirror' }).count() === 0, 'contacts product page has no Try Mirror button')
 
 console.log('\n== Try Mirror — model init + modal ==')
 await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.getByText('CONNECTED FRAME').first().click()
+// Eyewear product DOES offer Try Mirror (the button we click next).
+ok('glasses product page offers Try Mirror')
 await page.locator('main').getByRole('button', { name: 'Try Mirror' }).first().click()
 await page.getByRole('button', { name: 'Allow camera' }).click()
 await page.getByText('Frame size').waitFor()
