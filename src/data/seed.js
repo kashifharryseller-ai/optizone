@@ -233,7 +233,7 @@ export const SEED_CONTENT = {
       "shape": "Round",
       "material": "Metal",
       "gender": "Unisex",
-      "image": ""
+      "image": "/products/rayban-rb3447-round.jpg"
     },
     {
       "id": 2,
@@ -259,7 +259,7 @@ export const SEED_CONTENT = {
       "shape": "Square",
       "material": "Acetate",
       "gender": "Men",
-      "image": ""
+      "image": "/products/persol-po3092-havana.jpg"
     },
     {
       "id": 3,
@@ -285,7 +285,7 @@ export const SEED_CONTENT = {
       "shape": "Cat-eye",
       "material": "Acetate",
       "gender": "Women",
-      "image": ""
+      "image": "/products/prada-17ws-cateye.jpg"
     },
     {
       "id": 4,
@@ -305,7 +305,7 @@ export const SEED_CONTENT = {
       "shape": "Oval",
       "material": "Metal",
       "gender": "Women",
-      "image": ""
+      "image": "/products/tiffany-tf2233b-oval.jpg"
     },
     {
       "id": 5,
@@ -331,7 +331,7 @@ export const SEED_CONTENT = {
       "shape": "Square",
       "material": "Acetate",
       "gender": "Men",
-      "image": ""
+      "image": "/products/versace-ve4361-square.jpg"
     },
     {
       "id": 6,
@@ -357,7 +357,7 @@ export const SEED_CONTENT = {
       "shape": "Round",
       "material": "Acetate",
       "gender": "Women",
-      "image": ""
+      "image": "/products/dg-dg4416-round.jpg"
     },
     {
       "id": 7,
@@ -383,7 +383,7 @@ export const SEED_CONTENT = {
       "shape": "Aviator",
       "material": "Metal",
       "gender": "Unisex",
-      "image": ""
+      "image": "/products/rayban-rb3025-aviator.jpg"
     },
     {
       "id": 8,
@@ -409,7 +409,7 @@ export const SEED_CONTENT = {
       "shape": "Square",
       "material": "Acetate",
       "gender": "Men",
-      "image": ""
+      "image": "/products/persol-po0714-fold.jpg"
     },
     {
       "id": 9,
@@ -434,7 +434,7 @@ export const SEED_CONTENT = {
       "shape": "Aviator",
       "material": "Metal",
       "gender": "Women",
-      "image": ""
+      "image": "/products/versace-ve2199-shield.jpg"
     },
     {
       "id": 10,
@@ -457,7 +457,7 @@ export const SEED_CONTENT = {
       "shape": "Bi-weekly",
       "material": "Silicone Hydrogel",
       "gender": "Unisex",
-      "image": ""
+      "image": "/products/acuvue-oasys-box.jpg"
     },
     {
       "id": 11,
@@ -480,7 +480,7 @@ export const SEED_CONTENT = {
       "shape": "Daily",
       "material": "Water Gradient",
       "gender": "Unisex",
-      "image": ""
+      "image": "/products/dailies-total1-box.jpg"
     },
     {
       "id": 12,
@@ -497,7 +497,7 @@ export const SEED_CONTENT = {
       "shape": "Monthly",
       "material": "Silicone Hydrogel",
       "gender": "Unisex",
-      "image": ""
+      "image": "/products/biofinity-monthly-box.jpg"
     }
   ],
   "categoryPages": {
