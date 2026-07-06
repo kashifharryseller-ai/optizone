@@ -1,13 +1,14 @@
 import React from 'react'
+import { Button, Icon } from '../ds/index.js'
 import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
-import { CalendlyInline } from '../components/CalendlyInline.jsx'
+import { CalendlyBadge, openCalendlyPopup } from '../components/Calendly.jsx'
 
-// Calendly scheduling embed. The URL (with the pine-brand colours baked in) is
-// editable from Admin → Stores & Settings; this is the default. The booking
-// page is now the Calendly scheduler — pick a live slot with instant
-// confirmation; the old manual date/time form has been removed.
-const CALENDLY_URL = 'https://calendly.com/optizone-info?background_color=072b08&text_color=f9f1f1'
+// Calendly badge widget. Clicking the floating badge — or the in-page button —
+// opens the Calendly popup with live slots + booking details. The URL is
+// editable from Admin → Stores & Settings; these are the requested defaults.
+const CALENDLY_URL = 'https://calendly.com/optizone'
+const BADGE = { color: '#0069ff', textColor: '#ffffff', branding: true }
 
 export function Booking() {
   const { t: root } = useLang()
@@ -30,12 +31,24 @@ export function Booking() {
         </div>
       </div>
 
-      {/* Calendly scheduler — the live slots + booking details render here */}
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '36px 28px 80px' }}>
+      {/* Calendly — in-page CTA opens the popup; a floating badge stays available */}
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '60px 28px 96px', textAlign: 'center' }}>
         {calendlyUrl ? (
-          <CalendlyInline url={calendlyUrl} height={760} loadingLabel={t.calendlyLoading} />
+          <>
+            <span style={{ width: 72, height: 72, borderRadius: 999, background: 'var(--pine-50)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+              <Icon name="calendar" size={34} color="var(--pine-700)" />
+            </span>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 30, color: 'var(--text-strong)', margin: '20px 0 8px' }}>{t.calendlyH}</h2>
+            <p style={{ fontSize: 15.5, color: 'var(--text-body)', lineHeight: 1.6, maxWidth: 460, margin: '0 auto 26px' }}>{t.calendlySub}</p>
+            <Button variant="primary" size="lg" onClick={() => openCalendlyPopup(calendlyUrl)} startIcon={<Icon name="calendar" size={18} color="currentColor" />}>
+              {t.calendlyCta}
+            </Button>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 16 }}>{t.calendlyBadgeHint}</p>
+            {/* floating "Schedule time with me" badge — text follows the language */}
+            <CalendlyBadge url={calendlyUrl} text={t.calendlyCta} {...BADGE} />
+          </>
         ) : (
-          <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '60px 0', fontSize: 15 }}>
+          <p style={{ color: 'var(--text-muted)', padding: '20px 0', fontSize: 15 }}>
             {t.calendlyOff} <a href={`tel:${phone}`} style={{ color: 'var(--amber-700)', fontWeight: 600 }}>{phone}</a>
           </p>
         )}

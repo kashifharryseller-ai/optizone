@@ -1,9 +1,10 @@
-// Calendly booking-widget tests — CSP allowances, SPA init with the right URL,
-// bilingual heading + RTL, and the admin "blank hides it" switch.
+// Calendly badge-widget tests — CSP allowances, badge init with the requested
+// config, in-page CTA opening the popup, bilingual heading/RTL, admin override,
+// and the "blank hides it" switch.
 //
 // The real widget.js/iframe are external (blocked in CI) so we stub the script:
-// a routed response defines window.Calendly.initInlineWidget, which records the
-// URL and appends an iframe — exercising the exact init path our component uses.
+// a routed response defines window.Calendly.initBadgeWidget / showPopupWidget /
+// destroyBadgeWidget, exercising the exact paths our component uses.
 //
 //   node tests/calendly.test.mjs   (spawns its own server)
 import { spawn } from 'node:child_process'
@@ -28,18 +29,23 @@ console.log('\n== CSP allows Calendly ==')
 {
   const csp = (await fetch(`${BASE}/`)).headers.get('content-security-policy') || ''
   expect(/script-src[^;]*assets\.calendly\.com/.test(csp), 'script-src allows assets.calendly.com')
-  expect(/frame-src[^;]*calendly\.com/.test(csp), 'frame-src allows calendly.com (the scheduling iframe)')
-  expect(/connect-src[^;]*calendly\.com/.test(csp), 'connect-src allows calendly.com')
+  expect(/style-src[^;]*assets\.calendly\.com/.test(csp), 'style-src allows the Calendly widget.css')
+  expect(/frame-src[^;]*calendly\.com/.test(csp), 'frame-src allows calendly.com (the popup iframe)')
 }
 
-const STUB = `window.Calendly = { initInlineWidget: function (opts) {
-  window.__ozCal = { url: opts.url };
-  var f = document.createElement('iframe');
-  f.title = 'Calendly Scheduling';
-  f.setAttribute('data-url', opts.url);   // record the URL without navigating out
-  f.style.width = '100%'; f.style.height = '100%';
-  opts.parentElement.appendChild(f);
-} };`
+// Stub widget.js: records initBadgeWidget / showPopupWidget calls.
+const STUB = `window.Calendly = {
+  initBadgeWidget: function (opts) {
+    window.__ozBadge = opts;
+    var d = document.createElement('div');
+    d.className = 'calendly-badge-widget';
+    d.style.cssText = 'position:fixed;bottom:15px;right:15px;padding:10px 14px;border-radius:20px;background:' + opts.color + ';color:' + opts.textColor;
+    d.textContent = opts.text;
+    document.body.appendChild(d);
+  },
+  destroyBadgeWidget: function () { document.querySelectorAll('.calendly-badge-widget').forEach(function (e) { e.remove() }); },
+  showPopupWidget: function (url) { window.__ozPopup = url; },
+};`
 
 async function newPage(browser, { contentPatch } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
@@ -47,9 +53,12 @@ async function newPage(browser, { contentPatch } = {}) {
   const errors = []
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
   page.on('pageerror', (e) => errors.push('PAGEERR ' + e.message))
-  // stub the Calendly widget script
-  await page.route('**/assets.calendly.com/**', (route) =>
-    route.fulfill({ status: 200, contentType: 'text/javascript', body: STUB }))
+  // stub the Calendly assets: JS for widget.js, real CSS for widget.css
+  await page.route('**/assets.calendly.com/**', (route) => {
+    const u = route.request().url()
+    if (u.endsWith('.css')) return route.fulfill({ status: 200, contentType: 'text/css', body: '/* calendly stub */' })
+    return route.fulfill({ status: 200, contentType: 'text/javascript', body: STUB })
+  })
   if (contentPatch) {
     await page.route('**/api/content', async (route) => {
       const res = await route.fetch(); const json = await res.json()
@@ -68,31 +77,48 @@ const gotoBooking = async (page) => {
 
 const browser = await chromium.launch({ executablePath: EXEC })
 
-// ── default embed: heading + widget initialised with the requested URL ───────
-console.log('\n== Widget renders & initialises (default URL) ==')
+// ── badge initialises with the requested config; manual form is gone ─────────
+console.log('\n== Badge widget initialises (requested config) ==')
 {
   const { page, ctx, errors } = await newPage(browser)
   await gotoBooking(page)
-  // the booking page IS the scheduler now — the manual date/time form is gone
-  expect(await page.getByText('Choose a live slot from our calendar', { exact: false }).isVisible(), 'scheduler intro shown under the page header')
-  expect(await page.getByRole('button', { name: 'Confirm booking' }).count() === 0, 'old manual booking form removed (no "Confirm booking")')
-  await page.locator('.calendly-inline-widget').first().waitFor()
-  ok('Calendly inline widget is the page content')
-  // component calls Calendly.initInlineWidget once the (stubbed) script loads
-  await page.waitForFunction(() => !!window.__ozCal, null, { timeout: 8000 })
-  const url = await page.evaluate(() => window.__ozCal.url)
-  expect(url === 'https://calendly.com/optizone-info?background_color=072b08&text_color=f9f1f1', `initInlineWidget called with the requested URL (${url.slice(0, 48)}…)`)
-  expect(url.includes('background_color=072b08'), 'brand background colour preserved in the embed URL')
-  const frame = await page.locator('.calendly-inline-widget iframe[title="Calendly Scheduling"]').count()
-  expect(frame === 1, 'Calendly iframe injected into the inline-widget container')
-  const h = await page.locator('.calendly-inline-widget').evaluate((el) => el.offsetHeight)
-  expect(h >= 600, `widget reserves its height (${h}px)`)
+  expect(await page.getByRole('button', { name: 'Confirm booking' }).count() === 0, 'old manual booking form removed')
+  expect(await page.locator('.calendly-inline-widget').count() === 0, 'inline embed replaced (no inline widget)')
+  await page.waitForFunction(() => !!window.__ozBadge, null, { timeout: 8000 })
+  const b = await page.evaluate(() => window.__ozBadge)
+  expect(b.url === 'https://calendly.com/optizone', `badge URL is the requested default (${b.url})`)
+  expect(b.color === '#0069ff' && b.textColor === '#ffffff' && b.branding === true, `badge colour/textColor/branding match the snippet (${b.color} / ${b.textColor} / ${b.branding})`)
+  expect(b.text === 'Schedule time with me', `badge text is "Schedule time with me" (got "${b.text}")`)
+  expect(await page.locator('.calendly-badge-widget').isVisible(), 'floating badge is rendered on the page')
   expect(errors.length === 0, `no console errors (${errors.length})`)
   errors.slice(0, 5).forEach((e) => console.log('     !! ' + e))
   await ctx.close()
 }
 
-// ── RTL: Hebrew heading + dir=rtl ────────────────────────────────────────────
+// ── in-page CTA opens the Calendly popup ─────────────────────────────────────
+console.log('\n== In-page CTA opens the popup ==')
+{
+  const { page, ctx } = await newPage(browser)
+  await gotoBooking(page)
+  await page.getByRole('button', { name: 'Schedule time with me' }).click()
+  await page.waitForFunction(() => !!window.__ozPopup, null, { timeout: 6000 })
+  expect(await page.evaluate(() => window.__ozPopup) === 'https://calendly.com/optizone', 'CTA button calls Calendly.showPopupWidget with the URL')
+  await ctx.close()
+}
+
+// ── badge is removed when leaving the booking page ───────────────────────────
+console.log('\n== Badge torn down on navigation ==')
+{
+  const { page, ctx } = await newPage(browser)
+  await gotoBooking(page)
+  await page.waitForFunction(() => !!document.querySelector('.calendly-badge-widget'), null, { timeout: 8000 })
+  await page.getByRole('banner').getByText('Eyeglasses').first().click()
+  await page.waitForTimeout(300)
+  expect(await page.locator('.calendly-badge-widget').count() === 0, 'badge is destroyed after navigating away (no leak across routes)')
+  await ctx.close()
+}
+
+// ── Hebrew / RTL: heading + localised badge text ─────────────────────────────
 console.log('\n== Hebrew / RTL ==')
 {
   const { page, ctx } = await newPage(browser)
@@ -101,31 +127,30 @@ console.log('\n== Hebrew / RTL ==')
   await page.getByRole('heading', { name: 'טיפול בעיניים, בזמן שנוח לכם' }).waitFor()
   ok('booking page heading localised to Hebrew')
   expect(await page.evaluate(() => document.documentElement.dir) === 'rtl', 'page is RTL in Hebrew')
-  // widget still initialises in Hebrew
-  await page.waitForFunction(() => !!window.__ozCal, null, { timeout: 8000 })
-  ok('widget initialises in Hebrew too')
+  await page.waitForFunction(() => window.__ozBadge && window.__ozBadge.text === 'קביעת תור עכשיו', null, { timeout: 6000 })
+  ok('floating badge text follows the language (Hebrew)')
   await ctx.close()
 }
 
-// ── admin can hide it by clearing the setting ────────────────────────────────
-console.log('\n== Blank Calendly setting hides the section ==')
+// ── admin blank hides it ─────────────────────────────────────────────────────
+console.log('\n== Blank setting hides online booking ==')
 {
   const { page, ctx } = await newPage(browser, { contentPatch: (j) => { j.settings = { ...(j.settings || {}), calendlyUrl: '' } } })
   await gotoBooking(page)
-  await page.waitForTimeout(400)
-  expect(await page.locator('.calendly-inline-widget').count() === 0, 'no widget rendered when the setting is cleared')
-  expect(await page.getByText('Online booking is temporarily unavailable', { exact: false }).isVisible(), 'graceful fallback message with a phone link is shown instead')
+  await page.waitForTimeout(500)
+  expect(await page.evaluate(() => !window.__ozBadge), 'no badge initialised when the setting is cleared')
+  expect(await page.getByText('Online booking is temporarily unavailable', { exact: false }).isVisible(), 'graceful fallback message with a phone link is shown')
   await ctx.close()
 }
 
-// ── admin override URL is used ───────────────────────────────────────────────
+// ── admin override URL ───────────────────────────────────────────────────────
 console.log('\n== Admin override URL ==')
 {
-  const custom = 'https://calendly.com/optizone-info/eye-exam?background_color=072b08&text_color=f9f1f1'
+  const custom = 'https://calendly.com/optizone/eye-exam'
   const { page, ctx } = await newPage(browser, { contentPatch: (j) => { j.settings = { ...(j.settings || {}), calendlyUrl: custom } } })
   await gotoBooking(page)
-  await page.waitForFunction(() => !!window.__ozCal, null, { timeout: 8000 })
-  expect(await page.evaluate(() => window.__ozCal.url) === custom, 'admin-set Calendly URL is used')
+  await page.waitForFunction(() => !!window.__ozBadge, null, { timeout: 8000 })
+  expect(await page.evaluate(() => window.__ozBadge.url) === custom, 'admin-set Calendly URL is used by the badge')
   await ctx.close()
 }
 

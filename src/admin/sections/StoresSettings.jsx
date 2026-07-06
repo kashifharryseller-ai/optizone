@@ -40,8 +40,8 @@ export default function StoresSettings({ content, setContent }) {
         <ListEditor items={content.bookingServices || []} onChange={(v) => set({ bookingServices: v })} addLabel="Add service"
           makeNew={() => ({ en: '', he: '' })} render={(s, setItem) => <Bilingual value={s} onChange={setItem} />} />
         <div style={{ marginTop: 16, borderTop: '1px solid var(--border-hair)', paddingTop: 16 }}>
-          <Field label="Calendly scheduling link" hint="The Calendly URL embedded on the Booking page (leave blank to hide the online scheduler). Keep the background_color / text_color params to match the brand.">
-            <Text value={settings.calendlyUrl} onChange={(v) => setSettings({ calendlyUrl: v })} placeholder="https://calendly.com/optizone-info?background_color=072b08&text_color=f9f1f1" />
+          <Field label="Calendly scheduling link" hint="Your Calendly URL — opens from the Booking page badge/button (leave blank to hide online booking).">
+            <Text value={settings.calendlyUrl} onChange={(v) => setSettings({ calendlyUrl: v })} placeholder="https://calendly.com/optizone" />
           </Field>
         </div>
       </Panel>

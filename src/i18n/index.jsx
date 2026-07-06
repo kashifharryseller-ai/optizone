@@ -130,6 +130,8 @@ const STRINGS = {
       calendlySub: 'Choose a live slot from our calendar — instant confirmation, free reschedule.',
       calendlyLoading: 'Loading the scheduler…',
       calendlyOff: 'Online booking is temporarily unavailable — please call us at',
+      calendlyCta: 'Schedule time with me',
+      calendlyBadgeHint: 'Or tap the “Schedule time with me” button in the corner anytime.',
     },
 
     cart: {
@@ -333,6 +335,8 @@ const STRINGS = {
       calendlySub: 'בחרו מועד פנוי מהיומן שלנו — אישור מיידי, שינוי ללא עלות.',
       calendlyLoading: 'טוען את מערכת הקביעה…',
       calendlyOff: 'קביעת תור אונליין אינה זמינה כרגע — התקשרו אלינו',
+      calendlyCta: 'קביעת תור עכשיו',
+      calendlyBadgeHint: 'אפשר גם דרך הכפתור "קביעת תור" שבפינת המסך, בכל רגע.',
     },
 
     cart: {
