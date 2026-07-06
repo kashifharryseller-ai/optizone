@@ -10,11 +10,19 @@ FaceLandmarker for the face mesh, Three.js for the 3D frame. Nothing is uploaded
 useFaceLandmarker  → 468-pt face mesh (+ 4×4 transform matrix)
         │
 TryMirror.jsx  (paint loop, one 640×480 2D <canvas>)
-        │  draws the video frame, then the overlay via a 3-tier fallback chain:
-        ├─ 1. GlassesEngine (Three.js)  → composited with ctx.drawImage(glCanvas)
-        ├─ 2. drawPng()  (2D transparent PNG)   — fallback
-        └─ 3. drawVector() (procedural frame)   — last resort, console.warn
+        │  draws the video frame, then the overlay via the fallback chain:
+        ├─ 1. GlassesEngine (Three.js), composited with ctx.drawImage(glCanvas):
+        │        • a .glb model  (full all-around 3D), else
+        │        • the transparent PNG on a tracked PLANE (3D-tracked flat frame)
+        ├─ 2. drawPng()   (flat 2D) — only if WebGL is unavailable
+        └─ 3. drawVector() (procedural frame) — last resort, console.warn
 ```
+
+Both engine paths track the same 3D pose (roll + yaw + pitch + scale) with the
+depth occluder and smoothing. The difference is only the geometry: a real model
+has volume and temple arms (hide behind the head on turns); a planar PNG is a
+flat frame that still tilts/turns with the face — great head-on and for moderate
+turns, but with no true side profile.
 
 - The engine renders into its **own offscreen WebGL canvas**, which the paint
   loop composites onto the single 2D canvas each frame. That keeps one output
@@ -65,10 +73,22 @@ with one same-origin fetch). Author it:
 - Keep it lean (a few k triangles, baked/simple PBR materials). One `.glb` per
   colour, or one model with a per-colour material swap exported separately.
 
-**2D fallback — transparent PNG.** Straight-on front of the frame, lenses +
-frame only (no splayed arms), tightly and consistently cropped, transparent
-background. One per colour. Used when there's no `.glb`, and while a `.glb` is
-still loading.
+**Frame photo → transparent PNG (the easy path).** In **Admin → Try-Mirror / AR**
+you can upload *any* front-facing frame photo — with or without a background.
+The browser removes the background automatically (`src/lib/bgRemove.js`): it
+samples the border to estimate the backdrop, clears every pixel near that colour
+(so the see-through lens areas clear too), feathers the edge and crops to the
+frame. You get a live preview on a transparency checkerboard, a slider to tune
+how much is removed, and a warning if the shot looks angled or the background is
+busy. The result is a transparent PNG rendered as a **3D-tracked plane** (above).
+
+Best input: a **front-on** shot on a **plain, light** background. Busy/real-world
+backgrounds are the documented limitation of the no-dependency remover — for
+those, cut the frame out in an image editor and upload the transparent PNG, or
+use the "Use original (already transparent)" button.
+
+A flat photo has no back or side, so it can't become a truly rotatable model —
+that still needs a `.glb` (best) which you add per colour when you have one.
 
 The repo ships `public/tryon/models/demo-frame.glb` (a generated placeholder,
 wired to the Prada PR 17WS black variant) purely so the engine can be seen

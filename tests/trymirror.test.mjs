@@ -49,8 +49,10 @@ const browser = await chromium.launch({ executablePath: EXEC })
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 950 } })
 const page = await ctx.newPage()
 const errors = []
+let engineChunkLoaded = false
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
 page.on('pageerror', (e) => errors.push('PAGEERROR ' + e.message))
+page.on('request', (r) => { if (/GlassesEngine/.test(r.url())) engineChunkLoaded = true })
 await page.addInitScript(MOCK)
 // Give the opened product a transparent-PNG try-on asset.
 await page.route('**/api/content', async (route) => {
@@ -104,6 +106,7 @@ await page.waitForFunction(() => {
 }, { timeout: 5000 })
 const baseCount = await magentaCount(page)
 expect(baseCount > 0, `frame overlay painted onto the photo (${baseCount} px)`)
+expect(engineChunkLoaded, 'transparent PNG renders through the 3D engine (planar tracking), not a flat 2D draw')
 
 console.log('\n== Size scale affects output ==')
 // enlarge to 140% via the +/- control, then compare painted area

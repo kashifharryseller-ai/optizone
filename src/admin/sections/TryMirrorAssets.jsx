@@ -1,7 +1,88 @@
-import React, { useState } from 'react'
-import { Panel, Field, Toggle, ImageField, Text } from '../ui.jsx'
+import React, { useRef, useState } from 'react'
+import { Panel, Field, Toggle, Text, Btn } from '../ui.jsx'
 import { Icon } from '../../ds/index.js'
 import { isTryMirrorCategory, resolveTryonAsset } from '../../lib/tryMirror.js'
+import { removeBackground } from '../../lib/bgRemove.js'
+import { api } from '../../api.js'
+
+const CHECKER = 'repeating-conic-gradient(#e9e9e9 0% 25%, #fff 0% 50%) 50% / 14px 14px'
+
+// Per-colour frame image field with automatic background removal. The admin can
+// drop in any product photo (with or without a background); we cut it out in the
+// browser, preview it on a transparency checkerboard, let them tune the amount,
+// and flag angled / busy-background shots — then upload the transparent PNG.
+function FrameAssetField({ hex, value, onChange }) {
+  const ref = useRef(null)
+  const fileRef = useRef(null)        // original picked file (for re-tuning)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const [tol, setTol] = useState(0.14)
+  const [preview, setPreview] = useState(null) // { dataUrl, coverage, symmetry, plainBg }
+
+  const process = async (file, t) => {
+    setBusy(true); setErr('')
+    try { setPreview(await removeBackground(file, { tolerance: t })) }
+    catch (e) { setErr(e.message || 'Could not process image') }
+    finally { setBusy(false) }
+  }
+  const pick = (file) => { if (!file) return; fileRef.current = file; setTol(0.14); process(file, 0.14) }
+  const retune = (t) => { setTol(t); if (fileRef.current) process(fileRef.current, t) }
+
+  const uploadBlob = async (blob, name) => {
+    setBusy(true); setErr('')
+    try { const { url } = await api.upload(new File([blob], name, { type: 'image/png' })); onChange(url); setPreview(null); fileRef.current = null }
+    catch (e) { setErr(e.message || 'Upload failed') } finally { setBusy(false) }
+  }
+  const useCutout = async () => { const blob = await (await fetch(preview.dataUrl)).blob(); uploadBlob(blob, `frame-${hex.replace('#', '')}.png`) }
+  const useOriginal = () => fileRef.current && uploadBlob(fileRef.current, fileRef.current.name || 'frame.png')
+
+  const warn = preview && (
+    preview.coverage < 0.015 ? 'Almost everything was removed — lower the amount.'
+      : preview.coverage > 0.92 ? 'Very little was removed — is the background plain and light?'
+        : !preview.plainBg ? 'Busy background detected — the cut-out may be rough; a plain backdrop works best.'
+          : preview.symmetry < 0.72 ? 'This photo looks angled — a front-facing shot tries on more accurately.'
+            : null
+  )
+
+  return (
+    <Field label={`Frame image · ${hex}`}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {!preview && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 72, height: 54, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-hair)', overflow: 'hidden', flex: '0 0 auto', background: value ? CHECKER : 'var(--cream-300)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {value ? <img src={value} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>none</span>}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input ref={ref} type="file" accept="image/*" onChange={(e) => pick(e.target.files && e.target.files[0])} style={{ display: 'none' }} />
+              <Btn variant="outline" size="sm" onClick={() => ref.current && ref.current.click()} disabled={busy}>{busy ? 'Working…' : value ? 'Replace' : 'Upload photo'}</Btn>
+              {value && <Btn variant="ghost" size="sm" onClick={() => onChange('')}>Clear</Btn>}
+            </div>
+          </div>
+        )}
+        {preview && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)', padding: 10 }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <div style={{ width: 120, height: 90, borderRadius: 6, border: '1px solid var(--border-hair)', background: CHECKER, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={preview.dataUrl} alt="cut-out preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)' }}>Background removal amount</label>
+                <input type="range" min="0.04" max="0.4" step="0.01" value={tol} onChange={(e) => retune(Number(e.target.value))} disabled={busy} style={{ accentColor: 'var(--amber-500)' }} />
+                {warn && <span style={{ fontSize: 12, color: 'var(--amber-700)', display: 'flex', gap: 6, alignItems: 'flex-start' }}><Icon name="info" size={13} color="currentColor" /> {warn}</span>}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Btn variant="primary" size="sm" onClick={useCutout} disabled={busy}>{busy ? 'Uploading…' : 'Use cut-out'}</Btn>
+              <Btn variant="outline" size="sm" onClick={useOriginal} disabled={busy}>Use original (already transparent)</Btn>
+              <Btn variant="ghost" size="sm" onClick={() => { setPreview(null); fileRef.current = null }} disabled={busy}>Cancel</Btn>
+            </div>
+          </div>
+        )}
+        {err && <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>}
+      </div>
+    </Field>
+  )
+}
 
 // Try-Mirror / AR Assets — manage each product's virtual try-on: toggle it on
 // and attach a per-colour 3D model (.glb/.gltf) and/or a transparent frame PNG
@@ -45,7 +126,7 @@ export default function TryMirrorAssets({ content, setContent }) {
   return (
     <Panel
       title="Try-Mirror / AR assets"
-      desc={`Virtual try-on is enabled on ${enabled} of ${products.length} eyewear products (glasses & sunglasses); ${withAsset} have an asset attached. Attach a 3D model (.glb/.gltf) for the best result, or a front-facing, tightly-cropped transparent PNG as a 2D fallback — per colour.`}
+      desc={`Virtual try-on is enabled on ${enabled} of ${products.length} eyewear products (glasses & sunglasses); ${withAsset} have an asset attached. Upload any front-facing frame photo — the background is removed automatically and the frame is tracked in 3D on the face. For full all-around rotation, add a 3D model (.glb/.gltf). Best results: a front-on shot on a plain, light background.`}
       actions={<input aria-label="Search products" placeholder="Search products…" value={query} onChange={(e) => setQuery(e.target.value)} style={searchStyle} />}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -67,7 +148,7 @@ export default function TryMirrorAssets({ content, setContent }) {
                 <div key={i} style={{ display: 'grid', gridTemplateColumns: '30px 1fr 1fr', gap: 12, alignItems: 'center', paddingTop: 10, borderTop: '1px solid var(--border-hair)' }}>
                   <span title={hex} style={{ width: 24, height: 24, borderRadius: 999, background: hex, border: '1px solid var(--border-hair)' }} />
                   <Field label={`3D model URL · ${hex}`}><Text value={getColorAsset(p, 'tryMirrorModel', hex)} onChange={(v) => setColorAsset(p, 'tryMirrorModel', hex, v.trim())} placeholder="/tryon/models/frame-black.glb" /></Field>
-                  <ImageField label={`Frame PNG (2D) · ${hex}`} value={getColorAsset(p, 'tryMirrorImg', hex)} onChange={(v) => setColorAsset(p, 'tryMirrorImg', hex, v)} />
+                  <FrameAssetField hex={hex} value={getColorAsset(p, 'tryMirrorImg', hex)} onChange={(v) => setColorAsset(p, 'tryMirrorImg', hex, v)} />
                 </div>
               ))}
             </div>

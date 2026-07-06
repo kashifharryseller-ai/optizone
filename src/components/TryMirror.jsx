@@ -114,8 +114,9 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
   const videoInputRef = useRef(null)
   const frameRef = useRef(null)          // loaded 2D PNG Image (or null)
   const engineRef = useRef(null)         // lazily-created 3D GlassesEngine (or null)
-  const modelUrlRef = useRef('')         // active colour's 3D model URL (cleared if it fails to load)
-  const pngUrlRef = useRef('')           // active colour's 2D PNG URL (whether or not loaded yet)
+  const modelUrlRef = useRef('')         // active colour's 3D model URL (resolved; for the vector gate)
+  const pngUrlRef = useRef('')           // active colour's 2D PNG URL (resolved; for the vector gate)
+  const contentUrlRef = useRef('')       // URL the engine is currently showing (model or plane); '' if none/failed
   const metaRef = useRef({})             // active colour's tryMirrorMeta
   const paintRef = useRef(null)          // latest paint() (avoids hook ordering)
   const sourceRef = useRef(null)         // current drawable: <video> or <img>
@@ -152,7 +153,12 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
     // so a still-loading asset never falls through to the vector tier.
     pngUrlRef.current = pngUrl
     modelUrlRef.current = modelUrl
-    // 2D PNG (fallback + shown while a 3D model is still loading).
+    // The engine renders the primary content in 3D: a .glb model if present,
+    // otherwise the transparent PNG on a tracked plane. `contentUrl` is what the
+    // engine should show; cleared if it fails so the flat/vector tier takes over.
+    const contentUrl = modelUrl || pngUrl
+    contentUrlRef.current = ''
+    // Also decode the PNG as a flat <img> — the WebGL-unavailable fallback.
     frameRef.current = null
     if (pngUrl) {
       const img = new Image(); img.crossOrigin = 'anonymous'
@@ -160,18 +166,20 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
       img.onerror = () => { if (alive && frameRef.current === img) { frameRef.current = null; console.warn('[tryon] frame PNG failed to load:', pngUrl) } }
       img.src = pngUrl
     }
-    // 3D model (primary). Create the WebGL engine lazily — only when a model
-    // asset exists — and degrade gracefully (clear the model URL so the 2D/vector
-    // tier takes over) if WebGL is unavailable or the model fails to load.
-    if (modelUrl) {
-      const giveUp = () => { if (alive && modelUrlRef.current === modelUrl) { modelUrlRef.current = ''; repaintPhoto() } }
+    // Mount 3D content in the engine (lazy WebGL init): try the .glb model, then
+    // the transparent PNG as a tracked plane. If neither mounts (or WebGL is
+    // unavailable), clear contentUrl so paint falls back to the flat PNG / vector.
+    if (contentUrl) {
+      const giveUp = () => { if (alive) { contentUrlRef.current = ''; repaintPhoto() } }
+      const ok = (url) => { if (alive) { contentUrlRef.current = url; repaintPhoto() } }
       loadEngine().then((GlassesEngine) => {
         if (!alive) return
         if (!engineRef.current) { try { engineRef.current = new GlassesEngine(640, 480) } catch (e) { console.warn('[tryon] WebGL unavailable, using 2D overlay:', e?.message || e); giveUp(); return } }
-        return engineRef.current.setModel(modelUrl).then((okModel) => {
-          if (!alive) return
-          if (!okModel) giveUp(); else repaintPhoto()
-        })
+        const eng = engineRef.current
+        const tryPlane = () => (pngUrl ? eng.setPlane(pngUrl).then((y) => (y ? ok(pngUrl) : giveUp())) : giveUp())
+        return modelUrl
+          ? eng.setModel(modelUrl).then((y) => (y ? ok(modelUrl) : tryPlane()))
+          : tryPlane()
       }).catch((e) => { console.warn('[tryon] engine load failed, using 2D overlay:', e?.message || e); giveUp() })
     }
     return () => { alive = false }
@@ -198,17 +206,18 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
     if (detActive) setFace(!!landmarks)
     const frameImg = frameRef.current
     const engine = engineRef.current
-    const modelReady = engine && modelUrlRef.current && engine.hasModel(modelUrlRef.current)
+    // 3D content ready = either a .glb model OR a transparent PNG on a plane.
+    const contentReady = engine && contentUrlRef.current && engine.hasContent(contentUrlRef.current)
     // On a dropped-detection frame, let the 3D engine hold/fade the last pose
     // (its faceHoldFrames logic) instead of instantly flickering off.
     if (!landmarks) {
-      if (modelReady) { engine.resize(W, H); engine.update(null, metaRef.current, sizeRef.current, false); try { ctx.drawImage(engine.render(), 0, 0, W, H) } catch { /* gl not ready */ } }
+      if (contentReady) { engine.resize(W, H); engine.update(null, metaRef.current, sizeRef.current, false); try { ctx.drawImage(engine.render(), 0, 0, W, H) } catch { /* gl not ready */ } }
       return
     }
-    // Fallback chain: 3D model → 2D PNG → drawn vector. The vector tier keys off
-    // whether the product HAS assets (refs), not transiently-cleared load state,
-    // so it never flashes over a product that has a real model/PNG loading.
-    if (modelReady && landmarks[33] && landmarks[263]) {
+    // Fallback chain: 3D-tracked content (model or planar PNG) → flat PNG (only
+    // if WebGL is unavailable) → drawn vector. The vector tier keys off whether
+    // the product HAS assets (refs), so it never flashes over a loading asset.
+    if (contentReady && landmarks[33] && landmarks[263]) {
       // The 2D canvas is CSS-mirrored for Live; render the scene in video space
       // and let that single CSS flip apply — so pass mirrored=false here.
       engine.resize(W, H)

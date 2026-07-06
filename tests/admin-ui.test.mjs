@@ -6,7 +6,27 @@
 //   node tests/admin-ui.test.mjs
 import { spawn } from 'node:child_process'
 import { rmSync } from 'node:fs'
+import zlib from 'node:zlib'
 import { chromium } from 'playwright'
+
+// Minimal PNG encoder → a white image with a dark centred box (a stand-in for a
+// frame photographed on a plain white background, for the bg-removal test).
+function crc32(b) { let c = ~0; for (let i = 0; i < b.length; i++) { c ^= b[i]; for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xEDB88320 & -(c & 1)) } return ~c >>> 0 }
+function chunk(t, d) { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const T = Buffer.from(t); const cr = Buffer.alloc(4); cr.writeUInt32BE(crc32(Buffer.concat([T, d]))); return Buffer.concat([l, T, d, cr]) }
+function framePng(w, h) {
+  const raw = Buffer.alloc((w * 3 + 1) * h)
+  for (let y = 0; y < h; y++) {
+    raw[y * (w * 3 + 1)] = 0
+    for (let x = 0; x < w; x++) {
+      const o = y * (w * 3 + 1) + 1 + x * 3
+      const inBox = x > w * 0.3 && x < w * 0.7 && y > h * 0.35 && y < h * 0.65
+      const v = inBox ? 20 : 250 // dark frame on a white background
+      raw[o] = v; raw[o + 1] = v; raw[o + 2] = v
+    }
+  }
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))])
+}
 
 const PORT = 5110 + (process.pid % 400) // unique-ish per run — orphan servers from crashed runs can't shadow us
 const BASE = `http://127.0.0.1:${PORT}`
@@ -125,6 +145,25 @@ await page.locator('aside nav button', { hasText: 'Content & Homepage' }).first(
 await page.waitForTimeout(500)
 const rtlInputs = await page.locator('input[dir="rtl"], textarea[dir="rtl"]').count()
 expect(rtlInputs > 0, `${rtlInputs} Hebrew fields render dir="rtl"`)
+
+console.log('\n== Try-Mirror: automatic background removal ==')
+await page.locator('aside nav button', { hasText: 'Try-Mirror / AR' }).first().click()
+await page.getByText('Try-Mirror / AR assets').waitFor()
+// First eyewear product ships Try-Mirror ON → per-colour frame fields are shown.
+await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({ name: 'frame.png', mimeType: 'image/png', buffer: framePng(200, 150) })
+await page.getByAltText('cut-out preview').waitFor({ timeout: 10000 })
+ok('uploading a photo shows an auto-removed cut-out preview')
+// The white background must be gone (transparent) and the frame shape kept.
+const cut = await page.getByAltText('cut-out preview').evaluate((img) => {
+  const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight
+  const x = c.getContext('2d'); x.drawImage(img, 0, 0)
+  const d = x.getImageData(0, 0, c.width, c.height).data
+  const A = (px, py) => d[(py * c.width + px) * 4 + 3]
+  return { corner: A(1, 1), center: A(c.width >> 1, c.height >> 1) }
+})
+expect(cut.corner < 24, `plain background removed → transparent (corner alpha ${cut.corner})`)
+expect(cut.center > 200, `frame shape preserved → opaque (centre alpha ${cut.center})`)
+expect(await page.getByRole('button', { name: 'Use cut-out' }).isVisible(), 'offers "Use cut-out" to save the transparent frame')
 
 console.log('')
 expect(errors.length === 0, `no console errors (${errors.length})`)

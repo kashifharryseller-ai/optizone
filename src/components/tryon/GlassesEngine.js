@@ -65,12 +65,15 @@ export class GlassesEngine {
     dir.position.set(0.3, -0.5, 1)
     this.scene.add(dir)
 
-    // Frame model holder (swapped on colour/asset change).
+    // Frame content holder (a .glb model OR a textured plane), swapped on
+    // colour/asset change.
     this.frame = new THREE.Group()
     this.frame.visible = false
     this.scene.add(this.frame)
-    this.model = null
-    this.modelUrl = ''
+    this.content = null      // mounted Object3D (model clone or plane mesh)
+    this.contentUrl = ''     // its source URL
+    this.contentKind = ''    // 'model' | 'plane'
+    this._pendingUrl = ''    // most-recent requested URL (async supersession guard)
 
     // Depth-only occluder (writes depth, not colour) rendered before the frame.
     const occGeo = new THREE.BufferGeometry()
@@ -110,32 +113,77 @@ export class GlassesEngine {
     this.camera.updateProjectionMatrix()
   }
 
-  // Whether `url` is loaded and currently mounted as the active frame.
-  hasModel(url) { return !!url && this.modelUrl === url && !!this.model }
+  // Whether `url` is loaded and currently mounted as the active frame content.
+  hasContent(url) { return !!url && this.contentUrl === url && !!this.content }
+  hasModel(url) { return this.hasContent(url) } // back-compat alias
 
-  // Load `url` and mount it as the frame. Resolves true on success, false on
-  // failure (caller then falls back to the 2D/vector path).
+  // Load + mount a .glb/.gltf frame model. Resolves true on success, false on
+  // failure (caller falls back to the plane/vector path). `_pendingUrl` tracks
+  // the most recent request so an out-of-order async load can't win.
   async setModel(url) {
-    if (!url) { this._clearModel(); return false }
-    if (this.modelUrl === url && this.model) return true
-    this.modelUrl = url
+    if (!url) { this._clearContent(); return false }
+    if (this.contentUrl === url && this.content) return true
+    this._pendingUrl = url
     try {
       const template = await loadModel(url)
-      if (this.modelUrl !== url) return false // superseded by a newer colour
-      this._clearModel()
-      this.model = template.clone(true)
-      this.frame.add(this.model)
-      this._init = false
+      if (this._pendingUrl !== url) return false // superseded by a newer colour
+      this._swap(template.clone(true), 'model', url)
       return true
     } catch (err) {
-      if (this.modelUrl === url) this.modelUrl = ''
       console.warn(`[tryon] 3D model failed to load (${url}):`, err?.message || err)
       return false
     }
   }
 
-  _clearModel() {
-    if (this.model) { this.frame.remove(this.model); this.model = null }
+  // Load a transparent frame image and mount it as a texture on a unit-width
+  // plane — tracked in 3D exactly like a model (roll/yaw/pitch/scale + occluder).
+  async setPlane(url) {
+    if (!url) { this._clearContent(); return false }
+    if (this.contentUrl === url && this.content) return true
+    this._pendingUrl = url
+    try {
+      const tex = await new Promise((resolve, reject) => {
+        const img = new Image(); img.crossOrigin = 'anonymous'
+        img.onload = () => resolve(img); img.onerror = () => reject(new Error('image load failed'))
+        img.src = url
+      })
+      if (this._pendingUrl !== url) return false // superseded
+      const aspect = (tex.naturalHeight || 1) / (tex.naturalWidth || 1)
+      const texture = new THREE.Texture(tex); texture.colorSpace = THREE.SRGBColorSpace; texture.needsUpdate = true
+      const geo = new THREE.PlaneGeometry(1, aspect)
+      const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, alphaTest: 0.02, depthWrite: false, side: THREE.DoubleSide })
+      this._swap(new THREE.Mesh(geo, mat), 'plane', url)
+      return true
+    } catch (err) {
+      console.warn(`[tryon] frame image failed to load (${url}):`, err?.message || err)
+      return false
+    }
+  }
+
+  // Mount new content, disposing whatever was there (per its OLD kind) first.
+  _swap(obj, kind, url) {
+    this._disposeCurrent()
+    this.content = obj; this.contentKind = kind; this.contentUrl = url
+    this.frame.add(obj)
+    this._init = false
+  }
+
+  // Remove + dispose the current content object (a plane owns its GPU resources;
+  // a model clone SHARES them with the cached template, so it is never disposed).
+  _disposeCurrent() {
+    if (!this.content) return
+    this.frame.remove(this.content)
+    if (this.contentKind === 'plane') {
+      this.content.geometry?.dispose?.()
+      this.content.material?.map?.dispose?.()
+      this.content.material?.dispose?.()
+    }
+    this.content = null
+  }
+
+  _clearContent() {
+    this._disposeCurrent()
+    this._pendingUrl = ''; this.contentUrl = ''; this.contentKind = ''
     this.frame.visible = false
     this.occluder.visible = false
   }
@@ -150,7 +198,7 @@ export class GlassesEngine {
   // Update the frame pose from landmarks. `pts` may be null (face lost).
   update(pts, meta, sliderSize, mirrored) {
     this.mirror = !!mirrored
-    if (!this.model) return
+    if (!this.content) return
     if (!pts || !pts[LM.leftEyeOuter] || !pts[LM.rightEyeOuter] || !pts[LM.forehead] || !pts[LM.chin]) {
       // Face lost (or the mesh is incomplete): hold the last pose, then hide.
       if (++this._miss > CFG.faceHoldFrames) { this.frame.visible = false; this.occluder.visible = false }
@@ -221,7 +269,7 @@ export class GlassesEngine {
   render() { this.renderer.render(this.scene, this.camera); return this.canvas }
 
   dispose() {
-    this._clearModel()
+    this._clearContent()
     this.occluder.geometry.dispose()
     this.occluder.material.dispose()
     this.renderer.dispose()
