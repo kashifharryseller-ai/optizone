@@ -113,6 +113,10 @@ console.log('\n== Validation, sanitization, soft delete, audit ==')
   p0.amount = -50
   p0.reviews = 3.7
   p0.desc = { en: 'Nice <script>alert(1)</script> frame', he: 'שלום <img src=x onerror=alert(1)>' }
+  // hostile try-on assets: dangerous schemes must be dropped, valid ones kept
+  p0.tryMirrorModel = { '#1A1A17': 'javascript:alert(1)', '#7E4310': '/tryon/models/ok.glb' }
+  p0.tryMirrorImg = { '#1A1A17': 'data:text/html,<script>alert(1)</script>', '#7E4310': 'data:image/png;base64,AAAA' }
+  p0.tryMirrorMeta = { modelForwardAxis: 'w', scaleMultiplier: 99, bridgeYOffset: 5, frameRealWidthMm: 118 }
   content.products[1].active = false // archive product #2 (soft delete)
   const put = await j('/api/admin/content', { method: 'PUT', token, body: content })
   expect(put.status === 200, 'content save accepted after server-side cleaning')
@@ -122,6 +126,9 @@ console.log('\n== Validation, sanitization, soft delete, audit ==')
   expect(q0.amount === 0, `price clamped to ≥ 0 (-50 → ${q0.amount})`)
   expect(q0.reviews === 4, `reviews rounded to integer ≥ 0 (3.7 → ${q0.reviews})`)
   expect(!q0.desc.en.includes('<script>') && !q0.desc.he.includes('<img'), 'HTML stripped from bilingual descriptions (stored-XSS defence)')
+  expect(!q0.tryMirrorModel['#1A1A17'] && q0.tryMirrorModel['#7E4310'] === '/tryon/models/ok.glb', 'try-on model: javascript: scheme dropped, valid path kept')
+  expect(!q0.tryMirrorImg['#1A1A17'] && q0.tryMirrorImg['#7E4310'].startsWith('data:image/png'), 'try-on PNG: data:text/html dropped, data:image kept')
+  expect(q0.tryMirrorMeta.modelForwardAxis === 'z' && q0.tryMirrorMeta.scaleMultiplier === 5, `try-on meta: bad axis defaulted (→z), scale clamped ≤5 (99 → ${q0.tryMirrorMeta.scaleMultiplier})`)
 
   // public storefront must hide the archived product; admin must keep it
   const pub = (await j('/api/content')).data

@@ -247,11 +247,16 @@ const cleanBilingual = (v) => (v && typeof v === 'object'
   : typeof v === 'string' ? stripTags(v) : v)
 const clamp = (n, lo, hi, dflt = 0) => { const x = Number(n); return Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : dflt }
 
-// A try-on asset reference is a URL/path or a data: URI. Strip tags, block the
-// javascript: scheme, cap length. Returns '' for anything unusable.
+// A try-on asset reference is a path (/uploads/…, /tryon/…), an http(s) URL, or
+// an image data: URI. Strip tags AND control chars (tab/newline/NUL can bypass a
+// scheme check), then allowlist schemes — anything else (javascript:, vbscript:,
+// data:text/html, …) is rejected. Returns '' for anything unusable.
 const cleanAssetRef = (v) => {
-  const s = stripTags(String(v || '')).trim().slice(0, 2000)
-  return /^javascript:/i.test(s) ? '' : s
+  const s = stripTags(String(v || '')).replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, 2000)
+  if (!s) return ''
+  const scheme = s.match(/^([a-z][a-z0-9+.-]*):/i)
+  if (scheme) return (/^https?$/i.test(scheme[1]) || /^data:image\/(png|jpe?g|webp|gif|avif);/i.test(s)) ? s : ''
+  return s // scheme-less → a relative or absolute path
 }
 // tryMirrorImg / tryMirrorModel may be a single string (legacy) or a
 // { "#hex": url } map. Sanitise every value; drop empties.

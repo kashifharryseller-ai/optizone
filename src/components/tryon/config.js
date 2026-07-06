@@ -54,9 +54,10 @@ export function resolveTryonAsset(product, colorHex) {
     if (!v) return ''
     if (typeof v === 'string') return v            // legacy: one asset for all colours
     if (typeof v === 'object') {
-      if (colorHex && v[colorHex]) return v[colorHex]
-      const first = Object.values(v).find(Boolean) // fall back to any defined colour
-      return first || ''
+      // Exact colour only — never show a different colour's frame on the
+      // storefront. With no colour context, use any defined asset.
+      if (colorHex) return v[colorHex] || ''
+      return Object.values(v).find(Boolean) || ''
     }
     return ''
   }

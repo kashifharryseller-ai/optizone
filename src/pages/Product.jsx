@@ -197,7 +197,6 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
         open={mirror}
         onClose={() => setMirror(false)}
         product={p}
-        frameAsset={p.tryMirrorImg}
         strings={t}
         onAddToCart={(customSize) => addToCart({ ...p, amount: total }, { customSize })}
       />

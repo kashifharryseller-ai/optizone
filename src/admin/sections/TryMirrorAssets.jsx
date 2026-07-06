@@ -17,11 +17,13 @@ export default function TryMirrorAssets({ content, setContent }) {
   const [query, setQuery] = useState('')
   const setProduct = (id, patch) => setContent({ ...content, products: allProducts.map((p) => (p.id === id ? { ...p, ...patch } : p)) })
 
-  // Read/write one colour's asset within a {hex:url} map (converting a legacy
-  // string to a map on first write so the other colours are preserved).
-  const asMap = (v) => (v && typeof v === 'object' ? { ...v } : {})
+  // Read/write one colour's asset within a {hex:url} map. A legacy string
+  // "applies to every colour", so expand it across all colours BEFORE applying
+  // the edit — otherwise editing one colour would silently drop the others.
   const setColorAsset = (p, field, hex, url) => {
-    const map = asMap(p[field])
+    const cur = p[field]
+    const map = cur && typeof cur === 'object' ? { ...cur } : {}
+    if (typeof cur === 'string' && cur) for (const c of (p.colors || [])) map[c] = cur
     if (url) map[hex] = url; else delete map[hex]
     setProduct(p.id, { [field]: Object.keys(map).length ? map : undefined })
   }
@@ -34,7 +36,7 @@ export default function TryMirrorAssets({ content, setContent }) {
 
   const q = query.trim().toLowerCase()
   const shown = q ? products.filter((p) => `${p.brand} ${p.name}`.toLowerCase().includes(q)) : products
-  const has = (p) => { const a = resolveTryonAsset(p, (p.colors || [])[0]); return !!(a.model || a.png) }
+  const has = (p) => { const cols = (p.colors && p.colors.length) ? p.colors : [undefined]; return cols.some((c) => { const a = resolveTryonAsset(p, c); return !!(a.model || a.png) }) }
   const withAsset = products.filter((p) => p.tryMirror && has(p)).length
   const enabled = products.filter((p) => p.tryMirror).length
 

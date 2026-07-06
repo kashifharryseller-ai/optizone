@@ -13,15 +13,16 @@ const loadEngine = () => (_EnginePromise ||= import('./tryon/GlassesEngine.js').
  *   1) Live camera   2) Upload photo   3) Upload video
  *
  * All processing is in-browser (MediaPipe Face Landmarker, no key, no upload).
- * The overlay is ALWAYS the opened product's transparent-PNG frame
- * (`frameAsset` / product.tryMirrorImg); when a product has no PNG yet, a
- * vector rendition derived from its shape + colours is used so the feature
- * still works. The chosen frame size persists to the cart as a custom size.
+ * The overlay follows a per-colour fallback chain (see TRYON_NOTES.md):
+ *   1) a real 3D frame model (GlassesEngine / product.tryMirrorModel), else
+ *   2) a transparent-PNG frame (product.tryMirrorImg), else
+ *   3) a drawn vector rendition from the product's shape + colours.
+ * The chosen frame size persists to the cart as a custom size.
  *
  * Props:
  *   open, onClose        modal visibility
  *   product              the opened product (id, brand, name, shape, colors…)
- *   frameAsset           transparent PNG URL (defaults to product.tryMirrorImg)
+ *   frameAsset           optional legacy single-PNG override (string)
  *   strings              i18n bundle (root.product)
  *   onAddToCart(pct)     called with e.g. "110%" — persisted as line customSize
  */
@@ -113,7 +114,8 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
   const videoInputRef = useRef(null)
   const frameRef = useRef(null)          // loaded 2D PNG Image (or null)
   const engineRef = useRef(null)         // lazily-created 3D GlassesEngine (or null)
-  const modelUrlRef = useRef('')         // active colour's 3D model URL (or '')
+  const modelUrlRef = useRef('')         // active colour's 3D model URL (cleared if it fails to load)
+  const pngUrlRef = useRef('')           // active colour's 2D PNG URL (whether or not loaded yet)
   const metaRef = useRef({})             // active colour's tryMirrorMeta
   const paintRef = useRef(null)          // latest paint() (avoids hook ordering)
   const sourceRef = useRef(null)         // current drawable: <video> or <img>
@@ -146,26 +148,31 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
     if (!open) return
     let alive = true
     metaRef.current = meta
-    // 2D PNG (fallback + used while a 3D model is still loading).
+    // Record what this colour HAS (used by the paint fallback chain) up front,
+    // so a still-loading asset never falls through to the vector tier.
+    pngUrlRef.current = pngUrl
+    modelUrlRef.current = modelUrl
+    // 2D PNG (fallback + shown while a 3D model is still loading).
     frameRef.current = null
     if (pngUrl) {
       const img = new Image(); img.crossOrigin = 'anonymous'
       img.onload = () => { if (alive) { frameRef.current = img; repaintPhoto() } }
+      img.onerror = () => { if (alive && frameRef.current === img) { frameRef.current = null; console.warn('[tryon] frame PNG failed to load:', pngUrl) } }
       img.src = pngUrl
     }
     // 3D model (primary). Create the WebGL engine lazily — only when a model
-    // asset actually exists — and degrade gracefully if WebGL is unavailable.
-    modelUrlRef.current = ''
+    // asset exists — and degrade gracefully (clear the model URL so the 2D/vector
+    // tier takes over) if WebGL is unavailable or the model fails to load.
     if (modelUrl) {
+      const giveUp = () => { if (alive && modelUrlRef.current === modelUrl) { modelUrlRef.current = ''; repaintPhoto() } }
       loadEngine().then((GlassesEngine) => {
         if (!alive) return
-        if (!engineRef.current) { try { engineRef.current = new GlassesEngine(640, 480) } catch (e) { console.warn('[tryon] WebGL unavailable, using 2D overlay:', e?.message || e); return } }
+        if (!engineRef.current) { try { engineRef.current = new GlassesEngine(640, 480) } catch (e) { console.warn('[tryon] WebGL unavailable, using 2D overlay:', e?.message || e); giveUp(); return } }
         return engineRef.current.setModel(modelUrl).then((okModel) => {
           if (!alive) return
-          modelUrlRef.current = okModel ? modelUrl : ''
-          repaintPhoto()
+          if (!okModel) giveUp(); else repaintPhoto()
         })
-      }).catch((e) => console.warn('[tryon] engine load failed, using 2D overlay:', e?.message || e))
+      }).catch((e) => { console.warn('[tryon] engine load failed, using 2D overlay:', e?.message || e); giveUp() })
     }
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -189,11 +196,18 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
     ctx.clearRect(0, 0, W, H)
     if (sourceRef.current) { try { ctx.drawImage(sourceRef.current, 0, 0, W, H) } catch { /* not ready */ } }
     if (detActive) setFace(!!landmarks)
-    if (!landmarks) return
     const frameImg = frameRef.current
     const engine = engineRef.current
     const modelReady = engine && modelUrlRef.current && engine.hasModel(modelUrlRef.current)
-    // Fallback chain: 3D model → 2D PNG → drawn vector.
+    // On a dropped-detection frame, let the 3D engine hold/fade the last pose
+    // (its faceHoldFrames logic) instead of instantly flickering off.
+    if (!landmarks) {
+      if (modelReady) { engine.resize(W, H); engine.update(null, metaRef.current, sizeRef.current, false); try { ctx.drawImage(engine.render(), 0, 0, W, H) } catch { /* gl not ready */ } }
+      return
+    }
+    // Fallback chain: 3D model → 2D PNG → drawn vector. The vector tier keys off
+    // whether the product HAS assets (refs), not transiently-cleared load state,
+    // so it never flashes over a product that has a real model/PNG loading.
     if (modelReady && landmarks[33] && landmarks[263]) {
       // The 2D canvas is CSS-mirrored for Live; render the scene in video space
       // and let that single CSS flip apply — so pass mirrored=false here.
@@ -206,8 +220,8 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
       let n = { x: landmarks[168].x * W, y: landmarks[168].y * H }
       if (smooth) { const s = smoothRef.current; a = s.a = ema(s.a, a, EMA_ALPHA); b = s.b = ema(s.b, b, EMA_ALPHA); n = s.n = ema(s.n, n, EMA_ALPHA) }
       drawPng(ctx, frameImg, a, b, n, mat, sizeRef.current)
-    } else if (!frameImg && !modelUrlRef.current) {
-      // Last resort only — no 3D and no 2D asset for this product/colour.
+    } else if (!pngUrlRef.current && !modelUrlRef.current) {
+      // Last resort only — the product has no 3D and no 2D asset for this colour.
       drawVector(ctx, landmarks, W, H, vectorStyle(p, (p.colors || [])[colorRef.current]), sizeRef.current)
     }
   }, [p])
@@ -363,9 +377,16 @@ export function TryMirror({ open, onClose, product, frameAsset, strings, onAddTo
 
   const download = () => {
     const canvas = canvasRef.current; if (!canvas) return
+    // Live preview is CSS-mirrored (selfie view); flip the export to match what
+    // the user actually saw. Photo/video are shown un-mirrored, so export as-is.
+    let src = canvas
+    if (mode === 'live') {
+      const t = document.createElement('canvas'); t.width = canvas.width; t.height = canvas.height
+      const c = t.getContext('2d'); c.translate(t.width, 0); c.scale(-1, 1); c.drawImage(canvas, 0, 0); src = t
+    }
     const a = document.createElement('a')
     a.download = 'optizone-tryon.png'
-    a.href = canvas.toDataURL('image/png')
+    a.href = src.toDataURL('image/png')
     a.click()
   }
 

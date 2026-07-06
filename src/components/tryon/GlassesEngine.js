@@ -98,6 +98,7 @@ export class GlassesEngine {
     this._m = new THREE.Matrix4()
     this._ex = new THREE.Vector3(); this._ey = new THREE.Vector3(); this._ez = new THREE.Vector3()
     this._a = new THREE.Vector3(); this._b = new THREE.Vector3()
+    this._fore = new THREE.Vector3(); this._chin = new THREE.Vector3()
     this._tPos = new THREE.Vector3(); this._tQuat = new THREE.Quaternion()
   }
 
@@ -150,7 +151,8 @@ export class GlassesEngine {
   update(pts, meta, sliderSize, mirrored) {
     this.mirror = !!mirrored
     if (!this.model) return
-    if (!pts || !pts[LM.leftEyeOuter] || !pts[LM.rightEyeOuter]) {
+    if (!pts || !pts[LM.leftEyeOuter] || !pts[LM.rightEyeOuter] || !pts[LM.forehead] || !pts[LM.chin]) {
+      // Face lost (or the mesh is incomplete): hold the last pose, then hide.
       if (++this._miss > CFG.faceHoldFrames) { this.frame.visible = false; this.occluder.visible = false }
       return
     }
@@ -168,8 +170,8 @@ export class GlassesEngine {
     // ── orientation basis (roll + yaw + pitch) ────────────────────────────────
     // X: along the eye line; Y: chin→forehead (up); Z: face normal = X × Y.
     this._ex.copy(lEye).sub(rEye).normalize()
-    const fore = this._px(pts, LM.forehead, new THREE.Vector3())
-    const chin = this._px(pts, LM.chin, new THREE.Vector3())
+    const fore = this._px(pts, LM.forehead, this._fore)
+    const chin = this._px(pts, LM.chin, this._chin)
     this._ey.copy(fore).sub(chin).normalize()
     this._ez.crossVectors(this._ex, this._ey).normalize()
     if (this._ez.z < 0) this._ez.negate()          // keep the normal facing the camera
@@ -203,16 +205,16 @@ export class GlassesEngine {
   _updateOccluder(pts) {
     const pos = this.occluder.geometry.getAttribute('position')
     const arr = pos.array
-    let cx = 0, cy = 0
+    let cx = 0, cy = 0, n = 0
     for (let i = 0; i < FACE_OVAL.length; i++) {
       const p = pts[FACE_OVAL[i]]
       if (!p) continue
       const x = this.mirror ? (1 - p.x) * this.w : p.x * this.w
       const y = p.y * this.h
       arr[(i + 1) * 3] = x; arr[(i + 1) * 3 + 1] = y; arr[(i + 1) * 3 + 2] = 0
-      cx += x; cy += y
+      cx += x; cy += y; n++
     }
-    arr[0] = cx / FACE_OVAL.length; arr[1] = cy / FACE_OVAL.length; arr[2] = 0
+    arr[0] = n ? cx / n : 0; arr[1] = n ? cy / n : 0; arr[2] = 0
     pos.needsUpdate = true
   }
 
