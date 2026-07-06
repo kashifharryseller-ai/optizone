@@ -59,13 +59,13 @@ page.on('pageerror', (e) => errors.push('PAGEERROR ' + e.message))
 await page.addInitScript(MOCK)
 await page.route('**/api/content', async (route) => {
   const res = await route.fetch(); const json = await res.json()
-  const prod = (json.products || []).find((p) => p.name === 'CONNECTED FRAME') || json.products[0]
+  const prod = (json.products || []).find((p) => p.name === 'Round Metal RB3447') || json.products[0]
   if (prod) { prod.tryMirrorImg = FRAME; prod.tryMirror = true }
   await route.fulfill({ response: res, body: JSON.stringify(json) })
 })
 
 await page.goto(BASE, { waitUntil: 'networkidle' })
-await page.getByText('CONNECTED FRAME').first().click()
+await page.getByText('Round Metal RB3447').first().click()
 await page.locator('main').getByRole('button', { name: 'Try Mirror' }).first().click()
 await page.getByRole('button', { name: 'Allow camera' }).click()
 await page.getByText('Frame size').waitFor()

@@ -128,6 +128,45 @@ export async function removeBackground(src, opts = {}) {
   const enc2 = (Math.max(tol, 0.12) * MAXD * 0.9) ** 2
   for (let p = 0; p < N; p++) if (!bg[p] && distIdx(p, border.color[0], border.color[1], border.color[2]) < enc2) bg[p] = 1
 
+  // ── Far-colour rescue (plain backdrops only) ────────────────────────────────
+  // JPEG chroma subsampling can blur a thin metal bridge / wire rim toward the
+  // backdrop, letting the flood eat it. On a plain background, any pixel whose
+  // colour is clearly NOT background cannot be background — un-flood it. (Busy
+  // backdrops skip this: far colours there are usually genuine background.)
+  if (border.stdev < 45) {
+    const far2 = (0.34 * MAXD) ** 2
+    for (let p = 0; p < N; p++) if (bg[p] && distIdx(p, border.color[0], border.color[1], border.color[2]) > far2) bg[p] = 0
+  }
+
+  // ── Morphological close (dilate → erode) on the KEEP mask ───────────────────
+  // Thin structures — a metal bridge, nose pads, wire rims — are only a few px
+  // wide and get nibbled by the flood/cleanup, leaving the two lenses visually
+  // disconnected. Closing reconnects small gaps without growing the silhouette.
+  const R = Math.max(2, Math.round(Math.min(w, h) / 300)) // ~3px at 900px
+  // Separable min/max filter over a (2R+1)² square structuring element:
+  // one horizontal + one vertical pass, O(N·R) instead of O(N·R²).
+  const spread = (src, val) => { // propagate `val` to any pixel within R
+    const tmp = new Uint8Array(N), out = new Uint8Array(N)
+    for (let y = 0; y < h; y++) {
+      const row = y * w
+      for (let x = 0; x < w; x++) {
+        let hit = 0
+        for (let dx = -R; dx <= R; dx++) { const xx = x + dx; if (xx >= 0 && xx < w && src[row + xx] === val) { hit = 1; break } }
+        tmp[row + x] = hit ? val : src[row + x]
+      }
+    }
+    for (let x = 0; x < w; x++) {
+      for (let y = 0; y < h; y++) {
+        let hit = 0
+        for (let dy = -R; dy <= R; dy++) { const yy = y + dy; if (yy >= 0 && yy < h && tmp[yy * w + x] === val) { hit = 1; break } }
+        out[y * w + x] = hit ? val : tmp[y * w + x]
+      }
+    }
+    return out
+  }
+  const closed = spread(spread(bg, 0), 1) // dilate keep(0), then erode (dilate bg)
+  for (let p = 0; p < N; p++) bg[p] = closed[p]
+
   // ── Feathered alpha (3×3 average of the keep-mask → 1px anti-aliased edge) ───
   let opaque = 0, minX = w, minY = h, maxX = 0, maxY = 0
   for (let p = 0; p < N; p++) {

@@ -82,7 +82,7 @@ await withPage(browser, { captureOrder: true }, async (page, captured) => {
   await page.goto(BASE, { waitUntil: 'networkidle' })
   // PDP via first featured card → add to cart → cart → checkout
   await page.locator('main img, main svg').first().waitFor()
-  await page.getByText('CONNECTED FRAME').first().click()
+  await page.getByText('Round Metal RB3447').first().click()
   await page.getByRole('button', { name: /Add to Cart ·/ }).first().click()
   await page.getByRole('banner').getByRole('button', { name: 'Cart' }).click()
   await page.getByRole('button', { name: 'Checkout' }).click()
@@ -115,7 +115,7 @@ await withPage(browser, { captureOrder: true }, async (page, captured) => {
 console.log('\n== 2. Realtime address validation (Google Places mock) ==')
 await withPage(browser, { mockMaps: true, captureOrder: true }, async (page, captured) => {
   await page.goto(BASE, { waitUntil: 'networkidle' })
-  await page.getByText('CONNECTED FRAME').first().click()
+  await page.getByText('Round Metal RB3447').first().click()
   await page.getByRole('button', { name: /Add to Cart ·/ }).first().click()
   await page.getByRole('banner').getByRole('button', { name: 'Cart' }).click()
   await page.getByRole('button', { name: 'Checkout' }).click()
@@ -169,7 +169,7 @@ await withPage(browser, {}, async (page) => {
 console.log('\n== 4. Try Mirror custom size → cart → checkout → order payload ==')
 await withPage(browser, { captureOrder: true }, async (page, captured) => {
   await page.goto(BASE, { waitUntil: 'networkidle' })
-  await page.getByText('CONNECTED FRAME').first().click()
+  await page.getByText('Round Metal RB3447').first().click()
   // Try Mirror button sits on the product image; consent dialog gates the camera
   await page.locator('main').getByRole('button', { name: 'Try Mirror' }).first().click()
   await page.getByText('Camera & try-on consent').waitFor()

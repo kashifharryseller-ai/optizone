@@ -234,7 +234,10 @@ export class GlassesEngine {
     eyeMid.addScaledVector(this._ex, CFG.glassesCenterX)
 
     // ── scale: tied to eye distance, the size slider and calibration ──────────
-    const targetW = eyeDist * CFG.eyeToFrameRatio * CFG.glassesScale * (M.scaleMultiplier || 1) * (sliderSize || 1)
+    // A planar cut-out's width usually includes the folded temple tips peeking
+    // past the lenses, so the lenses land ~12% small — compensate.
+    const planeComp = this.contentKind === 'plane' ? 1.12 : 1
+    const targetW = eyeDist * CFG.eyeToFrameRatio * CFG.glassesScale * planeComp * (M.scaleMultiplier || 1) * (sliderSize || 1)
 
     // ── smoothing (snap on first frame after mount) ───────────────────────────
     const k = this._init ? CFG.smoothing : 1

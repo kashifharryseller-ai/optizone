@@ -150,8 +150,8 @@ function svgFor(cfg) {
 
     <!-- bridge -->
     ${single ? '' : (doubleBridge
-      ? `<path d="M ${cx1 + a * 0.72} ${bridgeY} C ${W / 2 - 20} ${bridgeY - 26}, ${W / 2 + 20} ${bridgeY - 26}, ${cx2 - a * 0.72} ${bridgeY}" fill="none" stroke="${rim.fill}" stroke-width="${Math.max(6, rw * 0.5)}"/>
-         <path d="M ${cx1 + a * 0.8} ${bridgeY + 26} L ${cx2 - a * 0.8} ${bridgeY + 26}" fill="none" stroke="${rim.fill}" stroke-width="${Math.max(5, rw * 0.4)}"/>`
+      ? `<path d="M ${cx1 + a * 0.72} ${bridgeY} C ${W / 2 - 20} ${bridgeY - 26}, ${W / 2 + 20} ${bridgeY - 26}, ${cx2 - a * 0.72} ${bridgeY}" fill="none" stroke="${rim.fill}" stroke-width="${Math.max(11, rw * 1.1)}" stroke-linecap="round"/>
+         <path d="M ${cx1 + a * 0.8} ${bridgeY + 26} L ${cx2 - a * 0.8} ${bridgeY + 26}" fill="none" stroke="${rim.fill}" stroke-width="${Math.max(9, rw * 0.9)}" stroke-linecap="round"/>`
       : `<path d="M ${cx1 + a * 0.88} ${bridgeY} C ${W / 2 - 14} ${bridgeY - 18}, ${W / 2 + 14} ${bridgeY - 18}, ${cx2 - a * 0.88} ${bridgeY}" fill="none" stroke="${rim.fill}" stroke-width="${Math.max(16, rw * 1.15)}" stroke-linecap="round"/>`)}
 
     <!-- nose pads for metal frames -->

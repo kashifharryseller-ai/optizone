@@ -66,7 +66,7 @@ await page.addInitScript(MOCK)
 // Give the opened product a transparent-PNG try-on asset.
 await page.route('**/api/content', async (route) => {
   const res = await route.fetch(); const json = await res.json()
-  const prod = (json.products || []).find((p) => p.name === 'CONNECTED FRAME') || json.products[0]
+  const prod = (json.products || []).find((p) => p.name === 'Round Metal RB3447') || json.products[0]
   if (prod) { prod.tryMirrorImg = MAGENTA_FRAME; prod.tryMirror = true }
   // Force a CONTACTS product ON to prove the category gate ignores the flag.
   const contact = (json.products || []).find((p) => p.category === 'contacts')
@@ -89,7 +89,7 @@ expect(await page.locator('main').getByRole('button', { name: 'Try Mirror' }).co
 
 console.log('\n== Try Mirror — model init + modal ==')
 await page.goto(BASE, { waitUntil: 'networkidle' })
-await page.getByText('CONNECTED FRAME').first().click()
+await page.getByText('Round Metal RB3447').first().click()
 // Eyewear product DOES offer Try Mirror (the button we click next).
 ok('glasses product page offers Try Mirror')
 await page.locator('main').getByRole('button', { name: 'Try Mirror' }).first().click()
@@ -112,8 +112,8 @@ await cards.filter({ hasText: 'Persol' }).first().click()
 await page.getByText(/· Persol/).first().waitFor({ timeout: 4000 })
 ok('clicking a carousel card switches the active frame (header updated)')
 // back to the opened frame for the rest of the flow
-await cards.filter({ hasText: 'CONNECTED FRAME' }).first().click()
-await page.getByText(/· .*CONNECTED FRAME/).first().waitFor({ timeout: 4000 })
+await cards.filter({ hasText: 'Round Metal RB3447' }).first().click()
+await page.getByText(/· .*Round Metal RB3447/).first().waitFor({ timeout: 4000 })
 
 console.log('\n== Mode 2: Upload photo renders an overlay ==')
 await page.getByRole('button', { name: 'Upload photo', exact: true }).click()
@@ -167,12 +167,12 @@ async function openTryon(pg, mutate) {
   await pg.addInitScript(MOCK)
   await pg.route('**/api/content', async (route) => {
     const res = await route.fetch(); const json = await res.json()
-    const prod = (json.products || []).find((p) => p.name === 'CONNECTED FRAME') || json.products[0]
+    const prod = (json.products || []).find((p) => p.name === 'Round Metal RB3447') || json.products[0]
     if (prod) { prod.tryMirror = true; mutate(prod) }
     await route.fulfill({ response: res, body: JSON.stringify(json) })
   })
   await pg.goto(BASE, { waitUntil: 'networkidle' })
-  await pg.getByText('CONNECTED FRAME').first().click()
+  await pg.getByText('Round Metal RB3447').first().click()
   await pg.locator('main').getByRole('button', { name: 'Try Mirror' }).first().click()
   await pg.getByRole('button', { name: 'Allow camera' }).click()
   await pg.getByRole('button', { name: 'Upload photo', exact: true }).click()
