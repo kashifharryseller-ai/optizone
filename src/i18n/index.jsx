@@ -129,6 +129,7 @@ const STRINGS = {
       calendlyEyebrow: 'Book online', calendlyH: 'Pick a time that suits you',
       calendlySub: 'Choose a live slot from our calendar — instant confirmation, free reschedule.',
       calendlyLoading: 'Loading the scheduler…',
+      calendlyOff: 'Online booking is temporarily unavailable — please call us at',
     },
 
     cart: {
@@ -331,6 +332,7 @@ const STRINGS = {
       calendlyEyebrow: 'קביעה אונליין', calendlyH: 'בחרו זמן שנוח לכם',
       calendlySub: 'בחרו מועד פנוי מהיומן שלנו — אישור מיידי, שינוי ללא עלות.',
       calendlyLoading: 'טוען את מערכת הקביעה…',
+      calendlyOff: 'קביעת תור אונליין אינה זמינה כרגע — התקשרו אלינו',
     },
 
     cart: {
