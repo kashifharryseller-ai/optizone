@@ -20,11 +20,14 @@ function securityHeaders() {
         //  - cdn.jsdelivr.net / unpkg.com: MediaPipe tasks-vision (Try Mirror)
         //  - storage.googleapis.com: MediaPipe face_landmarker model file
         //  - 'wasm-unsafe-eval': MediaPipe compiles its WASM module in-browser
-        scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'https://maps.googleapis.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com'],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'blob:', 'https://maps.googleapis.com', 'https://maps.gstatic.com'],
-        fontSrc: ["'self'", 'data:'],
-        connectSrc: ["'self'", 'https://maps.googleapis.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com', 'https://storage.googleapis.com'],
+        //  - assets.calendly.com: Calendly booking widget script/styles/fonts
+        //  - calendly.com (frameSrc): the Calendly scheduling iframe
+        scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'https://maps.googleapis.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com', 'https://assets.calendly.com'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://assets.calendly.com'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https://maps.googleapis.com', 'https://maps.gstatic.com', 'https://assets.calendly.com', 'https://*.calendly.com'],
+        fontSrc: ["'self'", 'data:', 'https://assets.calendly.com'],
+        connectSrc: ["'self'", 'https://maps.googleapis.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com', 'https://storage.googleapis.com', 'https://calendly.com', 'https://*.calendly.com'],
+        frameSrc: ["'self'", 'https://calendly.com', 'https://*.calendly.com'],
         workerSrc: ["'self'", 'blob:'],
         // blob: is required for Try Mirror's uploaded-video mode (object URLs);
         // without an explicit media-src, default-src 'self' blocks them.

@@ -4,6 +4,11 @@ import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import { api } from '../api.js'
+import { CalendlyInline } from '../components/CalendlyInline.jsx'
+
+// Calendly scheduling embed. The URL (with the pine-brand colours baked in) is
+// editable from Admin → Stores & Settings; this is the default.
+const CALENDLY_URL = 'https://calendly.com/optizone-info?background_color=072b08&text_color=f9f1f1'
 
 function Field({ label, children }) {
   return (
@@ -29,6 +34,11 @@ export function Booking({ go }) {
   const [day, setDay] = useState(1)
   const [name, setName] = useState(user?.name || '')
   const [phone, setPhone] = useState(user?.phone || '')
+
+  // Calendly link: admin value when the field exists (blank = hidden),
+  // otherwise the requested default.
+  const settings = content.settings || {}
+  const calendlyUrl = 'calendlyUrl' in settings ? settings.calendlyUrl : CALENDLY_URL
 
   const bDisp = (b) => (b ? `OPTIZONE ${lang === 'he' ? b.he || b.name : b.name} · ${b.addr || ''}` : '')
   const branchLabel = (b) => `OPTIZONE ${b?.name || ''} · ${b?.addr || ''}`.trim()
@@ -119,6 +129,22 @@ export function Booking({ go }) {
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>{t.noPay}</p>
         </Card>
       </div>
+
+      {/* Calendly online scheduler — book a live slot with instant confirmation.
+          Uses the admin-set URL if present, the requested default otherwise;
+          an explicitly-cleared setting hides the whole section. */}
+      {calendlyUrl && (
+        <section style={{ background: 'var(--pine-950)', borderTop: '1px solid var(--border-on-dark)' }}>
+          <div style={{ maxWidth: 900, margin: '0 auto', padding: '56px 28px 72px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 26 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--amber-500)' }}>{t.calendlyEyebrow}</span>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 30, color: 'var(--cream-100)', margin: '10px 0 8px' }}>{t.calendlyH}</h2>
+              <p style={{ fontSize: 15, color: 'var(--pine-100)', maxWidth: 520, margin: '0 auto', lineHeight: 1.6 }}>{t.calendlySub}</p>
+            </div>
+            <CalendlyInline url={calendlyUrl} height={700} loadingLabel={t.calendlyLoading} />
+          </div>
+        </section>
+      )}
     </div>
   )
 }

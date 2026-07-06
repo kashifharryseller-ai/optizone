@@ -126,6 +126,9 @@ const STRINGS = {
       doneH1: "You're booked",
       doneNote: 'A confirmation and reminders will be sent via WhatsApp & email. Reschedule anytime from the link.',
       edit: 'Edit booking', backHome: 'Back to home',
+      calendlyEyebrow: 'Book online', calendlyH: 'Pick a time that suits you',
+      calendlySub: 'Choose a live slot from our calendar — instant confirmation, free reschedule.',
+      calendlyLoading: 'Loading the scheduler…',
     },
 
     cart: {
@@ -325,6 +328,9 @@ const STRINGS = {
       doneH1: 'התור נקבע',
       doneNote: 'אישור ותזכורות יישלחו בוואטסאפ ובאימייל. אפשר לשנות בכל עת דרך הקישור.',
       edit: 'עריכת התור', backHome: 'חזרה לדף הבית',
+      calendlyEyebrow: 'קביעה אונליין', calendlyH: 'בחרו זמן שנוח לכם',
+      calendlySub: 'בחרו מועד פנוי מהיומן שלנו — אישור מיידי, שינוי ללא עלות.',
+      calendlyLoading: 'טוען את מערכת הקביעה…',
     },
 
     cart: {

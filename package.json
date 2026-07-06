@@ -11,7 +11,7 @@
     "start": "node app.js",
     "preview": "vite preview --host",
     "seed": "node server/seed-cli.js",
-    "test": "node tests/connection.test.mjs && node tests/admin-security.test.mjs && node tests/admin-ui.test.mjs && node tests/homepage-editor.test.mjs && node tests/storefront.test.mjs && node tests/trymirror.test.mjs && node tests/trymirror-media.test.mjs"
+    "test": "node tests/connection.test.mjs && node tests/admin-security.test.mjs && node tests/admin-ui.test.mjs && node tests/homepage-editor.test.mjs && node tests/calendly.test.mjs && node tests/storefront.test.mjs && node tests/trymirror.test.mjs && node tests/trymirror-media.test.mjs"
   },
   "dependencies": {
     "@fontsource/assistant": "^5.2.9",
