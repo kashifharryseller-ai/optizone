@@ -282,6 +282,14 @@ router.put('/content', async (req, res, next) => {
     if (content.mediaAlt && typeof content.mediaAlt === 'object') {
       for (const k of Object.keys(content.mediaAlt)) content.mediaAlt[k] = cleanBilingual(content.mediaAlt[k])
     }
+    // Promo codes: sanitise + clamp (percent 0–100), never trust the client.
+    if (content.settings && Array.isArray(content.settings.promos)) {
+      content.settings.promos = content.settings.promos.slice(0, 200).map((p) => ({
+        code: stripTags(String(p.code || '')).toUpperCase().replace(/\s+/g, '').slice(0, 40),
+        percent: clamp(p.percent, 0, 100),
+        active: p.active !== false,
+      }))
+    }
     // Version stamp — the storefront polls this to refresh itself instantly.
     content.updatedAt = new Date().toISOString()
     const saved = await store().setContent(content)

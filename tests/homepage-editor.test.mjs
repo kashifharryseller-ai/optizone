@@ -48,7 +48,7 @@ const login = async (p) => {
   await p.getByText('Overview').waitFor()
 }
 await login(page)
-await page.locator('aside nav button', { hasText: 'Homepage & Content' }).click()
+await page.locator('aside nav button', { hasText: 'Content & Homepage' }).first().click()
 await page.getByRole('heading', { name: 'Announcement bar' }).waitFor()
 ok('Homepage editor open')
 
@@ -139,7 +139,7 @@ await page.getByText(/unsaved local draft/).waitFor({ timeout: 6000 })
 ok('restore banner offered after reload with unsaved edits')
 await page.getByRole('button', { name: 'Restore draft' }).click()
 await page.waitForTimeout(300)
-await page.locator('aside nav button', { hasText: 'Homepage & Content' }).click()
+await page.locator('aside nav button', { hasText: 'Content & Homepage' }).first().click()
 await page.getByLabel('Title line 1 (English)').first().waitFor()
 await expect_eventually(() => page.getByLabel('Title line 1 (English)').first().inputValue().then((v) => v === 'PREVIEW LIVE TEST'))
 expect((await page.getByLabel('Title line 1 (English)').first().inputValue()) === 'PREVIEW LIVE TEST', 'restored draft brings back the edit')

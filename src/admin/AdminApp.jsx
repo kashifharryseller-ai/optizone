@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { GlassesMark, Icon } from '../ds/index.js'
+import { Icon } from '../ds/index.js'
 import { api, getToken, setToken } from '../api.js'
 import Login from './Login.jsx'
 import { Btn } from './ui.jsx'
+import { Sidebar } from './Sidebar.jsx'
 import Dashboard from './sections/Dashboard.jsx'
 import Products from './sections/Products.jsx'
 import Homepage from './sections/Homepage.jsx'
@@ -11,49 +12,95 @@ import Orders from './sections/Orders.jsx'
 import Customers from './sections/Customers.jsx'
 import Security from './sections/Security.jsx'
 import Bookings from './sections/Bookings.jsx'
+import Reports from './sections/Reports.jsx'
+import Discounts from './sections/Discounts.jsx'
+import TryMirrorAssets from './sections/TryMirrorAssets.jsx'
 
-// Lucide icons via the shared <Icon> set — unicode glyphs rendered as blank
-// boxes on some systems/fonts.
-const NAV = [
-  { key: 'dashboard', label: 'Dashboard', icon: 'layers' },
-  { key: 'products', label: 'Products', icon: 'glasses' },
-  { key: 'homepage', label: 'Homepage & Content', icon: 'file-text' },
-  { key: 'stores', label: 'Stores & Settings', icon: 'store' },
-  { key: 'orders', label: 'Orders', icon: 'package' },
-  { key: 'customers', label: 'Customers', icon: 'user' },
-  { key: 'bookings', label: 'Appointments', icon: 'calendar' },
-  { key: 'security', label: 'Security', icon: 'shield-check' },
+// Navigation config — drives the reusable <Sidebar>. Each leaf maps to a
+// section (a main-content view); groups hold sub-items.
+const MENU = [
+  { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', section: 'dashboard' },
+  { id: 'products', label: 'Products / Frames', icon: 'glasses', children: [
+    { id: 'products-all', label: 'All Products', section: 'products' },
+    { id: 'products-cat', label: 'Categories', section: 'products' },
+    { id: 'products-inv', label: 'Inventory', section: 'products' },
+  ] },
+  { id: 'orders', label: 'Orders', icon: 'package', section: 'orders', badgeKey: 'orders' },
+  { id: 'customers', label: 'Customers', icon: 'user', section: 'customers' },
+  { id: 'bookings', label: 'Appointments', icon: 'calendar', section: 'bookings' },
+  { id: 'armirror', label: 'Try-Mirror / AR', icon: 'camera', section: 'armirror' },
+  { id: 'content', label: 'Content & Homepage', icon: 'file-text', section: 'homepage' },
+  { id: 'discounts', label: 'Discounts', icon: 'tag', section: 'discounts' },
+  { id: 'reports', label: 'Reports', icon: 'bar-chart', section: 'reports' },
+  { id: 'settings', label: 'Settings', icon: 'settings', children: [
+    { id: 'settings-store', label: 'Store', section: 'stores' },
+    { id: 'settings-branches', label: 'Branches', section: 'stores' },
+    { id: 'settings-l10n', label: 'Localization · RTL', section: 'stores' },
+    { id: 'settings-users', label: 'Users & Roles', section: 'security' },
+  ] },
 ]
-const CONTENT_SECTIONS = new Set(['products', 'homepage', 'stores'])
+// Default nav id for a section reached without an explicit item (e.g. search).
+const SECTION_DEFAULT_NAV = {
+  dashboard: 'dashboard', products: 'products-all', orders: 'orders', customers: 'customers',
+  bookings: 'bookings', armirror: 'armirror', homepage: 'content', discounts: 'discounts',
+  reports: 'reports', stores: 'settings-store', security: 'settings-users',
+}
+function findNav(id) {
+  for (const it of MENU) {
+    if (it.id === id) return { label: it.label }
+    for (const c of it.children || []) if (c.id === id) return { group: it.label, label: c.label }
+  }
+  return { label: 'Dashboard' }
+}
+const CONTENT_SECTIONS = new Set(['products', 'homepage', 'stores', 'discounts', 'armirror'])
+
+// Small matchMedia hook for the mobile-drawer breakpoint.
+function useMediaQuery(query) {
+  const [match, setMatch] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(query)
+    const on = () => setMatch(mq.matches)
+    mq.addEventListener('change', on); on()
+    return () => mq.removeEventListener('change', on)
+  }, [query])
+  return match
+}
 
 export default function AdminApp() {
   const [authed, setAuthed] = useState(null) // null = checking
   const [section, setSection] = useState('dashboard')
+  const [activeNavId, setActiveNavId] = useState('dashboard')
   const [content, setContentState] = useState(null)
   const [original, setOriginal] = useState(null)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null) // { kind: 'ok'|'err', text }
   const [owner, setOwner] = useState('')
-  const [menuOpen, setMenuOpen] = useState(false)
-  // Global search → jump to a section with its list pre-filtered.
+  const [stats, setStats] = useState(null)
   const [sectionQuery, setSectionQuery] = useState({})
   const toastTimer = useRef(null)
 
-  useEffect(() => { document.documentElement.dir = 'ltr'; document.documentElement.lang = 'en' }, [])
+  // Sidebar UI state — collapse + direction persist; mobile drawer is transient.
+  const mobile = useMediaQuery('(max-width: 900px)')
+  const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem('oz_admin_collapsed') === '1' } catch { return false } })
+  const [dir, setDir] = useState(() => { try { return localStorage.getItem('oz_admin_dir') === 'rtl' ? 'rtl' : 'ltr' } catch { return 'ltr' } })
+  const [mobileNav, setMobileNav] = useState(false)
+  useEffect(() => { try { localStorage.setItem('oz_admin_collapsed', collapsed ? '1' : '0') } catch { /* ignore */ } }, [collapsed])
+  useEffect(() => { document.documentElement.dir = dir; document.documentElement.lang = 'en'; try { localStorage.setItem('oz_admin_dir', dir) } catch { /* ignore */ } }, [dir])
+  useEffect(() => () => { document.documentElement.dir = 'ltr' }, []) // restore on unmount
 
   useEffect(() => {
     if (!getToken()) { setAuthed(false); return }
     api.me().then((r) => { setAuthed(true); setOwner(r?.user?.username || '') }).catch(() => { setToken(null); setAuthed(false) })
   }, [])
 
-  // Owner identity for the avatar menu — also after an interactive sign-in
-  // (the mount-time fetch above only covers an already-saved session).
   useEffect(() => {
     if (authed === true && !owner) api.me().then((r) => setOwner(r?.user?.username || '')).catch(() => {})
   }, [authed, owner])
 
-  // If any admin call 401s mid-session (expired/rotated token), drop straight
-  // back to the login screen instead of leaving dead "Not authenticated" panels.
+  // Order-count badge in the sidebar.
+  useEffect(() => { if (authed === true) api.stats().then(setStats).catch(() => {}) }, [authed])
+
+  // Mid-session 401 → back to login.
   useEffect(() => {
     const onExpired = () => { setToken(null); setAuthed(false); setContentState(null) }
     window.addEventListener('oz-admin-401', onExpired)
@@ -62,12 +109,11 @@ export default function AdminApp() {
 
   useEffect(() => {
     if (authed !== true) return
-    api.getContent().then((c) => { setContentState(c); setOriginal(c) }).catch((e) => setMsg(e.message))
+    api.getContent().then((c) => { setContentState(c); setOriginal(c) }).catch((e) => setToast({ kind: 'err', text: `Couldn’t load content — ${e.message}` }))
   }, [authed])
 
   const dirty = useMemo(() => content && original && JSON.stringify(content) !== JSON.stringify(original), [content, original])
 
-  // Warn before closing/leaving the tab with unsaved content edits.
   useEffect(() => {
     if (!dirty) return
     const onBeforeUnload = (e) => { e.preventDefault(); e.returnValue = '' }
@@ -75,44 +121,35 @@ export default function AdminApp() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [dirty])
 
-  // ── Autosave draft ─────────────────────────────────────────────────────────
-  // Unsaved edits are snapshotted to localStorage (debounced) so a crash or
-  // accidental close never loses work; on return, a banner offers to restore.
+  // ── Autosave draft ──────────────────────────────────────────────────────────
   const DRAFT_KEY = 'oz_content_draft'
-  const [draftAt, setDraftAt] = useState(null)     // when the draft was last written
-  const [restorable, setRestorable] = useState(null) // draft found on load
+  const [draftAt, setDraftAt] = useState(null)
+  const [restorable, setRestorable] = useState(null)
   useEffect(() => {
     if (!dirty || !content) return
     const t = setTimeout(() => {
-      try {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({ ts: Date.now(), content }))
-        setDraftAt(new Date())
-      } catch { /* storage full/blocked */ }
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ ts: Date.now(), content })); setDraftAt(new Date()) } catch { /* full/blocked */ }
     }, 1500)
     return () => clearTimeout(t)
   }, [content, dirty])
-  // Offer restore once the server copy is loaded (draft must differ from it).
   useEffect(() => {
     if (!original || restorable !== null) return
     try {
       const raw = localStorage.getItem(DRAFT_KEY)
       if (!raw) { setRestorable(false); return }
       const draft = JSON.parse(raw)
-      const differs = draft?.content && JSON.stringify(draft.content) !== JSON.stringify(original)
-      setRestorable(differs ? draft : false)
+      setRestorable(draft?.content && JSON.stringify(draft.content) !== JSON.stringify(original) ? draft : false)
     } catch { setRestorable(false) }
   }, [original, restorable])
   const restoreDraft = () => { if (restorable?.content) setContentState(restorable.content); setRestorable(false) }
   const discardDraft = () => { try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ } setRestorable(false); setDraftAt(null) }
 
-  // Save = explicit state machine: idle → Saving… → transient success toast /
-  // persistent error toast with the button re-enabled for retry.
   const save = async () => {
     setSaving(true); setToast(null); clearTimeout(toastTimer.current)
     try {
       const saved = await api.saveContent(content)
       setOriginal(saved); setContentState(saved)
-      try { localStorage.removeItem('oz_content_draft') } catch { /* ignore */ }
+      try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ }
       setDraftAt(null)
       setToast({ kind: 'ok', text: 'Changes saved' })
       toastTimer.current = setTimeout(() => setToast(null), 2600)
@@ -126,9 +163,11 @@ export default function AdminApp() {
     setToken(null); setAuthed(false); setContentState(null)
   }
 
-  const openSection = (key, query) => {
-    if (query !== undefined) setSectionQuery((s) => ({ ...s, [key]: query }))
-    setSection(key)
+  // Navigate to a section, optionally via a specific nav item + list query.
+  const openSection = (nextSection, query, navId) => {
+    if (query !== undefined) setSectionQuery((s) => ({ ...s, [nextSection]: query }))
+    setSection(nextSection)
+    setActiveNavId(navId || SECTION_DEFAULT_NAV[nextSection] || nextSection)
   }
 
   if (authed === null) return <Center>Loading…</Center>
@@ -136,40 +175,42 @@ export default function AdminApp() {
 
   const needsContent = CONTENT_SECTIONS.has(section)
   const ready = !needsContent || content
+  const cur = findNav(activeNavId)
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-page)' }}>
-      {/* Sidebar */}
-      <aside style={{ width: 236, flex: '0 0 auto', background: 'var(--pine-800)', color: 'var(--cream-100)', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' }}>
-        <div style={{ padding: '22px 22px 18px', borderBottom: '1px solid var(--border-on-dark)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <GlassesMark size={22} color="var(--amber-500)" />
-          <div style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.18em', fontSize: 15 }}><span>OPTI</span><span style={{ color: 'var(--amber-500)' }}>ZONE</span></div>
-        </div>
-        <nav style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
-          {NAV.map((n) => (
-            <button key={n.key} onClick={() => setSection(n.key)} aria-current={section === n.key ? 'page' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-body)', fontSize: 14, background: section === n.key ? 'var(--pine-600)' : 'transparent', color: section === n.key ? 'var(--cream-100)' : 'var(--pine-200)' }}>
-              <span style={{ width: 18, display: 'inline-flex', justifyContent: 'center' }}>
-                <Icon name={n.icon} size={16} color={section === n.key ? 'var(--amber-500)' : 'currentColor'} />
-              </span>
-              {n.label}
-            </button>
-          ))}
-        </nav>
-        <div style={{ padding: 14, borderTop: '1px solid var(--border-on-dark)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Btn variant="ghost" size="sm" style={{ color: 'var(--pine-200)', justifyContent: 'flex-start' }} onClick={() => window.open('/', '_blank')}><Icon name="share-2" size={14} color="currentColor" /> View storefront</Btn>
-          <Btn variant="ghost" size="sm" style={{ color: 'var(--pine-200)', justifyContent: 'flex-start' }} onClick={logout}><Icon name="x" size={14} color="currentColor" /> Sign out</Btn>
-        </div>
-      </aside>
+    <div dir={dir} style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-page)' }}>
+      <Sidebar
+        menu={MENU}
+        activeSection={section}
+        activeId={activeNavId}
+        badges={{ orders: stats?.newOrders || 0 }}
+        collapsed={collapsed}
+        onToggleCollapse={() => setCollapsed((c) => !c)}
+        mobile={mobile}
+        mobileOpen={mobileNav}
+        onCloseMobile={() => setMobileNav(false)}
+        owner={owner || 'admin'}
+        role="Store owner"
+        dir={dir}
+        onToggleDir={() => setDir((d) => (d === 'rtl' ? 'ltr' : 'rtl'))}
+        onNavigate={(item) => openSection(item.section, item.query, item.id)}
+        onProfile={() => openSection('security', undefined, 'settings-users')}
+        onOpenStorefront={() => window.open('/', '_blank')}
+        onLogout={logout}
+      />
 
-      {/* Main */}
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <header style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg-page-alt)', borderBottom: '1px solid var(--border-hair)', padding: '12px 28px', display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div>
-            {/* breadcrumb */}
+          {mobile && (
+            <button type="button" aria-label="Open menu" onClick={() => setMobileNav(true)} style={{ border: '1px solid var(--border-hair)', background: 'var(--white)', borderRadius: 'var(--radius-sm)', width: 38, height: 38, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: '0 0 auto' }}>
+              <Icon name="menu" size={18} color="var(--text-strong)" />
+            </button>
+          )}
+          <div style={{ minWidth: 0 }}>
             <nav aria-label="Breadcrumb" style={{ fontFamily: 'var(--font-display)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 2 }}>
-              OPTIZONE Admin <span aria-hidden="true">/</span> <span style={{ color: 'var(--amber-700)' }}>{NAV.find((n) => n.key === section)?.label}</span>
+              OPTIZONE Admin <span aria-hidden="true">/</span> {cur.group && <><span>{cur.group}</span> <span aria-hidden="true">/</span> </>}<span style={{ color: 'var(--amber-700)' }}>{cur.label}</span>
             </nav>
-            <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 20, color: 'var(--text-strong)' }}>{NAV.find((n) => n.key === section)?.label}</h1>
+            <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 20, color: 'var(--text-strong)' }}>{cur.label}</h1>
           </div>
           <div style={{ marginInlineStart: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
             <GlobalSearch content={content} openSection={openSection} />
@@ -184,11 +225,9 @@ export default function AdminApp() {
                 <Btn variant="accent" onClick={save} disabled={!dirty || saving}>{saving ? 'Saving…' : 'Save changes'}</Btn>
               </span>
             )}
-            <AccountMenu owner={owner} open={menuOpen} setOpen={setMenuOpen} onLogout={logout} />
           </div>
         </header>
 
-        {/* Local draft found (e.g. after a crash or accidental close) */}
         {restorable && restorable !== false && (
           <div role="alert" style={{ margin: '18px 28px 0', maxWidth: 1024, display: 'flex', alignItems: 'center', gap: 12, background: 'var(--amber-50)', border: '1px solid var(--amber-600)', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 13.5, color: 'var(--text-body)' }}>
             <span>You have an unsaved local draft from {new Date(restorable.ts).toLocaleString()}. Restore it?</span>
@@ -202,20 +241,22 @@ export default function AdminApp() {
         <div style={{ padding: 28, maxWidth: 1080, width: '100%' }}>
           {!ready ? <Center>Loading content…</Center> : (
             <>
-              {section === 'dashboard' && <Dashboard go={setSection} />}
+              {section === 'dashboard' && <Dashboard go={(s) => openSection(s)} />}
               {section === 'products' && <Products content={content} setContent={setContentState} initialQuery={sectionQuery.products} />}
               {section === 'homepage' && <Homepage content={content} setContent={setContentState} />}
               {section === 'stores' && <StoresSettings content={content} setContent={setContentState} />}
               {section === 'orders' && <Orders initialQuery={sectionQuery.orders} />}
               {section === 'customers' && <Customers initialQuery={sectionQuery.customers} />}
               {section === 'bookings' && <Bookings initialQuery={sectionQuery.bookings} />}
+              {section === 'armirror' && <TryMirrorAssets content={content} setContent={setContentState} />}
+              {section === 'discounts' && <Discounts content={content} setContent={setContentState} />}
+              {section === 'reports' && <Reports />}
               {section === 'security' && <Security />}
             </>
           )}
         </div>
       </main>
 
-      {/* transient save toast — success auto-hides, errors persist until retry */}
       {toast && (
         <div role="status" style={{ position: 'fixed', bottom: 22, insetInlineEnd: 22, zIndex: 90, display: 'flex', alignItems: 'center', gap: 10, background: toast.kind === 'ok' ? 'var(--pine-700)' : '#8A2E21', color: 'var(--cream-100)', borderRadius: 'var(--radius-md)', padding: '12px 18px', boxShadow: 'var(--shadow-lg)', maxWidth: 420, fontSize: 13.5 }}>
           <Icon name={toast.kind === 'ok' ? 'check-circle' : 'info'} size={17} color={toast.kind === 'ok' ? 'var(--amber-500)' : 'var(--cream-100)'} />
@@ -228,50 +269,11 @@ export default function AdminApp() {
   )
 }
 
-// Header avatar + account dropdown (owner email, storefront link, sign out).
-function AccountMenu({ owner, open, setOpen, onLogout }) {
-  const ref = useRef(null)
-  useEffect(() => {
-    if (!open) return
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
-    document.addEventListener('mousedown', onDoc)
-    document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) }
-  }, [open, setOpen])
-  const initial = (owner || 'A').trim()[0].toUpperCase()
-  return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button type="button" aria-label="Account menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}
-        style={{ width: 36, height: 36, borderRadius: 999, border: '1px solid var(--border-hair)', background: 'var(--pine-700)', color: 'var(--cream-100)', fontFamily: 'var(--font-display)', fontSize: 15, cursor: 'pointer' }}>
-        {initial}
-      </button>
-      {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 8px)', insetInlineEnd: 0, width: 240, background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', zIndex: 60 }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-hair)', background: 'var(--cream-100)' }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Store owner</div>
-            <div style={{ fontSize: 13.5, color: 'var(--text-strong)', overflowWrap: 'anywhere' }}>{owner || 'admin'}</div>
-          </div>
-          <button type="button" onClick={() => { setOpen(false); window.open('/', '_blank') }} style={menuItemStyle}>
-            <Icon name="store" size={15} color="var(--pine-700)" /> View storefront
-          </button>
-          <button type="button" onClick={() => { setOpen(false); onLogout() }} style={{ ...menuItemStyle, color: 'var(--danger)' }}>
-            <Icon name="x" size={15} color="var(--danger)" /> Sign out
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-const menuItemStyle = { display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-body)', fontSize: 13.5, color: 'var(--text-body)' }
-
-// Global search across products, orders, customers and appointments. Content
-// is searched locally; the rest is fetched once (then cached) on first use.
-// Picking a result jumps to that section with its list pre-filtered.
+// Global search across products, orders, customers and appointments.
 function GlobalSearch({ content, openSection }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
-  const cache = useRef(null) // { orders, users, bookings }
+  const cache = useRef(null)
   const [remote, setRemote] = useState(null)
   const boxRef = useRef(null)
 
@@ -331,7 +333,7 @@ function GlobalSearch({ content, openSection }) {
             <div style={{ padding: '14px 16px', fontSize: 13, color: 'var(--text-muted)' }}>No matches for “{q}”.</div>
           ) : results.slice(0, 12).map((r, i) => (
             <button key={i} type="button" onClick={() => { setOpen(false); setQ(''); openSection(r.section, r.query) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', border: 'none', borderBottom: '1px solid var(--border-hair)', background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-body)', fontSize: 13.5, color: 'var(--text-body)' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', border: 'none', borderBottom: '1px solid var(--border-hair)', background: 'transparent', cursor: 'pointer', textAlign: 'start', fontFamily: 'var(--font-body)', fontSize: 13.5, color: 'var(--text-body)' }}>
               <Icon name={r.icon} size={15} color="var(--pine-700)" />
               <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>{r.sub}</span>

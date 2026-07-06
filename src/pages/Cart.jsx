@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Button, Icon, QuantityStepper, Price, Card, Input, GlassesMark } from '../ds/index.js'
 import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
@@ -9,7 +9,20 @@ export function Cart({ cart, setCart, go, openCatalog }) {
   const threshold = s.shippingThreshold ?? 400
   const fee = s.shippingFee ?? 30
   const subtotal = cart.reduce((sum, i) => sum + i.amount * i.qty, 0)
-  const shipping = subtotal > threshold || subtotal === 0 ? 0 : fee
+  // Promo codes are managed in Admin → Discounts (settings.promos). Applying a
+  // valid, active code discounts the subtotal by its percentage.
+  const [promoInput, setPromoInput] = useState('')
+  const [promo, setPromo] = useState(null) // { code, percent }
+  const [promoErr, setPromoErr] = useState('')
+  const applyPromo = () => {
+    const code = promoInput.trim().toUpperCase()
+    if (!code) return
+    const match = (s.promos || []).find((p) => p.active !== false && String(p.code || '').toUpperCase() === code)
+    if (match) { setPromo({ code, percent: Number(match.percent) || 0 }); setPromoErr('') }
+    else { setPromo(null); setPromoErr(t.promoInvalid) }
+  }
+  const discount = promo ? Math.round(subtotal * (promo.percent / 100)) : 0
+  const shipping = (subtotal - discount) > threshold || subtotal === 0 ? 0 : fee
   const setQty = (idx, qty) => setCart(cart.map((c, i) => (i === idx ? { ...c, qty } : c)))
   const remove = (idx) => setCart(cart.filter((_, i) => i !== idx))
 
@@ -55,14 +68,20 @@ export function Cart({ cart, setCart, go, openCatalog }) {
           {[[t.subtotal, `₪${subtotal.toLocaleString('he-IL')}`], [t.shipping, shipping ? `₪${shipping}` : t.free]].map(([k, v]) => (
             <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', fontSize: 14, color: 'var(--text-body)' }}><span>{k}</span><span>{v}</span></div>
           ))}
+          {promo && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', fontSize: 14, color: 'var(--success)' }}>
+              <span>{t.promoApplied(promo.code)} · −{promo.percent}%</span><span>−₪{discount.toLocaleString('he-IL')}</span>
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8, margin: '12px 0' }}>
-            <Input placeholder={t.promo} containerStyle={{ flex: 1 }} size="sm" />
-            <Button variant="outline" size="sm">{t.apply}</Button>
+            <Input placeholder={t.promo} value={promoInput} onChange={(e) => setPromoInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && applyPromo()} containerStyle={{ flex: 1 }} size="sm" />
+            <Button variant="outline" size="sm" onClick={applyPromo}>{t.apply}</Button>
           </div>
+          {promoErr && <div role="alert" style={{ fontSize: 12.5, color: 'var(--danger)', marginBottom: 8 }}>{promoErr}</div>}
           <div style={{ borderTop: '1px solid var(--border-hair)', margin: '8px 0 14px' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, letterSpacing: '0.06em', color: 'var(--text-strong)' }}>{t.total}</span>
-            <Price amount={subtotal + shipping} size="lg" />
+            <Price amount={subtotal - discount + shipping} size="lg" />
           </div>
           <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <Button variant="primary" block size="lg" onClick={() => go('checkout')}>{t.checkout}</Button>

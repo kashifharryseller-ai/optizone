@@ -33,6 +33,21 @@ const errors = []
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
 page.on('pageerror', (e) => errors.push('PAGEERR ' + e.message))
 
+// navigate the sidebar: expand the group only if the target child isn't
+// already visible (clicking an open group would toggle it shut).
+async function gotoNav(page, group, item) {
+  if (group) {
+    const g = page.locator('aside nav button', { hasText: group }).first()
+    if ((await g.getAttribute('aria-expanded')) === 'false') { await g.scrollIntoViewIfNeeded(); await g.click() }
+    const child = page.locator('aside nav button', { hasText: item }).first()
+    await child.waitFor()
+    await child.scrollIntoViewIfNeeded()
+    await child.click()
+    return
+  }
+  await page.locator('aside nav button', { hasText: item }).first().click()
+}
+
 // login
 await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle' })
 await page.getByPlaceholder('info@optizone.co.il').fill('owner@ui-test.dev')
@@ -45,10 +60,12 @@ console.log('\n== Icons, breadcrumb, account menu ==')
 const svgIcons = await page.locator('aside nav button svg').count()
 expect(svgIcons >= 8, `sidebar renders ${svgIcons} vector icons (no glyph boxes)`)
 expect(await page.getByLabel('Breadcrumb').textContent().then((t) => t.includes('OPTIZONE Admin')), 'breadcrumb rendered')
-await page.getByLabel('Account menu').click()
-await page.getByText('Store owner').waitFor()
-expect(await page.getByText('owner@ui-test.dev').isVisible(), 'account menu shows owner email')
-expect(await page.getByRole('main').getByRole('button', { name: 'Sign out' }).isVisible(), 'account menu has sign-out')
+// profile chip in the sidebar footer shows the owner + role, opens Profile/Logout
+expect(await page.getByText('Store owner').isVisible(), 'sidebar profile chip shows role')
+expect(await page.getByText('owner@ui-test.dev').isVisible(), 'sidebar profile chip shows owner email')
+await page.locator('aside').getByRole('button', { name: /owner@ui-test.dev/ }).click()
+await page.getByRole('menuitem', { name: 'Logout' }).waitFor()
+ok('profile dropdown has Logout')
 await page.keyboard.press('Escape')
 
 console.log('\n== Global search → deep link ==')
@@ -77,7 +94,7 @@ expect(await page.getByText('Changes saved').count() === 0, 'toast auto-dismisse
 expect(await saveBtn.isDisabled(), 'Save disabled again once persisted')
 
 console.log('\n== Security page: no stuck Loading, error-free ==')
-await page.getByRole('button', { name: 'Security' }).click()
+await gotoNav(page, 'Settings', 'Users & Roles')
 await page.getByText('Owner account').waitFor()
 await page.locator('input[value="owner@ui-test.dev"]').waitFor()
 ok('Owner account form loaded (not stuck on Loading…)')
@@ -88,8 +105,8 @@ ok('Audit log loaded with recorded entries')
 expect(await page.getByText('Loading…').count() === 0, 'no panel stuck on "Loading…"')
 
 console.log('\n== Branch remove asks for confirmation ==')
-await page.getByRole('button', { name: /Stores & Settings/ }).click()
-await page.getByText('Branches').waitFor()
+await gotoNav(page, 'Settings', 'Store')
+await page.getByRole('heading', { name: 'Branches' }).waitFor()
 let confirmMsg = ''
 page.once('dialog', (d) => { confirmMsg = d.message(); d.dismiss() })
 await page.getByRole('button', { name: 'Remove item' }).first().click()
@@ -104,7 +121,7 @@ await page.getByText('No orders yet').waitFor()
 expect(await page.getByRole('button', { name: /Open the storefront/ }).isVisible(), 'Orders empty state offers a call-to-action')
 
 console.log('\n== RTL on bilingual Hebrew fields ==')
-await page.getByRole('button', { name: /Homepage & Content/ }).click()
+await page.locator('aside nav button', { hasText: 'Content & Homepage' }).first().click()
 await page.waitForTimeout(500)
 const rtlInputs = await page.locator('input[dir="rtl"], textarea[dir="rtl"]').count()
 expect(rtlInputs > 0, `${rtlInputs} Hebrew fields render dir="rtl"`)
