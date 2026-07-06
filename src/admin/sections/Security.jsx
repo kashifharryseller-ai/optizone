@@ -21,7 +21,16 @@ function CheckRow({ ok, label, fix }) {
 // warns about, in one place with exact fixes (DB, JWT_SECRET, email OTP).
 function EnvChecklist() {
   const [stats, setStats] = useState(null)
-  useEffect(() => { api.stats().then(setStats).catch(() => {}) }, [])
+  const [failed, setFailed] = useState(false)
+  const load = () => { setFailed(false); api.stats().then(setStats).catch(() => setFailed(true)) }
+  useEffect(load, [])
+  if (failed) {
+    return (
+      <Panel title="Production readiness" desc="Environment configuration this panel can detect.">
+        <LoadError message="stats request failed" onRetry={load} />
+      </Panel>
+    )
+  }
   if (!stats) return null
   const s = stats.security || {}
   const st = stats.store || {}
@@ -50,14 +59,27 @@ function EnvChecklist() {
   )
 }
 
+// Shared load-error row with retry — panels must never sit on "Loading…"
+// forever when a request fails.
+function LoadError({ message, onRetry }) {
+  return (
+    <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13.5, color: 'var(--danger)', background: '#F6E3DE', borderRadius: 'var(--radius-sm)', padding: '10px 14px' }}>
+      Couldn’t load — {message || 'network error'}.
+      <Btn variant="outline" size="sm" onClick={onRetry}>Retry</Btn>
+    </div>
+  )
+}
+
 // Trail of recent admin actions on data (PII views, edits, deletions) —
 // written server-side; read-only here.
 function AuditLog() {
   const [rows, setRows] = useState(null)
-  useEffect(() => { api.adminAudit().then(setRows).catch(() => setRows([])) }, [])
+  const [err, setErr] = useState('')
+  const load = () => { setErr(''); setRows(null); api.adminAudit().then(setRows).catch((e) => { setErr(e.message); setRows([]) }) }
+  useEffect(load, [])
   return (
     <Panel title="Audit log" desc="Recent admin actions on store data — customer views, edits and deletions. Recorded automatically on the server.">
-      {!rows ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : rows.length === 0 ? (
+      {err ? <LoadError message={err} onRetry={load} /> : !rows ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : rows.length === 0 ? (
         <p style={{ color: 'var(--text-muted)' }}>No recorded actions yet.</p>
       ) : (
         <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)' }}>
@@ -89,9 +111,12 @@ export default function Security() {
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    api.adminAccount().then((a) => { setAccount(a); setEmail(a.email) }).catch((e) => setErr(e.message))
-  }, [])
+  const [loadErr, setLoadErr] = useState('')
+  const loadAccount = () => {
+    setLoadErr('')
+    api.adminAccount().then((a) => { setAccount(a); setEmail(a.email) }).catch((e) => setLoadErr(e.message || 'network error'))
+  }
+  useEffect(loadAccount, [])
 
   const save = async () => {
     setErr(''); setMsg('')
@@ -113,7 +138,7 @@ export default function Security() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <EnvChecklist />
       <Panel title="Owner account" desc="The email and password used to sign in to this admin panel. The email also receives your OTP sign-in codes.">
-        {!account ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : (
+        {loadErr ? <LoadError message={loadErr} onRetry={loadAccount} /> : !account ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 560 }}>
             <Field label="Owner email"><Text value={email} onChange={setEmail} /></Field>
             <Row cols="1fr 1fr">
@@ -135,7 +160,7 @@ export default function Security() {
       </Panel>
 
       <Panel title="Two-step verification (email OTP)" desc="When enabled, signing in also requires a 6-digit code emailed to the owner address.">
-        {!account ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : (
+        {loadErr ? <LoadError message={loadErr} onRetry={loadAccount} /> : !account ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : (
           <div style={{ fontSize: 14, color: 'var(--text-body)', lineHeight: 1.7 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
               <span style={{ width: 10, height: 10, borderRadius: 999, background: account.otpEnabled ? 'var(--success)' : 'var(--warning)' }} />

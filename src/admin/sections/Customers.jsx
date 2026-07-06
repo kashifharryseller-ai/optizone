@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react'
 import { Panel, Btn, Toggle } from '../ui.jsx'
 import { api } from '../../api.js'
 
-export default function Customers() {
+export default function Customers({ initialQuery }) {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
-  const [q, setQ] = useState('')
+  const [q, setQ] = useState(initialQuery || '')
+  useEffect(() => { if (initialQuery !== undefined) setQ(initialQuery) }, [initialQuery])
 
   const load = () => { setLoading(true); api.adminUsers().then(setUsers).catch((e) => setErr(e.message)).finally(() => setLoading(false)) }
   useEffect(load, [])

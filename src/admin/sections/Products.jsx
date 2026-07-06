@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
-import { Panel, Row, Field, Text, Num, SelectField, Toggle, Bilingual, ImageField, ListEditor, StringList, Btn } from '../ui.jsx'
+import React, { useEffect, useState } from 'react'
+import { Panel, Row, Field, Text, Num, SelectField, Toggle, Bilingual, ImageField, ListEditor, StringList, Btn, Pager } from '../ui.jsx'
+import { GlassesMark } from '../../ds/index.js'
 
 const BADGE_VARIANTS = [
   { value: 'sale', label: 'Sale (amber)' },
@@ -31,7 +32,7 @@ function ColorList({ colors = [], onChange }) {
 
 const searchStyle = { height: 36, padding: '0 12px', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-body)', fontSize: 13.5, outline: 'none', minWidth: 220 }
 
-export default function Products({ content, setContent }) {
+export default function Products({ content, setContent, initialQuery }) {
   const products = content.products || []
   const filters = content.filters || {}
   const setProducts = (list) => setContent({ ...content, products: list })
@@ -40,8 +41,11 @@ export default function Products({ content, setContent }) {
   // Search + category filter keep large catalogs navigable. While a filter is
   // active, edits from the (filtered) list are reconciled back into the FULL
   // catalog by product id, and reordering is disabled to avoid ambiguity.
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialQuery || '')
   const [cat, setCat] = useState('all')
+  const [page, setPage] = useState(0)
+  useEffect(() => { if (initialQuery !== undefined) setQuery(initialQuery) }, [initialQuery])
+  useEffect(() => { setPage(0) }, [query, cat]) // filters reset to page 1
   const filtering = query.trim() !== '' || cat !== 'all'
   const q = query.trim().toLowerCase()
   const visible = filtering
@@ -49,9 +53,16 @@ export default function Products({ content, setContent }) {
         (cat === 'all' || (p.category || 'eyeglasses') === cat) &&
         (!q || `${p.brand} ${p.name}`.toLowerCase().includes(q)))
     : products
+  // Pagination on top of the filter; reorder only makes sense when the list
+  // shows the whole catalog on one page.
+  const PAGE = 25
+  const pages = Math.max(1, Math.ceil(visible.length / PAGE))
+  const safePage = Math.min(page, pages - 1)
+  const paged = visible.slice(safePage * PAGE, (safePage + 1) * PAGE)
+  const wholeList = !filtering && pages === 1
   const onListChange = (nextVisible) => {
-    if (!filtering) return setProducts(nextVisible)
-    const shownIds = new Set(visible.map((p) => p.id))
+    if (wholeList) return setProducts(nextVisible)
+    const shownIds = new Set(paged.map((p) => p.id))
     const nextById = new Map(nextVisible.map((p) => [p.id, p]))
     const merged = products
       .filter((p) => !(shownIds.has(p.id) && !nextById.has(p.id))) // removed while filtered
@@ -79,9 +90,9 @@ export default function Products({ content, setContent }) {
       )}
     >
       <ListEditor
-        items={visible}
+        items={paged}
         onChange={onListChange}
-        canReorder={!filtering}
+        canReorder={wholeList}
         addLabel="Add product"
         confirmRemove={(p) => `PERMANENTLY remove "${p.brand ? p.brand + ' ' : ''}${p.name}" from the catalog? To hide it from the store while keeping its history, use the Archive toggle instead.`}
         summary={(p) => (
@@ -89,7 +100,7 @@ export default function Products({ content, setContent }) {
             <span style={{ width: 44, height: 34, borderRadius: 6, background: 'var(--cream-300)', border: '1px solid var(--border-hair)', overflow: 'hidden', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {p.image
                 ? <img src={p.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                : <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>no photo</span>}
+                : <GlassesMark size={16} color="var(--pine-300)" />}
             </span>
             <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               <b style={{ color: 'var(--text-strong)', fontSize: 14 }}>{p.brand ? `${p.brand} · ` : ''}{p.name}</b>
@@ -166,6 +177,7 @@ export default function Products({ content, setContent }) {
           </div>
         )}
       />
+      <Pager page={safePage} setPage={setPage} total={visible.length} pageSize={PAGE} />
     </Panel>
 
     <Panel title="Brands" desc="Shown on the Brands page; customers can browse all products of a brand.">

@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from 'react'
-import { Panel, Btn, SelectField } from '../ui.jsx'
+import { Panel, Btn, SelectField, Pager, EmptyState } from '../ui.jsx'
+import { Icon } from '../../ds/index.js'
 import { api } from '../../api.js'
 
 const STATUSES = ['New', 'Confirmed', 'Completed', 'Cancelled']
 
 const searchStyle = { height: 34, padding: '0 12px', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-body)', fontSize: 13.5, outline: 'none' }
 
-export default function Bookings() {
+export default function Bookings({ initialQuery }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialQuery || '')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [page, setPage] = useState(0)
+  useEffect(() => { if (initialQuery !== undefined) setQuery(initialQuery) }, [initialQuery])
+  useEffect(() => { setPage(0) }, [query, statusFilter])
 
   const load = () => { setLoading(true); api.bookings().then(setRows).catch((e) => setErr(e.message)).finally(() => setLoading(false)) }
   useEffect(load, [])
@@ -23,6 +27,9 @@ export default function Bookings() {
   const shown = rows.filter((r) =>
     (statusFilter === 'all' || r.status === statusFilter) &&
     (!q || `${r.id} ${r.name || ''} ${r.phone || ''} ${r.service || ''} ${r.branch || ''}`.toLowerCase().includes(q)))
+  const PAGE = 20
+  const safePage = Math.min(page, Math.max(0, Math.ceil(shown.length / PAGE) - 1))
+  const paged = shown.slice(safePage * PAGE, (safePage + 1) * PAGE)
 
   return (
     <Panel title="Appointments" desc="Bookings requested through the site." actions={(
@@ -37,12 +44,17 @@ export default function Bookings() {
     )}>
       {err && <div style={{ color: 'var(--danger)', marginBottom: 12 }}>{err}</div>}
       {loading ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : rows.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No appointments yet.</p>
+        <EmptyState
+          icon={<Icon name="calendar" size={34} color="var(--pine-300)" />}
+          title="No appointments yet"
+          sub="Eye-exam and fitting bookings made on the website appear here — confirm them and they show under the customer's account."
+          cta="Open the storefront ↗" onCta={() => window.open('/', '_blank')}
+        />
       ) : shown.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No appointments match the current search/filter.</p>
+        <EmptyState icon={<Icon name="search" size={30} color="var(--pine-300)" />} title="No matching appointments" sub="Try a different search term or status filter." />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {shown.map((r) => (
+          {paged.map((r) => (
             <div key={r.id} style={{ border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)', padding: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <div>
@@ -60,6 +72,7 @@ export default function Bookings() {
               <div style={{ marginTop: 6, fontSize: 13, color: 'var(--text-muted)' }}>{r.service} · {r.branch} · {r.day} {r.slot}</div>
             </div>
           ))}
+          <Pager page={safePage} setPage={setPage} total={shown.length} pageSize={PAGE} />
         </div>
       )}
     </Panel>

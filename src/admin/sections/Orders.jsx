@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from 'react'
-import { Panel, Btn, SelectField } from '../ui.jsx'
+import { Panel, Btn, SelectField, Pager, EmptyState } from '../ui.jsx'
+import { Icon } from '../../ds/index.js'
 import { api } from '../../api.js'
 
 const STATUSES = ['New', 'In lab', 'Shipped', 'Collected', 'Cancelled']
 
 const searchStyle = { height: 34, padding: '0 12px', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-body)', fontSize: 13.5, outline: 'none' }
 
-export default function Orders() {
+export default function Orders({ initialQuery }) {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialQuery || '')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [page, setPage] = useState(0)
+  // Global-search deep link: adopt the query when it changes.
+  useEffect(() => { if (initialQuery !== undefined) setQuery(initialQuery) }, [initialQuery])
+  useEffect(() => { setPage(0) }, [query, statusFilter])
 
   const load = () => { setLoading(true); api.orders().then(setOrders).catch((e) => setErr(e.message)).finally(() => setLoading(false)) }
   useEffect(load, [])
@@ -23,6 +28,9 @@ export default function Orders() {
   const shown = orders.filter((o) =>
     (statusFilter === 'all' || o.status === statusFilter) &&
     (!q || `${o.id} ${o.customer?.name || ''} ${o.customer?.email || ''} ${o.customer?.phone || ''}`.toLowerCase().includes(q)))
+  const PAGE = 20
+  const safePage = Math.min(page, Math.max(0, Math.ceil(shown.length / PAGE) - 1))
+  const paged = shown.slice(safePage * PAGE, (safePage + 1) * PAGE)
 
   return (
     <Panel title="Orders" desc="Orders placed through the storefront checkout." actions={(
@@ -37,12 +45,17 @@ export default function Orders() {
     )}>
       {err && <div style={{ color: 'var(--danger)', marginBottom: 12 }}>{err}</div>}
       {loading ? <p style={{ color: 'var(--text-muted)' }}>Loading…</p> : orders.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No orders yet.</p>
+        <EmptyState
+          icon={<Icon name="package" size={34} color="var(--pine-300)" />}
+          title="No orders yet"
+          sub="Orders placed through the storefront checkout appear here in real time — you can update their status and follow up with the customer."
+          cta="Open the storefront ↗" onCta={() => window.open('/', '_blank')}
+        />
       ) : shown.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No orders match the current search/filter.</p>
+        <EmptyState icon={<Icon name="search" size={30} color="var(--pine-300)" />} title="No matching orders" sub="Try a different search term or status filter." />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {shown.map((o) => (
+          {paged.map((o) => (
             <div key={o.id} style={{ border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-sm)', padding: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <div>
@@ -67,6 +80,7 @@ export default function Orders() {
               </div>
             </div>
           ))}
+          <Pager page={safePage} setPage={setPage} total={shown.length} pageSize={PAGE} />
         </div>
       )}
     </Panel>

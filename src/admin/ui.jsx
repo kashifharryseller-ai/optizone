@@ -193,6 +193,34 @@ export function ListEditor({ items, onChange, render, makeNew, addLabel = 'Add i
   )
 }
 
+// --- Pagination ---------------------------------------------------------------
+// Renders nothing while everything fits on one page.
+export function Pager({ page, setPage, total, pageSize }) {
+  const pages = Math.max(1, Math.ceil(total / pageSize))
+  if (pages <= 1) return null
+  const from = page * pageSize + 1
+  const to = Math.min(total, (page + 1) * pageSize)
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'flex-end', marginTop: 14 }}>
+      <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{from}–{to} of {total}</span>
+      <Btn variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={page === 0} aria-label="Previous page">‹ Prev</Btn>
+      <Btn variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={page >= pages - 1} aria-label="Next page">Next ›</Btn>
+    </div>
+  )
+}
+
+// Richer empty state: icon, headline, guidance, optional call-to-action.
+export function EmptyState({ icon, title, sub, cta, onCta }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '36px 20px', color: 'var(--text-muted)' }}>
+      {icon}
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, color: 'var(--text-strong)', margin: '12px 0 4px' }}>{title}</div>
+      <div style={{ fontSize: 13.5, maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>{sub}</div>
+      {cta && <div style={{ marginTop: 16 }}><Btn variant="outline" size="sm" onClick={onCta}>{cta}</Btn></div>}
+    </div>
+  )
+}
+
 // Simple string-list editor (chips as inputs).
 export function StringList({ items = [], onChange, placeholder }) {
   return (

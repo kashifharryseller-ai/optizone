@@ -15,6 +15,7 @@ export default function StoresSettings({ content, setContent }) {
           items={content.stores || []}
           onChange={(v) => set({ stores: v })}
           addLabel="Add branch"
+          confirmRemove={(b) => `Remove the "${b.name || 'unnamed'}" branch? It disappears from the store locator and booking pages after you save.`}
           makeNew={() => ({ name: 'New Branch', he: '', addr: '', phone: '', hours: { en: '', he: '' }, services: [], x: 35, y: 45 })}
           render={(st, setItem) => (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
