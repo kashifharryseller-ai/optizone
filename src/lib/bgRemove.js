@@ -62,26 +62,51 @@ export async function removeBackground(src, opts = {}) {
   const imgData = ctx.getImageData(0, 0, w, h)
   const d = imgData.data
 
-  const bg = sampleBackground(d, w, h)
+  const border = sampleBackground(d, w, h)
   const tol = Math.max(0.02, Math.min(0.6, opts.tolerance ?? 0.14))
-  // work in squared-distance space; 255*sqrt(3) is the max RGB distance
-  const t0 = (tol * 441.67) ** 2                 // fully transparent below this
-  const t1 = ((tol * 441.67) * 1.7) ** 2         // fully opaque above this (feather between)
+  const MAXD = 441.673 // max RGB euclidean distance (255·√3)
+  const N = w * h
 
-  let opaque = 0
-  let minX = w, minY = h, maxX = 0, maxY = 0
-  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
-    const ds = dist2(d[i], d[i + 1], d[i + 2], bg.color)
-    let a = d[i + 3]
-    if (ds <= t0) a = 0
-    else if (ds < t1) a = Math.round(a * (ds - t0) / (t1 - t0))
-    d[i + 3] = a
-    if (a > 24) {
-      opaque++
-      const x = p % w, y = (p / w) | 0
-      if (x < minX) minX = x; if (x > maxX) maxX = x
-      if (y < minY) minY = y; if (y > maxY) maxY = y
-    }
+  // ── Flood-fill / "magic wand" from the border ───────────────────────────────
+  // A single average-colour key can't remove a gradient / shadowed / multi-tone
+  // backdrop. Instead, seed the outer border as background and grow INWARD:
+  // a neighbour joins the background only if it's close to the pixel it grew
+  // from. Small local steps follow gradual colour change (gradients, soft
+  // shadows) but stop at the sharp contrast of the frame edge.
+  const bg = new Uint8Array(N)      // 1 = background
+  const stack = new Int32Array(N)   // DFS stack of pixel indices
+  let sp = 0
+  const distIdx = (p, r, g, b) => { const i = p * 4; const dr = d[i] - r, dg = d[i + 1] - g, db = d[i + 2] - b; return dr * dr + dg * dg + db * db }
+  const seedAt = (p) => { if (!bg[p]) { bg[p] = 1; stack[sp++] = p } }
+  for (let x = 0; x < w; x++) { seedAt(x); seedAt((h - 1) * w + x) }         // top + bottom
+  for (let y = 0; y < h; y++) { seedAt(y * w); seedAt(y * w + (w - 1)) }     // left + right
+
+  const step2 = Math.max(15, tol * MAXD * 0.6) ** 2 // neighbour-to-neighbour tolerance
+  while (sp) {
+    const p = stack[--sp]
+    const i = p * 4, r = d[i], g = d[i + 1], b = d[i + 2]
+    const x = p % w, y = (p / w) | 0
+    if (x > 0)     { const n = p - 1; if (!bg[n] && distIdx(n, r, g, b) < step2) { bg[n] = 1; stack[sp++] = n } }
+    if (x < w - 1) { const n = p + 1; if (!bg[n] && distIdx(n, r, g, b) < step2) { bg[n] = 1; stack[sp++] = n } }
+    if (y > 0)     { const n = p - w; if (!bg[n] && distIdx(n, r, g, b) < step2) { bg[n] = 1; stack[sp++] = n } }
+    if (y < h - 1) { const n = p + w; if (!bg[n] && distIdx(n, r, g, b) < step2) { bg[n] = 1; stack[sp++] = n } }
+  }
+
+  // Enclosed background (e.g. see-through lens interiors ringed by the frame,
+  // which the border flood can't reach): clear remaining pixels that closely
+  // match the sampled backdrop colour.
+  const enc2 = (tol * MAXD * 0.9) ** 2
+  for (let p = 0; p < N; p++) if (!bg[p] && distIdx(p, border.color[0], border.color[1], border.color[2]) < enc2) bg[p] = 1
+
+  // ── Feathered alpha (3×3 average of the keep-mask → 1px anti-aliased edge) ───
+  let opaque = 0, minX = w, minY = h, maxX = 0, maxY = 0
+  for (let p = 0; p < N; p++) {
+    const x = p % w, y = (p / w) | 0
+    let s = 0, c = 0
+    for (let dy = -1; dy <= 1; dy++) { const yy = y + dy; if (yy < 0 || yy >= h) continue; for (let dx = -1; dx <= 1; dx++) { const xx = x + dx; if (xx < 0 || xx >= w) continue; s += bg[yy * w + xx] ? 0 : 1; c++ } }
+    const a = Math.round(d[p * 4 + 3] * (s / c))
+    d[p * 4 + 3] = a
+    if (a > 24) { opaque++; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y }
   }
   ctx.putImageData(imgData, 0, 0)
 
@@ -102,7 +127,9 @@ export async function removeBackground(src, opts = {}) {
     width: cw, height: ch,
     coverage,
     symmetry: alphaSymmetry(outCv),
-    plainBg: bg.stdev < 26, // low border variance → plain background
+    // Border variance: a gradient/shadow is fine (the flood-fill handles it) —
+    // only flag a genuinely busy/multi-tone backdrop.
+    plainBg: border.stdev < 45,
   }
 }
 

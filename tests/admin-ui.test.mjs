@@ -9,18 +9,27 @@ import { rmSync } from 'node:fs'
 import zlib from 'node:zlib'
 import { chromium } from 'playwright'
 
-// Minimal PNG encoder → a white image with a dark centred box (a stand-in for a
-// frame photographed on a plain white background, for the bg-removal test).
+// Minimal PNG encoder → a dark frame on a NON-uniform background: a vertical
+// gradient plus a soft shadow blob under the frame. This is the "with
+// background" case a single average-colour key can't remove — it exercises the
+// flood-fill remover (gradient + shadow must go, frame must stay).
 function crc32(b) { let c = ~0; for (let i = 0; i < b.length; i++) { c ^= b[i]; for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xEDB88320 & -(c & 1)) } return ~c >>> 0 }
 function chunk(t, d) { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const T = Buffer.from(t); const cr = Buffer.alloc(4); cr.writeUInt32BE(crc32(Buffer.concat([T, d]))); return Buffer.concat([l, T, d, cr]) }
 function framePng(w, h) {
   const raw = Buffer.alloc((w * 3 + 1) * h)
+  const cx = w * 0.5, cy = h * 0.6
   for (let y = 0; y < h; y++) {
     raw[y * (w * 3 + 1)] = 0
     for (let x = 0; x < w; x++) {
       const o = y * (w * 3 + 1) + 1 + x * 3
-      const inBox = x > w * 0.3 && x < w * 0.7 && y > h * 0.35 && y < h * 0.65
-      const v = inBox ? 20 : 250 // dark frame on a white background
+      // background: top→bottom gradient (245→205) + a soft radial shadow
+      const grad = 245 - (y / h) * 40
+      const sh = Math.max(0, 1 - Math.hypot((x - cx) / (w * 0.42), (y - cy) / (h * 0.3))) * 55
+      let v = Math.round(grad - sh)
+      // dark frame: two rings (kept)
+      const inRing = Math.abs(Math.hypot(x - w * 0.34, y - h * 0.45) - h * 0.22) < h * 0.06 ||
+                     Math.abs(Math.hypot(x - w * 0.66, y - h * 0.45) - h * 0.22) < h * 0.06
+      if (inRing) v = 22
       raw[o] = v; raw[o + 1] = v; raw[o + 2] = v
     }
   }
@@ -153,16 +162,19 @@ await page.getByText('Try-Mirror / AR assets').waitFor()
 await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({ name: 'frame.png', mimeType: 'image/png', buffer: framePng(200, 150) })
 await page.getByAltText('cut-out preview').waitFor({ timeout: 10000 })
 ok('uploading a photo shows an auto-removed cut-out preview')
-// The white background must be gone (transparent) and the frame shape kept.
+// The gradient + shadow background must be gone (transparent corners) while the
+// frame shape stays — a single-colour key can't do this, the flood-fill can.
 const cut = await page.getByAltText('cut-out preview').evaluate((img) => {
   const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight
   const x = c.getContext('2d'); x.drawImage(img, 0, 0)
   const d = x.getImageData(0, 0, c.width, c.height).data
-  const A = (px, py) => d[(py * c.width + px) * 4 + 3]
-  return { corner: A(1, 1), center: A(c.width >> 1, c.height >> 1) }
+  const A = (px, py) => d[(Math.round(py) * c.width + Math.round(px)) * 4 + 3]
+  let opaque = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 24) opaque++
+  const corners = [A(1, 1), A(c.width - 2, 1), A(1, c.height - 2), A(c.width - 2, c.height - 2)]
+  return { maxCorner: Math.max(...corners), opaqueFrac: opaque / (c.width * c.height) }
 })
-expect(cut.corner < 24, `plain background removed → transparent (corner alpha ${cut.corner})`)
-expect(cut.center > 200, `frame shape preserved → opaque (centre alpha ${cut.center})`)
+expect(cut.maxCorner < 40, `gradient + shadow background removed → transparent corners (max ${cut.maxCorner})`)
+expect(cut.opaqueFrac > 0.03 && cut.opaqueFrac < 0.75, `frame kept but background gone (opaque fraction ${cut.opaqueFrac.toFixed(2)})`)
 expect(await page.getByRole('button', { name: 'Use cut-out' }).isVisible(), 'offers "Use cut-out" to save the transparent frame')
 
 console.log('')
