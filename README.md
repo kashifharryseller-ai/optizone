@@ -22,11 +22,13 @@ The customer website and the admin panel ship together in a single deployment:
 | `/api/*` | JSON API used by both |
 
 Admin sign-in is the **owner email + password**. Set `ADMIN_PASSWORD` (or
-`ADMIN_PASSWORD_HASH`) in the environment to choose it; if you don't, a **strong
-one-time password is generated on first boot and printed once to the server
-log** — sign in with it and change it immediately from **Admin → Security**
-(there is no committed default password). There is also an optional **email OTP
-second step** — set `GMAIL_USER` + `GMAIL_APP_PASSWORD` env vars to enable codes, and
+`ADMIN_PASSWORD_HASH`) in the environment to choose it. If you don't, a strong
+random password is generated — **printed once to the server log in development**;
+**in production it is not logged** (to keep credentials out of retained logs), so
+set `ADMIN_PASSWORD` or use "Forgot password?" to enable admin sign-in. There is
+no committed default password, and the app always boots. There is also an
+optional **email OTP second step** — set `GMAIL_USER` + `GMAIL_APP_PASSWORD` env
+vars to enable codes, and
 use "Forgot password?" on the login screen to reset by emailed code. Content
 saved in the admin panel appears on the live storefront **automatically**
 (version polling + refresh-on-focus, no reload needed).

@@ -53,11 +53,12 @@ DB_USER=u123456789_admin
 DB_PASSWORD=your-db-password
 ```
 
-> The admin login is the **owner email** (`ADMIN_EMAIL`) + `ADMIN_PASSWORD`. If
-> you omit `ADMIN_PASSWORD`, a one-time password is generated and printed to the
-> server log on first boot — sign in with it and change it in **Admin →
-> Security**. Replace the sample `JWT_SECRET` above with the output of
-> `openssl rand -hex 32` — never deploy the placeholder value.
+> The admin login is the **owner email** (`ADMIN_EMAIL`) + `ADMIN_PASSWORD`.
+> Setting `ADMIN_PASSWORD` in production is required to sign in to the admin —
+> if you omit it, a random password is generated (not shown in production logs)
+> and admin sign-in stays locked until you set `ADMIN_PASSWORD` or use "Forgot
+> password". The storefront/API run regardless. Replace the sample `JWT_SECRET`
+> above with the output of `openssl rand -hex 32` — never deploy the placeholder.
 >
 > Do **not** commit real secrets to git. `.env.example` lists every variable.
 
