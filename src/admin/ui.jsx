@@ -106,26 +106,27 @@ export function Toggle({ checked, onChange, label }) {
   )
 }
 
-// Bilingual { en, he } text field.
-// Bilingual EN/HE pair. `max` adds maxLength clamping + live character
-// counters (amber near the limit); `area` uses auto-growing textareas.
+// Content text field — English only.
+// The owner types content in English; Hebrew and Arabic are generated
+// automatically on save (server-side, cached). We keep the value a
+// { en, he, ar } object (so existing translations are preserved on the object)
+// but only expose the English input here. `max` adds maxLength + a live counter;
+// `area` uses an auto-growing textarea.
 export function Bilingual({ label, value = {}, onChange, area = false, max }) {
-  const set = (lang, v) => onChange({ ...value, [lang]: max ? String(v).slice(0, max) : v })
+  const set = (v) => onChange({ ...value, en: max ? String(v).slice(0, max) : v })
   const Ctrl = area ? Area : Text
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {label && <span style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</span>}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, paddingBottom: max ? 12 : 0 }}>
-        <div style={{ position: 'relative' }}>
-          <Ctrl value={value.en} onChange={(v) => set('en', v)} placeholder="English" aria-label={`${label || 'Text'} (English)`} maxLength={max} />
-          <Tag>EN</Tag>
-          {max != null && <Counter len={(value.en || '').length} max={max} />}
-        </div>
-        <div style={{ position: 'relative' }}>
-          <Ctrl value={value.he} onChange={(v) => set('he', v)} dir="rtl" placeholder="עברית" aria-label={`${label || 'Text'} (Hebrew)`} maxLength={max} />
-          <Tag>עב</Tag>
-          {max != null && <Counter len={(value.he || '').length} max={max} />}
-        </div>
+      {label && (
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          {label}
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: 10, letterSpacing: 0, textTransform: 'none', color: 'var(--text-faint)', background: 'var(--cream-300)', borderRadius: 999, padding: '1px 8px' }}>auto → עברית · العربية</span>
+        </span>
+      )}
+      <div style={{ position: 'relative', paddingBottom: max ? 12 : 0 }}>
+        <Ctrl value={value.en} onChange={set} placeholder="English" aria-label={`${label || 'Text'} (English)`} maxLength={max} />
+        <Tag>EN</Tag>
+        {max != null && <Counter len={(value.en || '').length} max={max} />}
       </div>
     </div>
   )

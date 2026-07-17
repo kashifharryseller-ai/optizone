@@ -63,8 +63,47 @@ function AccountMenu({ open, onClose, openAccount }) {
   )
 }
 
+// Language switcher — English · עברית · العربية (RTL for Hebrew & Arabic).
+function LangSwitcher() {
+  const { lang, setLang, languages } = useLang()
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) }
+  }, [open])
+  const current = languages.find((l) => l.code === lang) || languages[0]
+  return (
+    <div ref={ref} style={{ position: 'relative', marginInlineStart: 10 }}>
+      <button onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open} aria-label="Language / اللغة / שפה"
+        className="oz-lang-toggle"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.06em', color: 'var(--cream-200)', border: '1px solid var(--border-on-dark)', borderRadius: 'var(--radius-pill)', padding: '5px 11px', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent' }}>
+        {current.short}
+        <Icon name="chevron-down" size={13} color="var(--cream-200)" />
+      </button>
+      {open && (
+        <div role="listbox" style={{ position: 'absolute', top: 'calc(100% + 8px)', insetInlineEnd: 0, minWidth: 150, background: 'var(--surface-card)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border-hair)', overflow: 'hidden', zIndex: 80, animation: 'oz-slide-down var(--dur-base) var(--ease-out) both' }}>
+          {languages.map((l) => (
+            <button key={l.code} role="option" aria-selected={l.code === lang}
+              onClick={() => { setLang(l.code); setOpen(false) }}
+              dir={l.code === 'he' || l.code === 'ar' ? 'rtl' : 'ltr'}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', padding: '10px 14px', border: 'none', cursor: 'pointer', textAlign: 'start', fontFamily: 'var(--font-body)', fontSize: 14, background: l.code === lang ? 'var(--pine-50)' : 'transparent', color: 'var(--text-body)' }}>
+              <span>{l.label}</span>
+              {l.code === lang && <Icon name="check" size={15} color="var(--pine-700)" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Header({ navActive, go, openCatalog, cartCount, onSearch, openAccount }) {
-  const { t, toggle, L } = useLang()
+  const { t, L } = useLang()
   const { content, nav } = useContent()
   const { user } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -86,7 +125,7 @@ export function Header({ navActive, go, openCatalog, cartCount, onSearch, openAc
   // the desktop pixel-identical AND makes it solid. The scroll shadow stays for
   // the subtle "lifted" cue when scrolling.
   return (
-    <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--pine-700)', boxShadow: scrolled ? 'var(--shadow-md)' : 'none', transition: 'box-shadow var(--dur-base) var(--ease-out)' }}>
+    <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--pine-700)', boxShadow: scrolled ? 'var(--shadow-lg)' : 'none', transition: 'box-shadow var(--dur-base) var(--ease-out)' }}>
       {ann.enabled !== false && (
         <div style={{ background: 'var(--pine-950)', color: 'var(--cream-200)', textAlign: 'center', fontSize: 12.5, letterSpacing: '0.06em', padding: '7px 16px', fontFamily: 'var(--font-body)' }}>
           {L(ann) || t.announce}
@@ -95,7 +134,7 @@ export function Header({ navActive, go, openCatalog, cartCount, onSearch, openAc
       <div style={{ background: 'var(--pine-700)', borderBottom: '1px solid var(--border-on-dark)' }}>
         {/* BUG 1: className lets responsive.css tighten paddings/gaps on phones
             so the icon cluster + עברית toggle always fit inside the bar. */}
-        <div className="oz-header-row" style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 20px', height: 74, display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div className="oz-header-row" style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 20px', height: scrolled ? 60 : 74, display: 'flex', alignItems: 'center', gap: 14, transition: 'height var(--dur-base) var(--ease-out)' }}>
           {/* Hamburger — hidden on desktop, shown on small screens (CSS) */}
           <IconButton variant="ghost" className="oz-hamburger" onClick={() => setMobileNavOpen((o) => !o)} aria-label={t.aria.menu} style={{ color: 'var(--cream-100)' }}>
             <Icon name={mobileNavOpen ? 'x' : 'menu'} color="var(--cream-100)" />
@@ -130,14 +169,7 @@ export function Header({ navActive, go, openCatalog, cartCount, onSearch, openAc
                 <span style={{ position: 'absolute', top: -4, insetInlineEnd: -4, minWidth: 18, height: 18, padding: '0 5px', background: 'var(--pine-950)', color: 'var(--cream-100)', borderRadius: 999, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--pine-700)' }}>{cartCount}</span>
               )}
             </div>
-            <span
-              {...activatable(toggle)}
-              aria-label={t.langLabel}
-              className="oz-lang-toggle"
-              style={{ marginInlineStart: 10, fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.08em', color: 'var(--cream-200)', border: '1px solid var(--border-on-dark)', borderRadius: 'var(--radius-pill)', padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              {t.langLabel}
-            </span>
+            <LangSwitcher />
           </div>
         </div>
 

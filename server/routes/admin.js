@@ -11,6 +11,7 @@ const { store, storeInfo } = require('../store')
 const { issueToken, requireAuth, hashPassword, verifyPassword } = require('../auth')
 const { sendMail, mailEnabled, otpEmail } = require('../mailer')
 const { isLimited, recordFailure, clearKey } = require('../limiter')
+const { translateContent } = require('../translate')
 
 const router = express.Router()
 const rid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 10)
@@ -328,6 +329,10 @@ router.put('/content', async (req, res, next) => {
         active: p.active !== false,
       }))
     }
+    // Auto-translate: fill Hebrew + Arabic on every English { en } field from
+    // the (English) source, so the owner only ever enters content once. Cached,
+    // best-effort — a failure just leaves that field to fall back to English.
+    try { await translateContent(content, { fillMissingOnly: false }) } catch (e) { console.warn('[translate] content save:', e.message) }
     // Version stamp — the storefront polls this to refresh itself instantly.
     content.updatedAt = new Date().toISOString()
     const saved = await store().setContent(content)

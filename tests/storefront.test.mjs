@@ -148,7 +148,9 @@ console.log('\n== 3. Language toggle persistence (he ⇄ en, RTL, across pages/r
 await withPage(browser, {}, async (page) => {
   await page.goto(BASE, { waitUntil: 'networkidle' })
   expect(await page.evaluate(() => document.documentElement.dir) === 'ltr', 'default language unchanged (en / ltr)')
-  await page.getByText('עברית').click()
+  // Language switcher is a 3-way dropdown (English · עברית · العربية): open it, pick Hebrew.
+  await page.getByRole('button', { name: /Language/ }).click()
+  await page.getByRole('option', { name: 'עברית' }).click()
   await page.waitForTimeout(200)
   expect(await page.evaluate(() => document.documentElement.dir) === 'rtl', 'dir="rtl" applied when Hebrew active')
   expect(await page.evaluate(() => localStorage.getItem('oz_lang')) === 'he', 'choice persisted to localStorage')
@@ -160,7 +162,8 @@ await withPage(browser, {}, async (page) => {
   expect(await page.evaluate(() => document.documentElement.lang) === 'he', 'Hebrew consistent on listing page')
   await page.getByRole('banner').getByRole('button', { name: 'עגלה' }).click()
   expect(await page.getByText('העגלה שלך').isVisible().catch(() => false) || await page.getByText('העגלה ריקה').isVisible().catch(() => true), 'Hebrew consistent on cart page')
-  await page.getByText('English').click()
+  await page.getByRole('button', { name: /Language/ }).click()
+  await page.getByRole('option', { name: 'English' }).click()
   await page.waitForTimeout(200)
   expect(await page.evaluate(() => localStorage.getItem('oz_lang')) === 'en', 'switching back persists en')
 })
@@ -190,6 +193,8 @@ await withPage(browser, { captureOrder: true }, async (page, captured) => {
   expect(await page.getByText('Custom size · 110%').isVisible(), 'checkout summary shows custom size')
   await fillContact(page)
   await page.getByRole('button', { name: 'Collect in branch' }).click()
+  // Pickup now requires a deliberate branch choice (empty option is invalid).
+  await page.locator('select').selectOption({ index: 1 })
   await page.getByRole('button', { name: 'Continue to payment' }).click()
   await page.getByRole('button', { name: /Place order ·/ }).click()
   await page.getByText('Order confirmed').waitFor()

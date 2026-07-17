@@ -104,6 +104,26 @@ async function migrateContent(store) {
   }
 }
 
+// Backfill Hebrew + Arabic translations for existing content, in the BACKGROUND
+// so it never blocks boot or the first request (important on serverless). Only
+// fills missing languages (keeps any hand-written Hebrew); results are cached so
+// this is a no-op once everything is translated. Required lazily to avoid a
+// circular require with ../translate (which requires this module).
+function backfillTranslations(store) {
+  ;(async () => {
+    try {
+      const { translateContent } = require('../translate')
+      const content = await store.getContent()
+      const n = await translateContent(content, { fillMissingOnly: true })
+      if (n > 0) {
+        content.updatedAt = new Date().toISOString()
+        await store.setContent(content)
+        console.log('[store] Auto-translated %d content string(s) → he/ar.', n)
+      }
+    } catch (e) { console.warn('[translate] backfill skipped:', e.message) }
+  })()
+}
+
 let driverName = 'file'
 
 async function initStore() {
@@ -117,6 +137,7 @@ async function initStore() {
       await ensureJwtSecret(active)
       await ensureAdminAccount(active)
       await migrateContent(active)
+      backfillTranslations(active)
       return active
     } catch (err) {
       console.error('[store] MySQL init failed — falling back to JSON file store:', err.message)
@@ -130,6 +151,7 @@ async function initStore() {
   await ensureJwtSecret(active)
   await ensureAdminAccount(active)
   await migrateContent(active)
+  backfillTranslations(active)
   return active
 }
 

@@ -690,10 +690,10 @@ export const SEED_CONTENT = {
 
 // Navigation is structural (maps to routes), so it stays in code.
 export const NAV = [
-  { key: 'eyeglasses', label: { en: 'Eyeglasses', he: 'משקפי ראייה' } },
-  { key: 'sunglasses', label: { en: 'Sunglasses', he: 'משקפי שמש' } },
-  { key: 'contacts', label: { en: 'Contact Lenses', he: 'עדשות מגע' } },
-  { key: 'brands', label: { en: 'Brands', he: 'מותגים' } },
-  { key: 'stores', label: { en: 'Stores', he: 'סניפים' } },
-  { key: 'book', label: { en: 'Book an Exam', he: 'קביעת תור' } },
+  { key: 'eyeglasses', label: { en: 'Eyeglasses', he: 'משקפי ראייה', ar: 'نظارات طبية' } },
+  { key: 'sunglasses', label: { en: 'Sunglasses', he: 'משקפי שמש', ar: 'نظارات شمسية' } },
+  { key: 'contacts', label: { en: 'Contact Lenses', he: 'עדשות מגע', ar: 'عدسات لاصقة' } },
+  { key: 'brands', label: { en: 'Brands', he: 'מותגים', ar: 'العلامات' } },
+  { key: 'stores', label: { en: 'Stores', he: 'סניפים', ar: 'الفروع' } },
+  { key: 'book', label: { en: 'Book an Exam', he: 'קביעת תור', ar: 'احجز فحصًا' } },
 ]

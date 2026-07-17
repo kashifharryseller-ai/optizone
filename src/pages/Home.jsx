@@ -20,13 +20,13 @@ function ServiceTile({ s, L }) {
 }
 
 export function Home({ go, openCatalog, addToCart }) {
-  const { lang, L, t: root } = useLang()
+  const { lang, dir, L, t: root } = useLang()
   const { content } = useContent()
   const hero = content.hero || {}
   const sec = content.sections || {}
   const media = content.media || {}
   const rise = (d) => ({ animation: 'oz-fade-up var(--dur-slow) var(--ease-out) both', animationDelay: `${d}ms` })
-  const he = lang === 'he'
+  const he = dir === 'rtl' // flip directional arrows for any RTL language (he/ar)
   const badgeOf = (p) => (p.badge ? { variant: p.badge.variant, label: L(p.badge.label) } : undefined)
   const cardLabels = { tryMirrorLabel: 'Try Mirror', quickAddLabel: root.toast.added }
 

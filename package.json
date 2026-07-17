@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@fontsource/assistant": "^5.2.9",
+    "@fontsource/cairo": "^5.2.7",
     "@fontsource/jost": "^5.2.8",
     "@mediapipe/tasks-vision": "^0.10.35",
     "bcryptjs": "^2.4.3",
@@ -23,6 +24,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "express-rate-limit": "^8.5.2",
+    "google-translate-api-x": "^10.7.3",
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^1.23.0",

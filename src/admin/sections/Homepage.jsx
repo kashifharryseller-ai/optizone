@@ -56,6 +56,7 @@ function PreviewDrawer({ content, onClose }) {
         <span style={{ display: 'flex', gap: 2, background: 'var(--pine-900)', borderRadius: 999, padding: 3, marginInlineStart: 'auto' }}>
           <button type="button" style={seg(lang === 'en')} onClick={() => setLang('en')}>EN</button>
           <button type="button" style={seg(lang === 'he')} onClick={() => setLang('he')}>עברית</button>
+          <button type="button" style={seg(lang === 'ar')} onClick={() => setLang('ar')}>العربية</button>
         </span>
         <span style={{ display: 'flex', gap: 2, background: 'var(--pine-900)', borderRadius: 999, padding: 3 }}>
           <button type="button" style={seg(device === 'mobile')} onClick={() => setDevice('mobile')} aria-label="Mobile preview">📱</button>

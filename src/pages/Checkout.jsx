@@ -86,11 +86,6 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
     }
   })
   useEffect(() => { window.scrollTo({ top: 0 }) }, [step])
-  // Pre-select the first branch when the shopper switches to in-branch pickup,
-  // so a valid branch is always chosen by default (still guarded in toPayment).
-  useEffect(() => {
-    if (ship === 'pickup' && !pickupBranch && branches.length) setPickupBranch(branches[0].name)
-  }, [ship, branches, pickupBranch])
   const shipping = ship === 'pickup' || subtotal > threshold ? 0 : fee
   const total = subtotal + shipping
 

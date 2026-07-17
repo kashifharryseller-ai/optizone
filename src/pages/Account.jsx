@@ -161,7 +161,8 @@ function Dashboard({ go, openCatalog, tab, setTab, t }) {
   const statusColor = (s) => (s === 'Collected' || s === 'Completed' || s === 'Confirmed' ? 'var(--success)' : s === 'Shipped' ? 'var(--info)' : s === 'Cancelled' ? 'var(--danger)' : 'var(--amber-700)')
   const initials = (user.name || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
   const wishProducts = (content.products || []).filter((p) => wishlist.includes(p.id))
-  const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString(lang === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) } catch { return '' } }
+  const dateLocale = lang === 'he' ? 'he-IL' : lang === 'ar' ? 'ar' : 'en-GB'
+  const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' }) } catch { return '' } }
 
   // Settings state
   const [profile, setProfile] = useState({ name: user.name, phone: user.phone || '' })
