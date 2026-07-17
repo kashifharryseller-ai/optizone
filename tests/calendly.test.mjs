@@ -18,7 +18,7 @@ let passed = 0, failed = 0
 const ok = (m) => { passed++; console.log('   ✅ ' + m) }
 const expect = (c, m) => (c ? ok(m) : (failed++, console.log('   ❌ ' + m)))
 
-const ENV = { ...process.env, NODE_ENV: 'production', PORT: String(PORT), JWT_SECRET: 'calendly-test-secret-000', ADMIN_OTP: 'off' }
+const ENV = { ...process.env, NODE_ENV: 'production', PORT: String(PORT), JWT_SECRET: 'calendly-test-secret-000', ADMIN_EMAIL: 'owner@calendly-test.dev', ADMIN_PASSWORD: 'calendly-admin-pass-1', ADMIN_OTP: 'off' }
 rmSync('/tmp/oz-data', { recursive: true, force: true })
 const server = spawn('node', ['app.js'], { env: ENV, stdio: 'ignore' })
 process.on('exit', () => { try { server.kill('SIGKILL') } catch { /* gone */ } })

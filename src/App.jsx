@@ -20,7 +20,13 @@ export default function App() {
   // Cart persists across reloads so an accidental refresh doesn't lose it.
   const CART_KEY = 'oz_cart'
   const [cart, setCart] = useState(() => {
-    try { const raw = localStorage.getItem(CART_KEY); const v = raw ? JSON.parse(raw) : []; return Array.isArray(v) ? v : [] } catch { return [] }
+    try {
+      const raw = localStorage.getItem(CART_KEY)
+      const v = raw ? JSON.parse(raw) : []
+      if (!Array.isArray(v)) return []
+      // Drop malformed entries so a corrupt cart can't crash the storefront.
+      return v.filter((i) => i && typeof i === 'object' && i.id != null && Number.isFinite(i.amount) && Number.isInteger(i.qty) && i.qty > 0)
+    } catch { return [] }
   })
   useEffect(() => {
     try { localStorage.setItem(CART_KEY, JSON.stringify(cart)) } catch { /* private mode / full */ }

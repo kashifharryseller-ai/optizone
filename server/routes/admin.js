@@ -404,8 +404,12 @@ function looksLikeImage(buf) {
   const bmp = b[0] === 0x42 && b[1] === 0x4d
   const riff = b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46
   const webp = riff && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50
-  const ftyp = b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70 // avif/heic 'ftyp'
-  return png || jpg || gif || bmp || webp || ftyp
+  // ISO-BMFF 'ftyp' box also matches MP4/MOV/HEIC etc., so require an AVIF major
+  // brand (bytes 8-11 = 'avif' or 'avis') rather than accepting any ftyp file.
+  const isFtyp = b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70
+  const brand = String.fromCharCode(b[8], b[9], b[10], b[11])
+  const avif = isFtyp && (brand === 'avif' || brand === 'avis')
+  return png || jpg || gif || bmp || webp || avif
 }
 
 router.post('/upload', upload.single('file'), (req, res) => {

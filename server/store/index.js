@@ -16,17 +16,25 @@ async function ensureAdminAccount(store) {
     passwordHash = config.admin.seedPasswordHash
   } else if (config.admin.seedPassword) {
     passwordHash = hashPassword(config.admin.seedPassword)
+  } else if (config.nodeEnv === 'production') {
+    // In production we never invent or log an admin password (logs are often
+    // retained/aggregated — a printed credential is a real leak). Require the
+    // owner to configure one explicitly on first boot.
+    throw new Error(
+      '[store] No admin credential configured. Set ADMIN_PASSWORD (or ' +
+      'ADMIN_PASSWORD_HASH) in the environment before the first production boot, ' +
+      'then restart. See .env.example.',
+    )
   } else {
-    // No admin password configured — generate a strong one-time password and
-    // print it ONCE so the owner can sign in and change it. This avoids ever
-    // shipping a known/committed default credential.
+    // Non-production only: generate a strong one-time password and print it ONCE
+    // so a developer can sign in locally and change it. Never runs in production.
     const tempPassword = crypto.randomBytes(12).toString('base64').replace(/[^A-Za-z0-9]/g, '').slice(0, 14)
     passwordHash = hashPassword(tempPassword)
     console.log('\n' + '='.repeat(72))
-    console.log('[store] No ADMIN_PASSWORD / ADMIN_PASSWORD_HASH set.')
+    console.log('[store] No ADMIN_PASSWORD / ADMIN_PASSWORD_HASH set (dev only).')
     console.log('[store] Generated a one-time admin password for %s:', config.admin.email)
     console.log('[store]     %s', tempPassword)
-    console.log('[store] Sign in at /admin and change it in Admin → Security immediately.')
+    console.log('[store] Sign in at /admin and change it in Admin → Security.')
     console.log('='.repeat(72) + '\n')
   }
   await store.setMeta({ adminAccount: { email: config.admin.email, passwordHash, updatedAt: new Date().toISOString() } })

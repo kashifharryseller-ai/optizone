@@ -45,34 +45,48 @@ router.post('/orders', optionalUser, async (req, res, next) => {
     const rawItems = (Array.isArray(b.items) ? b.items : []).slice(0, 50)
     if (!rawItems.length) return res.status(400).json({ error: 'Your cart is empty' })
 
-    // Look up catalog prices so the client can't set arbitrary amounts. The
-    // client amount may legitimately exceed the base price (lens upgrades), so
-    // we floor each line at the catalog base price rather than overriding it —
-    // this blocks under-pricing (e.g. total: 0) while allowing add-ons.
+    // Only accept products that exist in the live catalog and are active, and
+    // always derive names/brands from the catalog — the client can't fabricate
+    // products. The client amount may legitimately exceed the base price (lens
+    // upgrades), so we floor each line at the catalog price rather than trusting
+    // it; anything below base is bumped up to base. (Note: lens-option pricing is
+    // still client-side, so a shopper could under-declare add-ons above base —
+    // moving that table server-side is a tracked follow-up.)
     const content = await store().getContent()
-    const catalog = new Map((content.products || []).map((p) => [String(p.id), p]))
+    const catalog = new Map(
+      (content.products || [])
+        .filter((p) => p && p.active !== false)
+        .map((p) => [String(p.id), p]),
+    )
 
-    const items = rawItems.map((it) => {
-      const prod = catalog.get(String(it.id))
-      const base = prod ? Number(prod.amount) || 0 : 0
-      const clientAmount = Math.max(0, Number(it.amount) || 0)
-      // Floor at catalog price; ignore lines for products that no longer exist.
-      const amount = prod ? Math.max(base, clientAmount) : clientAmount
-      return {
-        id: it.id,
-        name: String(prod?.name || it.name || '').slice(0, 160),
-        brand: String(prod?.brand || it.brand || '').slice(0, 80),
-        amount,
-        qty: qty(it.qty),
-        customSize: it.customSize ? String(it.customSize).slice(0, 40) : null,
-      }
-    }).filter((it) => it.amount > 0)
+    const items = rawItems
+      .filter((it) => it && typeof it === 'object' && !Array.isArray(it))
+      .map((it) => {
+        const prod = catalog.get(String(it.id))
+        if (!prod) return null // unknown or inactive product → drop the line
+        const base = Number(prod.amount) || 0
+        const clientAmount = Number(it.amount)
+        const amount = Number.isFinite(clientAmount) ? Math.max(base, clientAmount) : base
+        return {
+          id: prod.id,
+          name: String(prod.name || '').slice(0, 160),
+          brand: String(prod.brand || '').slice(0, 80),
+          amount,
+          qty: qty(it.qty),
+          customSize: it.customSize ? String(it.customSize).slice(0, 40) : null,
+        }
+      })
+      .filter((it) => it && it.amount > 0)
 
     if (!items.length) return res.status(400).json({ error: 'No valid items in cart' })
 
     const settings = content.settings || {}
-    const threshold = Number(settings.shippingThreshold) || 400
-    const fee = Number(settings.shippingFee) || 30
+    // Preserve valid zero values (free shipping / zero threshold); only fall back
+    // to defaults when the configured value is missing or invalid.
+    const rawThreshold = Number(settings.shippingThreshold)
+    const rawFee = Number(settings.shippingFee)
+    const threshold = Number.isFinite(rawThreshold) && rawThreshold >= 0 ? rawThreshold : 400
+    const fee = Number.isFinite(rawFee) && rawFee >= 0 ? rawFee : 30
     const subtotal = items.reduce((s, it) => s + it.amount * it.qty, 0)
     const fulfilment = String(b.fulfilment || '').slice(0, 40)
     // Free over threshold or for in-branch pickup; the fee otherwise.
@@ -106,6 +120,7 @@ router.post('/orders', optionalUser, async (req, res, next) => {
       total,
       payment: String(b.payment || '').slice(0, 40),
       fulfilment,
+      branch: fulfilment === 'pickup' ? String(b.branch || '').slice(0, 120) : null,
     }
     await store().addOrder(order)
     res.status(201).json({ id: order.id, total: order.total })

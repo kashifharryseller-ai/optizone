@@ -70,6 +70,7 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
   const [orderErr, setOrderErr] = useState('')             // server/network failure message
   const [contactErr, setContactErr] = useState('')         // contact-step validation
   const [pickupBranch, setPickupBranch] = useState('')     // chosen collection branch
+  const [confirmedTotal, setConfirmedTotal] = useState(0)  // snapshot for the confirmation screen (cart clears on success)
   // Prefill contact details from the signed-in customer's profile.
   const [contact, setContact] = useState(() => {
     const parts = (user?.name || '').split(/\s+/)
@@ -85,6 +86,11 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
     }
   })
   useEffect(() => { window.scrollTo({ top: 0 }) }, [step])
+  // Pre-select the first branch when the shopper switches to in-branch pickup,
+  // so a valid branch is always chosen by default (still guarded in toPayment).
+  useEffect(() => {
+    if (ship === 'pickup' && !pickupBranch && branches.length) setPickupBranch(branches[0].name)
+  }, [ship, branches, pickupBranch])
   const shipping = ship === 'pickup' || subtotal > threshold ? 0 : fee
   const total = subtotal + shipping
 
@@ -109,6 +115,7 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
       if (addrMode === 'ready' && !addrResolved) { setAddrErr(t.addrError); return }
       if (!contact.address.trim()) { setAddrErr(t.addrManualError); return }
     }
+    if (ship === 'pickup' && !pickupBranch) { setAddrErr(t.selectBranch); return }
     setAddrErr('')
     setStep(2)
   }
@@ -144,7 +151,12 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
         items: cart.map((it) => ({ id: it.id, name: it.name, brand: it.brand, amount: it.amount, qty: it.qty, customSize: it.customSize || undefined })),
         subtotal, shipping, total, payment: pay, fulfilment: ship,
       })
+      // Snapshot the total for the confirmation screen, then clear the cart
+      // immediately on acceptance — so Track Order, navigation, or a refresh
+      // can't leave the purchased items behind and cause a duplicate order.
+      setConfirmedTotal(total)
       setOrderId(r?.id || '')
+      onComplete()
       setStep(3)
     } catch (e) {
       setOrderErr(e?.message || t.orderError)
@@ -161,7 +173,7 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
           <Icon name="check" size={36} color="var(--pine-700)" />
         </span>
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 32, color: 'var(--text-strong)', margin: '22px 0 6px' }}>{t.confirmedH1}</h1>
-        <p style={{ fontSize: 16, color: 'var(--text-body)', lineHeight: 1.6 }}>{t.confirmedP(total.toLocaleString(locale), orderId)}<br />{t.confirmedNote}</p>
+        <p style={{ fontSize: 16, color: 'var(--text-body)', lineHeight: 1.6 }}>{t.confirmedP(confirmedTotal.toLocaleString(locale), orderId)}<br />{t.confirmedNote}</p>
         <div style={{ margin: '22px auto', maxWidth: 280 }}><DiamondRule label={t.thankYou} /></div>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
           <Button variant="outline" onClick={() => go('account')}>{t.trackOrder}</Button>

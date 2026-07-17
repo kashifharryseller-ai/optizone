@@ -56,7 +56,8 @@ DB_PASSWORD=your-db-password
 > The admin login is the **owner email** (`ADMIN_EMAIL`) + `ADMIN_PASSWORD`. If
 > you omit `ADMIN_PASSWORD`, a one-time password is generated and printed to the
 > server log on first boot — sign in with it and change it in **Admin →
-> Security**. Generate `JWT_SECRET` with `openssl rand -hex 32`.
+> Security**. Replace the sample `JWT_SECRET` above with the output of
+> `openssl rand -hex 32` — never deploy the placeholder value.
 >
 > Do **not** commit real secrets to git. `.env.example` lists every variable.
 

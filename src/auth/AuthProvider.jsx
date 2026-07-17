@@ -16,11 +16,13 @@ export function AuthProvider({ children }) {
   // StrictMode's double-invoke of the component body stays safe.
   useEffect(() => {
     let alive = true
-    const hash = window.location.hash || ''
-    const tok = hash.match(/[#&]gtoken=([^&]+)/)
-    const err = hash.match(/[#&]gerror=([^&]+)/)
-    if (tok) setUserToken(decodeURIComponent(tok[1]))
-    if (err) setOauthError(decodeURIComponent(err[1]))
+    // Parse with URLSearchParams so malformed percent-encoding (e.g. "#gerror=%")
+    // can't throw and abort initialization before the hash is scrubbed.
+    const params = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
+    const tok = params.get('gtoken')
+    const err = params.get('gerror')
+    if (tok) setUserToken(tok)
+    if (err) setOauthError(err)
     if (tok || err) window.history.replaceState(null, '', window.location.pathname + window.location.search)
 
     if (!getUserToken()) { setChecking(false); return () => { alive = false } }

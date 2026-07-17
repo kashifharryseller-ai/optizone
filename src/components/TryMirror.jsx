@@ -125,6 +125,7 @@ export function TryMirror({ open, onClose, product, catalog = [], frameAsset, st
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
 
+  const dialogRef = useRef(null)         // modal container (initial keyboard focus)
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const photoInputRef = useRef(null)
@@ -407,6 +408,12 @@ export function TryMirror({ open, onClose, product, catalog = [], frameAsset, st
     return () => window.removeEventListener('keydown', onKey)
   }, [open, stopLoops, onClose])
 
+  // Move keyboard focus into the modal when it opens so tabbing stays inside it
+  // (the dialog is portaled to <body>, away from the trigger).
+  useEffect(() => {
+    if (open) dialogRef.current?.focus()
+  }, [open])
+
   const togglePlay = () => {
     const v = videoRef.current; if (!v) return
     if (v.paused) { v.play().then(() => setPlaying(true)).catch(() => {}) } else { v.pause(); setPlaying(false) }
@@ -441,7 +448,7 @@ export function TryMirror({ open, onClose, product, catalog = [], frameAsset, st
   // Portal to <body> — ancestor CSS transforms (.oz-route) would re-anchor a
   // fixed overlay. dir is inherited from <html> so RTL works automatically.
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label={`${t.tryMirror} · ${p.brand} ${p.name}`} style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'var(--pine-950)', display: 'flex', flexDirection: 'column' }}>
+    <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`${t.tryMirror} · ${p.brand} ${p.name}`} style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'var(--pine-950)', outline: 'none', display: 'flex', flexDirection: 'column' }}>
       {/* header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', color: 'var(--cream-100)' }}>
         <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.14em', textTransform: 'uppercase', fontSize: 13, color: 'var(--amber-500)' }}>
