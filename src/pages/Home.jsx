@@ -5,6 +5,7 @@ import { useContent } from '../content/ContentProvider.jsx'
 import { Reveal } from '../lib/anim.jsx'
 import { ImageSlot } from '../components/ImageSlot.jsx'
 import { canTryMirror } from '../lib/tryMirror.js'
+import { activatable } from '../lib/a11y.js'
 
 function ServiceTile({ s, L }) {
   return (
@@ -94,7 +95,7 @@ export function Home({ go, openCatalog, addToCart }) {
             <Reveal key={c.key} delay={i * 80}>
               <div style={{ background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
                 <ImageSlot src={media['cat-' + c.key]} alt={L((content.mediaAlt || {})['cat-' + c.key]) || L(c.label)} placeholder={L(c.slot)} shape="rect" fit="cover" style={{ display: 'block', width: '100%', height: 210 }} />
-                <div onClick={() => openCatalog(c.key)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px' }}>
+                <div {...activatable(() => openCatalog(c.key))} aria-label={L(c.label)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px' }}>
                   <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-strong)' }}>{L(c.label)}</span>
                   <Icon name="arrow-right" size={16} color="var(--amber-700)" style={{ transform: he ? 'scaleX(-1)' : 'none' }} />
                 </div>

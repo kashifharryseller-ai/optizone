@@ -6,7 +6,7 @@ try-on, a lens/prescription configurator, in-store appointment booking, a comple
 **English / עברית** experience with full RTL support, **and a connected admin
 panel** for managing everything on the site.
 
-- **Frontend:** Vite + React (recreated from the Claude Design handoff in [`project/`](./project)).
+- **Frontend:** Vite + React, built on the OPTIZONE design system.
 - **Backend:** Node/Express + **MySQL** (with an automatic JSON-file fallback).
 - **Deploys as one Node.js app** — ready for Hostinger Cloud Startup. See
   **[DEPLOY-HOSTINGER.md](./DEPLOY-HOSTINGER.md)**.
@@ -21,9 +21,12 @@ The customer website and the admin panel ship together in a single deployment:
 | `/admin` | **Admin panel** — products, homepage content, stores/settings, orders, appointments |
 | `/api/*` | JSON API used by both |
 
-Admin sign-in is the **owner email + password** (seeded on first boot; change
-both anytime from **Admin → Security**), with an optional **email OTP second
-step** — set `GMAIL_USER` + `GMAIL_APP_PASSWORD` env vars to enable codes, and
+Admin sign-in is the **owner email + password**. Set `ADMIN_PASSWORD` (or
+`ADMIN_PASSWORD_HASH`) in the environment to choose it; if you don't, a **strong
+one-time password is generated on first boot and printed once to the server
+log** — sign in with it and change it immediately from **Admin → Security**
+(there is no committed default password). There is also an optional **email OTP
+second step** — set `GMAIL_USER` + `GMAIL_APP_PASSWORD` env vars to enable codes, and
 use "Forgot password?" on the login screen to reset by emailed code. Content
 saved in the admin panel appears on the live storefront **automatically**
 (version polling + refresh-on-focus, no reload needed).
@@ -57,7 +60,7 @@ saved in the admin panel appears on the live storefront **automatically**
   sessions) **plus "Continue with Google"** (server-side OAuth code flow;
   set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` env vars and register
   `https://YOUR-DOMAIN/api/auth/google/callback` as an authorized redirect URI
-  in Google Cloud Console). A VisionExpress-style header menu (My account ·
+  in Google Cloud Console). A header account menu (My account ·
   My orders · My appointments · My wishlist · My settings · Sign out), a live
   account dashboard, server-side wishlist, profile & password settings, and
   checkout / booking prefilled from the profile.
@@ -153,7 +156,6 @@ src/                   Storefront (Vite + React)
   ds/                  OPTIZONE design-system components
   pages/               Home, Catalog, Product, Booking, Cart, Checkout, …
   admin/               Admin panel (login, shell, section editors)
-project/               Original Claude Design export (reference)
 DEPLOY-HOSTINGER.md    Step-by-step Hostinger deployment guide
 .env.example           All environment variables
 ```

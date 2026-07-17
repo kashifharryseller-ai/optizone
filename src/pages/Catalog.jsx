@@ -3,6 +3,7 @@ import { ProductCard, Tag, Switch, Select } from '../ds/index.js'
 import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
 import { canTryMirror } from '../lib/tryMirror.js'
+import { activatable } from '../lib/a11y.js'
 
 const FIELD_OF = { 'Frame Shape': (p) => p.shape, Material: (p) => p.material, Gender: (p) => p.gender }
 
@@ -81,7 +82,7 @@ export function Catalog({ category = 'eyeglasses', brand = null, go, openCatalog
           <aside style={{ position: 'sticky', top: 96, display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-strong)' }}>{t.filters}</span>
-              {activeVals.length > 0 && <a onClick={() => setSelected({})} style={{ fontSize: 13, color: 'var(--amber-700)', cursor: 'pointer' }}>{t.clear}</a>}
+              {activeVals.length > 0 && <a {...activatable(() => setSelected({}))} style={{ fontSize: 13, color: 'var(--amber-700)', cursor: 'pointer' }}>{t.clear}</a>}
             </div>
             {hasTryMirror && (
               <div style={{ padding: '12px 0', borderTop: '1px solid var(--border-hair)', borderBottom: '1px solid var(--border-hair)' }}>

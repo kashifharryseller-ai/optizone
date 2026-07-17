@@ -55,6 +55,7 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
   const threshold = settings.shippingThreshold ?? 400
   const fee = settings.shippingFee ?? 30
   const t = root.checkout
+  const locale = lang === 'he' ? 'he-IL' : 'en-IL'
   const { user } = useAuth()
   const [step, setStep] = useState(0)
   // Cash on Delivery is the only active method (card is "Coming Soon").
@@ -65,6 +66,10 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
   const [addrMode, setAddrMode] = useState('loading')      // 'ready' | 'fallback' | 'loading'
   const [addrErr, setAddrErr] = useState('')
   const [orderId, setOrderId] = useState('')               // real id returned by the server
+  const [placing, setPlacing] = useState(false)            // order submit in-flight
+  const [orderErr, setOrderErr] = useState('')             // server/network failure message
+  const [contactErr, setContactErr] = useState('')         // contact-step validation
+  const [pickupBranch, setPickupBranch] = useState('')     // chosen collection branch
   // Prefill contact details from the signed-in customer's profile.
   const [contact, setContact] = useState(() => {
     const parts = (user?.name || '').split(/\s+/)
@@ -74,8 +79,9 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
       email: user?.email || '',
       phone: user?.phone || '',
       address: '',
-      city: 'נתניה',
-      postal: '4237512',
+      apt: '',
+      city: '',
+      postal: '',
     }
   })
   useEffect(() => { window.scrollTo({ top: 0 }) }, [step])
@@ -107,21 +113,44 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
     setStep(2)
   }
 
-  const placeOrder = () => {
-    // Show the REAL order id from the server on the confirmation screen so it
-    // matches what the admin panel and My Orders display.
-    api.createOrder({
-      customer: {
-        name: `${contact.firstName} ${contact.lastName}`.trim(),
-        email: contact.email, phone: contact.phone,
-        address: contact.address, city: contact.city, postal: contact.postal,
-        geo: addrResolved ? { formatted: addrResolved.formatted, placeId: addrResolved.placeId, lat: addrResolved.lat, lng: addrResolved.lng } : undefined,
-      },
-      addressVerified: !!addrResolved,
-      items: cart.map((it) => ({ id: it.id, name: it.name, brand: it.brand, amount: it.amount, qty: it.qty, customSize: it.customSize || undefined })),
-      subtotal, shipping, total, payment: pay, fulfilment: ship,
-    }).then((r) => setOrderId(r?.id || '')).catch(() => { /* still confirm to the shopper */ })
-    setStep(3)
+  // Basic contact validation before leaving the first step.
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const toShipping = () => {
+    const okName = `${contact.firstName} ${contact.lastName}`.trim().length > 1
+    const okEmail = EMAIL_RE.test(contact.email.trim())
+    const okPhone = contact.phone.replace(/\D/g, '').length >= 7
+    if (!okName || !okEmail || !okPhone) { setContactErr(t.contactError); return }
+    setContactErr('')
+    setStep(1)
+  }
+
+  const placeOrder = async () => {
+    if (placing) return                 // guard against double-submit
+    setPlacing(true)
+    setOrderErr('')
+    const street = contact.apt ? `${contact.address}, ${contact.apt}` : contact.address
+    try {
+      // Only advance to the confirmation screen once the server accepts the
+      // order — and show the REAL order id it returns.
+      const r = await api.createOrder({
+        customer: {
+          name: `${contact.firstName} ${contact.lastName}`.trim(),
+          email: contact.email, phone: contact.phone,
+          address: street, city: contact.city, postal: contact.postal,
+          geo: addrResolved ? { formatted: addrResolved.formatted, placeId: addrResolved.placeId, lat: addrResolved.lat, lng: addrResolved.lng } : undefined,
+        },
+        addressVerified: !!addrResolved,
+        branch: ship === 'pickup' ? pickupBranch : undefined,
+        items: cart.map((it) => ({ id: it.id, name: it.name, brand: it.brand, amount: it.amount, qty: it.qty, customSize: it.customSize || undefined })),
+        subtotal, shipping, total, payment: pay, fulfilment: ship,
+      })
+      setOrderId(r?.id || '')
+      setStep(3)
+    } catch (e) {
+      setOrderErr(e?.message || t.orderError)
+    } finally {
+      setPlacing(false)
+    }
   }
 
   if (step === 3) {
@@ -132,7 +161,7 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
           <Icon name="check" size={36} color="var(--pine-700)" />
         </span>
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 32, color: 'var(--text-strong)', margin: '22px 0 6px' }}>{t.confirmedH1}</h1>
-        <p style={{ fontSize: 16, color: 'var(--text-body)', lineHeight: 1.6 }}>{t.confirmedP(total.toLocaleString('he-IL'), orderId)}<br />{t.confirmedNote}</p>
+        <p style={{ fontSize: 16, color: 'var(--text-body)', lineHeight: 1.6 }}>{t.confirmedP(total.toLocaleString(locale), orderId)}<br />{t.confirmedNote}</p>
         <div style={{ margin: '22px auto', maxWidth: 280 }}><DiamondRule label={t.thankYou} /></div>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
           <Button variant="outline" onClick={() => go('account')}>{t.trackOrder}</Button>
@@ -158,9 +187,10 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
                 <Input placeholder={t.firstName} value={contact.firstName} onChange={(e) => setContact({ ...contact, firstName: e.target.value })} />
                 <Input placeholder={t.lastName} value={contact.lastName} onChange={(e) => setContact({ ...contact, lastName: e.target.value })} />
               </div>
-              <Input placeholder={t.email} value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} />
+              <Input placeholder={t.email} type="email" value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} />
               <Input placeholder={t.phone} value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} />
-              <Button variant="primary" size="lg" onClick={() => setStep(1)} endIcon={<Icon name="arrow-right" size={18} color="currentColor" />}>{t.toShipping}</Button>
+              {contactErr && <div role="alert" style={{ fontSize: 13, color: 'var(--danger)' }}>{contactErr}</div>}
+              <Button variant="primary" size="lg" onClick={toShipping} endIcon={<Icon name="arrow-right" size={18} color="currentColor" />}>{t.toShipping}</Button>
             </>
           )}
 
@@ -186,7 +216,7 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
                       placeholder={addrMode === 'ready' ? t.addrSearch : t.street}
                       verifiedLabel={t.addrVerifiedMsg}
                     />
-                    <Input placeholder={t.apt} />
+                    <Input placeholder={t.apt} value={contact.apt} onChange={(e) => setContact({ ...contact, apt: e.target.value })} />
                   </div>
                   <div className="oz-split21" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
                     <Input placeholder={t.city} value={contact.city} onChange={(e) => setContact({ ...contact, city: e.target.value })} />
@@ -201,7 +231,11 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
               )}
               {ship === 'pickup' && (
                 <div style={{ marginTop: 4 }}>
-                  <Select options={branches.map((b) => ({ value: b.name, label: 'OPTIZONE ' + L({ en: b.name, he: b.he }) }))} />
+                  <Select
+                    value={pickupBranch}
+                    onChange={(e) => setPickupBranch(e.target.value)}
+                    options={[{ value: '', label: t.selectBranch }, ...branches.map((b) => ({ value: b.name, label: 'OPTIZONE ' + L({ en: b.name, he: b.he }) }))]}
+                  />
                 </div>
               )}
               <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
@@ -221,9 +255,14 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>
                 <Icon name="lock" size={14} /> {t.secure}
               </div>
+              {orderErr && (
+                <span role="alert" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--danger)' }}>
+                  <Icon name="info" size={15} color="var(--danger)" /> {orderErr}
+                </span>
+              )}
               <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
-                <Button variant="ghost" onClick={() => setStep(1)}>{t.back}</Button>
-                <Button variant="primary" size="lg" block onClick={placeOrder} startIcon={<Icon name="check" size={17} color="currentColor" />}>{t.placeOrder(total.toLocaleString('he-IL'))}</Button>
+                <Button variant="ghost" onClick={() => setStep(1)} disabled={placing}>{t.back}</Button>
+                <Button variant="primary" size="lg" block onClick={placeOrder} disabled={placing} startIcon={<Icon name="check" size={17} color="currentColor" />}>{placing ? t.placing : t.placeOrder(total.toLocaleString(locale))}</Button>
               </div>
             </>
           )}
@@ -245,12 +284,12 @@ export function Checkout({ cart, subtotal, go, onComplete }) {
                   <span style={{ color: 'var(--text-muted)' }}>{t.qty(it.qty)}</span>
                   {it.customSize && <><br /><span style={{ color: 'var(--text-accent)', fontSize: 12.5 }}>{root.cart.customSize(it.customSize)}</span></>}
                 </span>
-                <span style={{ fontSize: 13.5, fontWeight: 600 }}>₪{(it.amount * it.qty).toLocaleString('he-IL')}</span>
+                <span style={{ fontSize: 13.5, fontWeight: 600 }}>₪{(it.amount * it.qty).toLocaleString(locale)}</span>
               </div>
             ))}
           </div>
           <div style={{ borderTop: '1px solid var(--border-hair)', paddingTop: 12 }}>
-            {[[t.subtotal, `₪${subtotal.toLocaleString('he-IL')}`], [t.shipping, shipping ? `₪${shipping}` : t.free]].map(([k, v]) => (
+            {[[t.subtotal, `₪${subtotal.toLocaleString(locale)}`], [t.shipping, shipping ? `₪${shipping}` : t.free]].map(([k, v]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 14, color: 'var(--text-body)' }}><span>{k}</span><span>{v}</span></div>
             ))}
           </div>

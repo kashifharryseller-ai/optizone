@@ -16,7 +16,9 @@ const config = {
     // bcrypt hash only — plaintext is never stored in the repo.
     seedPasswordHash: process.env.ADMIN_PASSWORD_HASH || '',
     seedPassword: process.env.ADMIN_PASSWORD || '', // hashed at boot if provided
-    defaultHash: '$2a$10$5T18Ljk0gnr43hFQ27qmeOSyN71qz6eFN10jwC8aLPQyjHrPpxL8S',
+    // No committed default password: when neither ADMIN_PASSWORD nor
+    // ADMIN_PASSWORD_HASH is set, a random one-time password is generated on
+    // first boot and printed to the server log (see store/index.js).
     // OTP mode: 'auto' (on when email is configured) | 'force' | 'off'
     otp: (process.env.ADMIN_OTP || 'auto').toLowerCase(),
     otpTtlMin: Number(process.env.ADMIN_OTP_TTL_MIN) || 10,
@@ -30,32 +32,15 @@ const config = {
     port: Number(process.env.SMTP_PORT) || 465,
     from: process.env.MAIL_FROM || process.env.GMAIL_USER || process.env.SMTP_USER || '',
   },
-  // Prefer an explicit JWT_SECRET (stable sessions across restarts/instances).
-  // If absent:
-  //  - long-lived servers: strong random per process (secure; sessions reset
-  //    only when the process restarts).
-  //  - serverless (Vercel/Lambda): every instance is a separate process, so a
-  //    random secret breaks ALL sign-ins the moment a request lands on another
-  //    instance ("Invalid or expired session", orders not linked to accounts).
-  //    Instead, derive a secret deterministically from stable deployment
-  //    identifiers so every instance of the SAME deployment agrees. Setting a
-  //    real JWT_SECRET env var is still strongly recommended and always wins.
-  jwtSecret: process.env.JWT_SECRET || (() => {
-    const crypto = require('crypto')
-    const onServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
-    if (!onServerless) return crypto.randomBytes(32).toString('hex')
-    const seed = [
-      'optizone-jwt-v1',
-      process.env.VERCEL_GIT_COMMIT_SHA || '',
-      process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || '',
-      process.env.VERCEL_GIT_REPO_ID || '',
-      process.env.VERCEL_DEPLOYMENT_ID || '',
-      process.env.AWS_LAMBDA_FUNCTION_NAME || '',
-    ].join('|')
-    return crypto.createHash('sha256').update(seed).digest('hex')
-  })(),
+  // Prefer an explicit JWT_SECRET (stable sessions across restarts/instances,
+  // and always wins). If absent, a strong random secret is generated once and
+  // PERSISTED in the store on first boot (see store/index.js → ensureJwtSecret),
+  // then reused by every instance that shares the same database/file. This keeps
+  // sign-ins stable across restarts and across serverless instances WITHOUT
+  // deriving the secret from public deployment identifiers. The value below is a
+  // per-process placeholder used only until the persisted secret is loaded.
+  jwtSecret: process.env.JWT_SECRET || require('crypto').randomBytes(32).toString('hex'),
   jwtSecretFromEnv: !!process.env.JWT_SECRET,
-  jwtServerlessDerived: !process.env.JWT_SECRET && !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME),
   tokenTtl: process.env.TOKEN_TTL || '12h',
   // Public origin (used for CORS allowlist and OAuth redirect derivation).
   publicUrl: (process.env.PUBLIC_URL || '').trim().replace(/\/$/, ''),
@@ -88,7 +73,7 @@ const config = {
   // Google OAuth ("Continue with Google"). The client ID is public; the SECRET
   // must be provided via env (never committed). Both are set in hPanel/Vercel.
   google: {
-    clientId: process.env.GOOGLE_CLIENT_ID || '1034284379097-2qh5htoh5ma02cln4pvu8i4p9qnj5bhr.apps.googleusercontent.com',
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   },
 

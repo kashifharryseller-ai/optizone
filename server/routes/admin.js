@@ -71,7 +71,9 @@ async function emailChallenge(purpose, adminEmail) {
   const mail = otpEmail(code)
   let sent = false
   try { const r = await sendMail({ to: adminEmail, ...mail }); sent = !!r.sent } catch (e) { console.error('[mail] send failed:', e.message) }
-  if (!sent) console.log('[admin] OTP code for %s (%s): %s', adminEmail, purpose, code)
+  // Only echo the code to the log in non-production (local dev without SMTP).
+  // Never print live OTP codes to production logs.
+  if (!sent && config.nodeEnv !== 'production') console.log('[admin] OTP code for %s (%s): %s', adminEmail, purpose, code)
   return { challenge: challenge.id, sent }
 }
 
@@ -391,8 +393,36 @@ const upload = multer({
   fileFilter: (req, file, cb) => cb(null, /^image\/(png|jpe?g|gif|webp|avif|bmp)$/i.test(file.mimetype)),
 })
 
+// Verify the file's actual bytes look like a raster image — the multipart MIME
+// type and filename are attacker-controlled, so we don't trust them alone.
+function looksLikeImage(buf) {
+  if (!buf || buf.length < 12) return false
+  const b = buf
+  const png = b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47
+  const jpg = b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff
+  const gif = b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38
+  const bmp = b[0] === 0x42 && b[1] === 0x4d
+  const riff = b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46
+  const webp = riff && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50
+  const ftyp = b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70 // avif/heic 'ftyp'
+  return png || jpg || gif || bmp || webp || ftyp
+}
+
 router.post('/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No image file received' })
+  try {
+    const fd = fs.openSync(req.file.path, 'r')
+    const head = Buffer.alloc(12)
+    fs.readSync(fd, head, 0, 12, 0)
+    fs.closeSync(fd)
+    if (!looksLikeImage(head)) {
+      fs.unlink(req.file.path, () => {})
+      return res.status(400).json({ error: 'File is not a valid image' })
+    }
+  } catch {
+    fs.unlink(req.file.path, () => {})
+    return res.status(400).json({ error: 'Could not read uploaded file' })
+  }
   res.status(201).json({ url: `/uploads/${req.file.filename}` })
 })
 

@@ -71,7 +71,7 @@ export function StoreLocator({ go }) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 180 }}>
                 <Button variant="primary" onClick={() => go('booking')} startIcon={<Icon name="calendar" size={17} color="currentColor" />}>{t.bookHere}</Button>
-                <Button variant="outline" startIcon={<Icon name="navigation" size={17} color="currentColor" />}>{t.directions}</Button>
+                <Button variant="outline" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`OPTIZONE ${storeName(s)} ${s.addr || ''}`)}`, '_blank', 'noopener,noreferrer')} startIcon={<Icon name="navigation" size={17} color="currentColor" />}>{t.directions}</Button>
               </div>
             </div>
           </div>

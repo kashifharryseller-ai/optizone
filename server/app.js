@@ -11,21 +11,15 @@ const accountRoutes = require('./routes/account')
 const googleRoutes = require('./routes/google')
 
 // JWT_SECRET policy:
-//  - production on a normal server: REQUIRED — fail fast with a clear error so
-//    a misconfigured deploy can't silently run with unstable sessions.
-//  - production on serverless (Vercel/Lambda): a deployment-stable secret is
-//    derived so the live site keeps working, with a loud warning (crashing
-//    here would take the whole site down on hosts where env edits redeploy).
-//  - development/tests: random per-process secret is fine.
+//  - When JWT_SECRET is set (recommended), it is always used.
+//  - When it is not set, initStore() generates a strong random secret and
+//    PERSISTS it in the store, so sessions stay stable across restarts and
+//    across serverless instances that share the same database (see
+//    store/index.js → ensureJwtSecret). We warn in production so operators know
+//    to set an explicit secret, but no longer crash — the persisted secret is
+//    stable and secure.
 if (config.nodeEnv === 'production' && !config.jwtSecretFromEnv) {
-  if (config.jwtServerlessDerived) {
-    console.warn('[security] JWT_SECRET is not set — derived a deployment-stable secret so sign-ins keep working across serverless instances. Set JWT_SECRET in your host env for stronger security.')
-  } else {
-    throw new Error(
-      '[security] JWT_SECRET is required in production. Set a long random JWT_SECRET environment variable ' +
-      '(e.g. `openssl rand -hex 32`) in your host settings and restart. See .env.example.',
-    )
-  }
+  console.warn('[security] JWT_SECRET is not set — using a persisted auto-generated secret. Set a long random JWT_SECRET (e.g. `openssl rand -hex 32`) in your host env for full control. See .env.example.')
 }
 
 function createApp({ serveStatic = true } = {}) {
@@ -63,7 +57,7 @@ function createApp({ serveStatic = true } = {}) {
 
   // Rate limiting: broad shield on the whole API, tighter on auth + public writes.
   app.use('/api', globalApiLimiter)
-  app.use(['/api/auth/login', '/api/auth/register', '/api/admin/login', '/api/admin/otp', '/api/admin/forgot', '/api/admin/reset'], authLimiter)
+  app.use(['/api/auth/login', '/api/auth/register', '/api/auth/forgot', '/api/auth/reset', '/api/admin/login', '/api/admin/otp', '/api/admin/forgot', '/api/admin/reset'], authLimiter)
   app.use(['/api/orders', '/api/bookings'], writeLimiter)
 
   // API.

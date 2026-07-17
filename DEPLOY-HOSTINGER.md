@@ -29,7 +29,7 @@ hPanel → **Advanced → Node.js** → **Create application**:
 
 | Field | Value |
 |---|---|
-| Node.js version | **18** or newer |
+| Node.js version | **20.19** or newer (required by Vite 7) |
 | Application root | the folder you uploaded to (e.g. `optizone`) |
 | Application URL | your domain / subdomain |
 | Application startup file | **`app.js`** |
@@ -42,7 +42,7 @@ In the Node.js app panel, add these **environment variables** (▸ *Environment 
 
 ```
 NODE_ENV=production
-ADMIN_USERNAME=your-admin-name
+ADMIN_EMAIL=you@yourdomain.com
 ADMIN_PASSWORD=a-strong-password
 JWT_SECRET=a-long-random-string-change-me
 USE_MYSQL=true
@@ -53,6 +53,11 @@ DB_USER=u123456789_admin
 DB_PASSWORD=your-db-password
 ```
 
+> The admin login is the **owner email** (`ADMIN_EMAIL`) + `ADMIN_PASSWORD`. If
+> you omit `ADMIN_PASSWORD`, a one-time password is generated and printed to the
+> server log on first boot — sign in with it and change it in **Admin →
+> Security**. Generate `JWT_SECRET` with `openssl rand -hex 32`.
+>
 > Do **not** commit real secrets to git. `.env.example` lists every variable.
 
 ## 5. Install dependencies & build the frontend
@@ -73,7 +78,7 @@ the compiled `dist/` folder.
 Click **Restart** in the Node.js app panel. Visit:
 
 - **Storefront:** `https://yourdomain.com/`
-- **Admin panel:** `https://yourdomain.com/admin` (log in with `ADMIN_USERNAME` / `ADMIN_PASSWORD`)
+- **Admin panel:** `https://yourdomain.com/admin` (log in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`)
 
 On first boot the app creates its tables and seeds the default catalog/content.
 Everything you then change in the admin panel is saved to MySQL.

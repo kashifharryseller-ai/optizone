@@ -4,12 +4,13 @@ import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import { useScrolled } from '../lib/anim.jsx'
+import { activatable } from '../lib/a11y.js'
 
 // Each navbar item opens its own page: category pages for eyeglasses /
 // sunglasses / contacts, a Brands index, Stores, and the booking CTA.
 
 
-// VisionExpress-style account dropdown under the user icon.
+// Account dropdown under the user icon.
 function AccountMenu({ open, onClose, openAccount }) {
   const { user, logout } = useAuth()
   const m = useLang().t.account.menu
@@ -101,14 +102,15 @@ export function Header({ navActive, go, openCatalog, cartCount, onSearch, openAc
           </IconButton>
           {/* BUG 1: className lets responsive.css gently scale the logo down on
               phones so the bar's contents always fit. Desktop size unchanged. */}
-          <div className="oz-header-logo" style={{ cursor: 'pointer' }} onClick={() => go('home')}>
+          <div className="oz-header-logo" style={{ cursor: 'pointer' }} {...activatable(() => go('home'))} aria-label="OPTIZONE — home">
             <Logo variant="horizontal" theme="dark" size={20} tagline={false} />
           </div>
           <nav className="oz-nav oz-nav-desktop" style={{ marginInlineStart: 6 }}>
             {nav.map((n) => (
               <a
                 key={n.key}
-                onClick={() => navGo(n.key)}
+                {...activatable(() => navGo(n.key))}
+                aria-current={navActive === n.key ? 'page' : undefined}
                 className={(navActive === n.key ? 'active ' : '') + (n.key === 'book' ? 'oz-nav-cta' : '')}
               >
                 {L(n.label)}
@@ -129,7 +131,8 @@ export function Header({ navActive, go, openCatalog, cartCount, onSearch, openAc
               )}
             </div>
             <span
-              onClick={toggle}
+              {...activatable(toggle)}
+              aria-label={t.langLabel}
               className="oz-lang-toggle"
               style={{ marginInlineStart: 10, fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.08em', color: 'var(--cream-200)', border: '1px solid var(--border-on-dark)', borderRadius: 'var(--radius-pill)', padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
@@ -144,7 +147,8 @@ export function Header({ navActive, go, openCatalog, cartCount, onSearch, openAc
             {nav.map((n) => (
               <a
                 key={n.key}
-                onClick={() => { navGo(n.key); setMobileNavOpen(false) }}
+                {...activatable(() => { navGo(n.key); setMobileNavOpen(false) })}
+                aria-current={navActive === n.key ? 'page' : undefined}
                 className={(navActive === n.key ? 'active ' : '') + (n.key === 'book' ? 'oz-nav-cta' : '')}
               >
                 {L(n.label)}
@@ -183,7 +187,7 @@ export function Footer({ go, openCatalog }) {
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--amber-500)', marginBottom: 16 }}>{col.h}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {col.items.map((i, ii) => (
-                <a key={i} onClick={() => actions[ci]?.[ii]?.()} style={{ fontSize: 14, color: 'var(--cream-200)', cursor: 'pointer' }}>{i}</a>
+                <a key={i} {...activatable(() => actions[ci]?.[ii]?.())} style={{ fontSize: 14, color: 'var(--cream-200)', cursor: 'pointer' }}>{i}</a>
               ))}
             </div>
           </div>

@@ -5,8 +5,9 @@
 // Serverless = many processes. We simulate that by starting the server, doing
 // work, killing it, and starting a SECOND process with the same deployment env
 // (VERCEL_* identifiers): tokens issued by process A must still verify on
-// process B (deterministic derived JWT secret), and orders must be linked to
-// accounts by session OR checkout email.
+// process B because the JWT secret is generated once and PERSISTED in the shared
+// store (not derived from public identifiers). Orders are linked to accounts by
+// the authenticated session ONLY — never by an unverified checkout email.
 //
 //   node tests/connection.test.mjs      (no prior server needed — spawns its own)
 import { spawn } from 'node:child_process'
@@ -63,7 +64,7 @@ rmSync('/tmp/oz-data', { recursive: true, force: true })
 
 console.log('\n== Instance A: accounts, orders, admin all connected ==')
 let A = await startServer()
-expect(A.log().includes('deployment-stable secret'), 'server derives a deployment-stable JWT secret (no JWT_SECRET set)')
+expect(A.log().includes('generated and persisted a random secret'), 'server generates + persists a random JWT secret (no JWT_SECRET set)')
 
 // customer register + login
 const EMAIL = 'shopper@conn-test.dev'
@@ -82,7 +83,9 @@ r = await j('/api/orders', { method: 'POST', token: userToken, body: {
 const orderId1 = r.data.id
 expect(r.status === 201 && !!orderId1, `signed-in order created (${orderId1})`)
 
-// GUEST order with the same email → must auto-link to the account
+// GUEST order with the same email → intentionally NOT linked to the account
+// (email is unverified; linking on it would leak orders to anyone who registers
+// that address). It is still created as a guest order for the admin to see.
 r = await j('/api/orders', { method: 'POST', body: {
   customer: { name: 'Conn Shopper', email: EMAIL.toUpperCase(), phone: '052-1112233', address: 'Herzl 1', city: 'Netanya', postal: '42000' },
   items: [{ id: 2, name: 'PO3092 Havana', brand: 'Persol', amount: 720, qty: 1 }],
@@ -91,9 +94,9 @@ r = await j('/api/orders', { method: 'POST', body: {
 const orderId2 = r.data.id
 expect(r.status === 201 && !!orderId2, `guest order with same email created (${orderId2})`)
 
-// My Orders shows BOTH
+// My Orders shows ONLY the session-linked order (guest-by-email is not linked)
 r = await j('/api/account/orders', { token: userToken })
-expect(r.status === 200 && r.data.length === 2, `My Orders shows both orders (got ${Array.isArray(r.data) ? r.data.length : r.status})`)
+expect(r.status === 200 && r.data.length === 1, `My Orders shows only the session order (got ${Array.isArray(r.data) ? r.data.length : r.status})`)
 expect(r.data.some((o) => (o.items || []).some((it) => it.customSize === '110%')), 'custom size persisted on the stored order')
 
 // admin sees them too
@@ -117,7 +120,7 @@ expect(r.status === 200 && r.data.user?.email === EMAIL, 'customer token from in
 r = await j('/api/admin/me', { token: adminToken })
 expect(r.status === 200, 'admin token from instance A works on instance B (no more "Not authenticated")')
 r = await j('/api/account/orders', { token: userToken })
-expect(r.status === 200 && r.data.length === 2, `orders still visible on instance B (got ${Array.isArray(r.data) ? r.data.length : r.status})`)
+expect(r.status === 200 && r.data.length === 1, `session order still visible on instance B (got ${Array.isArray(r.data) ? r.data.length : r.status})`)
 r = await j('/api/admin/orders', { token: adminToken })
 const bOrders = Array.isArray(r.data) ? r.data : r.data.orders || []
 expect(bOrders.length === 2, `admin orders still visible on instance B (got ${bOrders.length})`)

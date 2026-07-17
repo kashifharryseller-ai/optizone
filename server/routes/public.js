@@ -33,27 +33,57 @@ router.get('/content/version', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
-// Create an order from checkout. If the shopper is signed in, the order is
-// linked to their account (visible under My Orders and in the admin panel).
+// Create an order from checkout. Prices and totals are ALWAYS recomputed on the
+// server from the catalog — the client's amounts/subtotal/total are never
+// trusted. Orders are linked to an account only by the authenticated session
+// (never by matching a checkout email, which anyone could type).
+const qty = (n) => Math.min(20, Math.max(1, Math.round(Number(n) || 1)))
+
 router.post('/orders', optionalUser, async (req, res, next) => {
   try {
     const b = req.body || {}
-    const items = Array.isArray(b.items) ? b.items : []
-    // Link the order to an account: by session when signed in, otherwise by
-    // matching the checkout email to a registered account — so orders always
-    // show up under My Orders and against the right customer in the admin.
-    let userId = req.userId || null
-    if (!userId && b.customer?.email) {
-      try {
-        const u = await store().findUserByEmail(String(b.customer.email).trim().toLowerCase())
-        if (u) userId = u.id
-      } catch { /* keep as guest order */ }
-    }
+    const rawItems = (Array.isArray(b.items) ? b.items : []).slice(0, 50)
+    if (!rawItems.length) return res.status(400).json({ error: 'Your cart is empty' })
+
+    // Look up catalog prices so the client can't set arbitrary amounts. The
+    // client amount may legitimately exceed the base price (lens upgrades), so
+    // we floor each line at the catalog base price rather than overriding it —
+    // this blocks under-pricing (e.g. total: 0) while allowing add-ons.
+    const content = await store().getContent()
+    const catalog = new Map((content.products || []).map((p) => [String(p.id), p]))
+
+    const items = rawItems.map((it) => {
+      const prod = catalog.get(String(it.id))
+      const base = prod ? Number(prod.amount) || 0 : 0
+      const clientAmount = Math.max(0, Number(it.amount) || 0)
+      // Floor at catalog price; ignore lines for products that no longer exist.
+      const amount = prod ? Math.max(base, clientAmount) : clientAmount
+      return {
+        id: it.id,
+        name: String(prod?.name || it.name || '').slice(0, 160),
+        brand: String(prod?.brand || it.brand || '').slice(0, 80),
+        amount,
+        qty: qty(it.qty),
+        customSize: it.customSize ? String(it.customSize).slice(0, 40) : null,
+      }
+    }).filter((it) => it.amount > 0)
+
+    if (!items.length) return res.status(400).json({ error: 'No valid items in cart' })
+
+    const settings = content.settings || {}
+    const threshold = Number(settings.shippingThreshold) || 400
+    const fee = Number(settings.shippingFee) || 30
+    const subtotal = items.reduce((s, it) => s + it.amount * it.qty, 0)
+    const fulfilment = String(b.fulfilment || '').slice(0, 40)
+    // Free over threshold or for in-branch pickup; the fee otherwise.
+    const shipping = fulfilment === 'pickup' || subtotal > threshold ? 0 : fee
+    const total = subtotal + shipping
+
     const order = {
       id: 'OZ-' + num(),
       createdAt: new Date().toISOString(),
       status: 'New',
-      userId,
+      userId: req.userId || null,
       customer: {
         name: String(b.customer?.name || '').slice(0, 120),
         email: String(b.customer?.email || '').slice(0, 160),
@@ -70,20 +100,15 @@ router.post('/orders', optionalUser, async (req, res, next) => {
         } : null,
       },
       addressVerified: !!b.addressVerified,
-      items: items.slice(0, 50).map((it) => ({
-        id: it.id, name: String(it.name || '').slice(0, 160), brand: String(it.brand || '').slice(0, 80),
-        amount: Number(it.amount) || 0, qty: Number(it.qty) || 1,
-        // Try Mirror per-line custom frame size (e.g. "110%").
-        customSize: it.customSize ? String(it.customSize).slice(0, 40) : null,
-      })),
-      subtotal: Number(b.subtotal) || 0,
-      shipping: Number(b.shipping) || 0,
-      total: Number(b.total) || 0,
+      items,
+      subtotal,
+      shipping,
+      total,
       payment: String(b.payment || '').slice(0, 40),
-      fulfilment: String(b.fulfilment || '').slice(0, 40),
+      fulfilment,
     }
     await store().addOrder(order)
-    res.status(201).json({ id: order.id })
+    res.status(201).json({ id: order.id, total: order.total })
   } catch (err) { next(err) }
 })
 

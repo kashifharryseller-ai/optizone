@@ -399,6 +399,14 @@ export function TryMirror({ open, onClose, product, catalog = [], frameAsset, st
   }, [open, stopLoops])
   useEffect(() => stopLoops, [stopLoops])
 
+  // Close on Escape (matches the X button), for keyboard users.
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e) => { if (e.key === 'Escape') { stopLoops(); onClose() } }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, stopLoops, onClose])
+
   const togglePlay = () => {
     const v = videoRef.current; if (!v) return
     if (v.paused) { v.play().then(() => setPlaying(true)).catch(() => {}) } else { v.pause(); setPlaying(false) }
@@ -433,7 +441,7 @@ export function TryMirror({ open, onClose, product, catalog = [], frameAsset, st
   // Portal to <body> — ancestor CSS transforms (.oz-route) would re-anchor a
   // fixed overlay. dir is inherited from <html> so RTL works automatically.
   return createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'var(--pine-950)', display: 'flex', flexDirection: 'column' }}>
+    <div role="dialog" aria-modal="true" aria-label={`${t.tryMirror} · ${p.brand} ${p.name}`} style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'var(--pine-950)', display: 'flex', flexDirection: 'column' }}>
       {/* header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', color: 'var(--cream-100)' }}>
         <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.14em', textTransform: 'uppercase', fontSize: 13, color: 'var(--amber-500)' }}>

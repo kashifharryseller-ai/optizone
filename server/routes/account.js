@@ -81,7 +81,8 @@ router.post('/auth/forgot', async (req, res, next) => {
         const mail = resetEmail(code)
         let sent = false
         try { const r = await sendMail({ to: email, ...mail }); sent = !!r.sent } catch (e) { console.error('[account] reset email failed:', e.message) }
-        if (!sent) console.log('[account] password reset code for %s: %s', email, code)
+        // Only echo the code in non-production (local dev without SMTP).
+        if (!sent && process.env.NODE_ENV !== 'production') console.log('[account] password reset code for %s: %s', email, code)
       }
     }
     res.json({ ok: true, mail: mailEnabled() })
@@ -147,29 +148,23 @@ router.put('/account/password', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
-// Orders belong to the account when linked by userId at checkout, OR when the
-// checkout email matches the account email (covers guest orders and orders
-// placed while the session token wasn't accepted) — so "My Orders" is complete.
+// Orders belong to the account only when linked by the authenticated session
+// (userId) at checkout. We deliberately do NOT match by checkout email: email
+// is never verified at registration, so matching on it would let anyone see
+// other people's orders (name, address, totals) just by registering that email.
 router.get('/account/orders', async (req, res, next) => {
   try {
     const all = await store().listOrders()
-    const email = String(req.user?.email || '').trim().toLowerCase()
-    res.json(all.filter((o) =>
-      o.userId === req.userId ||
-      (email && String(o.customer?.email || '').trim().toLowerCase() === email),
-    ))
+    res.json(all.filter((o) => o.userId === req.userId))
   } catch (err) { next(err) }
 })
 
-// Same idea for appointments: linked by userId, or by the account's phone.
+// Appointments: same rule — linked by the authenticated session only (phone is
+// unverified and would leak other customers' bookings if matched on).
 router.get('/account/bookings', async (req, res, next) => {
   try {
     const all = await store().listBookings()
-    const phone = String(req.user?.phone || '').replace(/\D/g, '')
-    res.json(all.filter((b) =>
-      b.userId === req.userId ||
-      (phone && String(b.phone || '').replace(/\D/g, '') === phone),
-    ))
+    res.json(all.filter((b) => b.userId === req.userId))
   } catch (err) { next(err) }
 })
 
