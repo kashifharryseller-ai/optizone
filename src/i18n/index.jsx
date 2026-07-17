@@ -45,6 +45,8 @@ const STRINGS = {
       try_eyebrow: 'Try Mirror', try_h2: 'Try them on from home',
       try_p: 'Live, on-device virtual try-on. Compare frames side by side, save your looks, and share to WhatsApp. Nothing is stored.',
       try_cta: 'Start Try Mirror',
+      showcase_eyebrow: 'The Signature Edit', showcase_h2: 'Crafted to be seen',
+      showcase_p: 'Precision-milled frames, finished by hand.',
     },
 
     footer: {
@@ -255,6 +257,8 @@ const STRINGS = {
       try_eyebrow: 'Try Mirror', try_h2: 'מודדים מהבית',
       try_p: 'מדידה וירטואלית חיה, במכשיר שלכם. השוו מסגרות זו לצד זו, שמרו לוקים ושתפו בוואטסאפ. שום דבר לא נשמר.',
       try_cta: 'נסו עכשיו',
+      showcase_eyebrow: 'הקולקציה החתומה', showcase_h2: 'נועדו להיראות',
+      showcase_p: 'מסגרות בעיבוד מדויק, בגימור ידני.',
     },
 
     footer: {
@@ -472,6 +476,8 @@ const AR_UI = {
     try_eyebrow: 'المرآة الافتراضية', try_h2: 'جرّبها من المنزل',
     try_p: 'تجربة افتراضية حيّة على جهازك. قارن الإطارات جنبًا إلى جنب، واحفظ إطلالاتك، وشاركها عبر واتساب. لا يُخزَّن أي شيء.',
     try_cta: 'ابدأ المرآة الافتراضية',
+    showcase_eyebrow: 'المجموعة المميّزة', showcase_h2: 'صُمّمت لتُرى',
+    showcase_p: 'إطارات مصنوعة بدقّة وبلمسة يدوية.',
   },
   footer: {
     blurb: 'نظارات ورعاية عيون فاخرة. جرّب أي إطار قبل الشراء.',

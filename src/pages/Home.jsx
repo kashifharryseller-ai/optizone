@@ -73,6 +73,30 @@ export function Home({ go, openCatalog, addToCart }) {
         </div>
       </section>
 
+      {/* CINEMATIC SHOWCASE — muted, looping product film (no audio) */}
+      <section style={{ background: 'var(--pine-950)', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', maxHeight: 600, overflow: 'hidden' }}>
+          <video
+            src="/site/showcase.mp4"
+            poster="/site/showcase-poster.jpg"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-label={root.home.showcase_h2}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+          {/* readability scrim (bottom → top; direction-agnostic for RTL) */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(6,23,15,0.88) 0%, rgba(6,23,15,0.15) 55%, rgba(6,23,15,0) 100%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', insetInlineStart: 0, bottom: 0, display: 'flex', flexDirection: 'column', gap: 10, padding: 'clamp(24px, 5vw, 56px)', maxWidth: 560 }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--amber-500)' }}>{root.home.showcase_eyebrow}</span>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 'clamp(28px, 4vw, 46px)', color: 'var(--cream-100)', margin: 0, lineHeight: 1.05 }}>{root.home.showcase_h2}</h2>
+            <p style={{ fontSize: 16, color: 'var(--pine-100)', margin: 0, maxWidth: 380 }}>{root.home.showcase_p}</p>
+          </div>
+        </div>
+      </section>
+
       {/* SERVICES */}
       <section style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '64px 28px 8px' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
