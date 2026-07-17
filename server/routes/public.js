@@ -3,6 +3,7 @@ const express = require('express')
 const { customAlphabet } = require('nanoid')
 const { store } = require('../store')
 const { optionalUser } = require('../auth')
+const { ensureContentTranslations } = require('../translate')
 const config = require('../config')
 
 const router = express.Router()
@@ -13,7 +14,11 @@ const num = customAlphabet('0123456789', 5)
 // referrer-restricted public key, not a secret, and is never stored in the DB).
 router.get('/content', async (req, res, next) => {
   try {
-    const content = await store().getContent()
+    let content = await store().getContent()
+    // Ensure Hebrew + Arabic are filled (English source → auto-translate, cached
+    // and persisted). Runs synchronously so it works on serverless; guarded so a
+    // failure never hammers the network or breaks the response.
+    try { content = await ensureContentTranslations(content) } catch { /* fall back to English */ }
     res.json({
       ...content,
       // Soft-deleted (archived) products stay in the admin catalog but never
