@@ -7,21 +7,26 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [wishlist, setWishlist] = useState([])
-  // "Continue with Google" lands on /#gtoken=<jwt> (or /#gerror=<msg>) — pick
-  // that up before the first session check, then scrub it from the URL.
-  const [oauthError, setOauthError] = useState(() => {
-    const hash = window.location.hash || ''
-    const tok = hash.match(/[#&]gtoken=([^&]+)/)
-    const err = hash.match(/[#&]gerror=([^&]+)/)
-    if (tok) setUserToken(decodeURIComponent(tok[1]))
-    if (tok || err) window.history.replaceState(null, '', window.location.pathname + window.location.search)
-    return err ? decodeURIComponent(err[1]) : ''
-  })
+  const [oauthError, setOauthError] = useState('')
   const [checking, setChecking] = useState(!!getUserToken())
 
+  // On mount: pick up any "Continue with Google" result from the URL hash
+  // (/#gtoken=<jwt> or /#gerror=<msg>), scrub it from the URL, then verify the
+  // session. All side effects live in this effect (never in render), so React
+  // StrictMode's double-invoke of the component body stays safe.
   useEffect(() => {
-    if (!getUserToken()) return
     let alive = true
+    // Parse with URLSearchParams so malformed percent-encoding (e.g. "#gerror=%")
+    // can't throw and abort initialization before the hash is scrubbed.
+    const params = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
+    const tok = params.get('gtoken')
+    const err = params.get('gerror')
+    if (tok) setUserToken(tok)
+    if (err) setOauthError(err)
+    if (tok || err) window.history.replaceState(null, '', window.location.pathname + window.location.search)
+
+    if (!getUserToken()) { setChecking(false); return () => { alive = false } }
+    setChecking(true)
     api.accountMe()
       .then(({ user: u }) => { if (alive) { setUser(u); setWishlist(u.wishlist || []) } })
       .catch(() => { if (alive) { setUserToken(null); setUser(null) } })

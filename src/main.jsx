@@ -18,6 +18,10 @@ import '@fontsource/assistant/hebrew-400.css'
 import '@fontsource/assistant/hebrew-500.css'
 import '@fontsource/assistant/hebrew-600.css'
 import '@fontsource/assistant/hebrew-700.css'
+// Cairo — Arabic (+ Latin) face for the Arabic locale (RTL). Vendored, no CDN.
+import '@fontsource/cairo/arabic-400.css'
+import '@fontsource/cairo/arabic-600.css'
+import '@fontsource/cairo/arabic-700.css'
 
 import './styles/index.css'
 import App from './App.jsx'

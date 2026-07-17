@@ -8,8 +8,12 @@
    ============================================================================ */
 
 /* --- Kill horizontal overflow on every screen ---------------------------- */
-html, body { max-width: 100%; overflow-x: hidden; }
-#root { max-width: 100%; overflow-x: hidden; }
+/* Use overflow-x: clip (NOT hidden): `hidden` makes the other axis compute to
+   `auto`, turning #root into a scroll container and breaking the sticky header.
+   `clip` prevents horizontal scrollbars without creating a scroll container, so
+   position: sticky on the header keeps working. */
+html, body { max-width: 100%; overflow-x: clip; }
+#root { max-width: 100%; overflow-x: clip; }
 img, svg, video, canvas { max-width: 100%; }
 
 /* --- Responsive grids ----------------------------------------------------- */

@@ -9,6 +9,7 @@
   --font-display: 'Jost', 'Century Gothic', 'Futura', sans-serif;
   --font-body:    'Assistant', 'Jost', system-ui, sans-serif;
   --font-hebrew:  'Assistant', 'Heebo', system-ui, sans-serif;
+  --font-arabic:  'Cairo', 'Noto Sans Arabic', 'Segoe UI', system-ui, sans-serif;
 
   /* Weights */
   --fw-light:  300; /* @kind font */

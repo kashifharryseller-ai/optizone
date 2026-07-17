@@ -1,6 +1,7 @@
 // Admin API security & data-safety tests:
 //  - every /api/admin/* data route rejects unauthenticated requests (401)
-//  - production boot REQUIRES JWT_SECRET on a normal server (fail-fast)
+//  - without JWT_SECRET the server still boots (a random secret is generated
+//    and persisted in the store) and warns; an explicit JWT_SECRET is honored
 //  - server-side validation clamps product fields & strips HTML (stored XSS)
 //  - soft-deleted (archived) products are hidden from the public storefront
 //    but stay in the admin catalog
@@ -55,15 +56,15 @@ const j = async (path, { method = 'GET', body, token } = {}) => {
   return { status: res.status, data: await res.json().catch(() => ({})) }
 }
 
-// ── JWT_SECRET fail-fast on a NON-serverless production boot ─────────────────
-console.log('\n== JWT_SECRET is required in production (fail-fast) ==')
+// ── JWT_SECRET: boots with a persisted auto-secret, warns, honors explicit ──
+console.log('\n== JWT_SECRET: persisted auto-secret in production ==')
 {
   const env = { ...ENV }
-  delete env.VERCEL // normal server, production, no secret → must refuse to boot
+  delete env.VERCEL // normal server, production, no secret → boots with warning
   const s = spawnServer(env)
-  const exited = await new Promise((r) => { s.proc.once('exit', (code) => r(code)); setTimeout(() => r(null), 6000) })
-  expect(exited !== null && exited !== 0, `boot refused without JWT_SECRET (exit ${exited})`)
-  expect(s.log().includes('JWT_SECRET is required'), 'clear error names the missing variable')
+  expect(await waitUp(s), 'server boots without JWT_SECRET (persisted auto-secret)')
+  expect(s.log().includes('JWT_SECRET is not set') || s.log().includes('generated and persisted a random secret'), 'warns that JWT_SECRET is not set')
+  await stop(s)
   const s2 = spawnServer({ ...env, JWT_SECRET: 'a-long-test-secret-that-is-fine' })
   expect(await waitUp(s2), 'boots normally once JWT_SECRET is provided')
   await stop(s2)

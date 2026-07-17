@@ -18,7 +18,7 @@ let passed = 0, failed = 0
 const ok = (m) => { passed++; console.log('   ✅ ' + m) }
 const expect = (c, m) => (c ? ok(m) : (failed++, console.log('   ❌ ' + m)))
 
-const ENV = { ...process.env, NODE_ENV: 'production', PORT: String(PORT), JWT_SECRET: 'calendly-test-secret-000', ADMIN_OTP: 'off' }
+const ENV = { ...process.env, NODE_ENV: 'production', PORT: String(PORT), JWT_SECRET: 'calendly-test-secret-000', ADMIN_EMAIL: 'owner@calendly-test.dev', ADMIN_PASSWORD: 'calendly-admin-pass-1', ADMIN_OTP: 'off' }
 rmSync('/tmp/oz-data', { recursive: true, force: true })
 const server = spawn('node', ['app.js'], { env: ENV, stdio: 'ignore' })
 process.on('exit', () => { try { server.kill('SIGKILL') } catch { /* gone */ } })
@@ -123,7 +123,9 @@ console.log('\n== Hebrew / RTL ==')
 {
   const { page, ctx } = await newPage(browser)
   await gotoBooking(page)
-  await page.getByRole('banner').getByText('עברית').click()
+  // 3-way language switcher: open the header dropdown, choose Hebrew.
+  await page.getByRole('banner').getByRole('button', { name: /Language/ }).click()
+  await page.getByRole('option', { name: 'עברית' }).click()
   await page.getByRole('heading', { name: 'טיפול בעיניים, בזמן שנוח לכם' }).waitFor()
   ok('booking page heading localised to Hebrew')
   expect(await page.evaluate(() => document.documentElement.dir) === 'rtl', 'page is RTL in Hebrew')

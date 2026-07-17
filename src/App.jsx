@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Toast, Icon } from './ds/index.js'
 import { useLang } from './i18n/index.jsx'
 import { Header, Footer } from './pages/Chrome.jsx'
@@ -17,7 +17,20 @@ export default function App() {
   const { t } = useLang()
   const [route, setRoute] = useState('home')
   const [product, setProduct] = useState(null)
-  const [cart, setCart] = useState([])
+  // Cart persists across reloads so an accidental refresh doesn't lose it.
+  const CART_KEY = 'oz_cart'
+  const [cart, setCart] = useState(() => {
+    try {
+      const raw = localStorage.getItem(CART_KEY)
+      const v = raw ? JSON.parse(raw) : []
+      if (!Array.isArray(v)) return []
+      // Drop malformed entries so a corrupt cart can't crash the storefront.
+      return v.filter((i) => i && typeof i === 'object' && i.id != null && Number.isFinite(i.amount) && Number.isInteger(i.qty) && i.qty > 0)
+    } catch { return [] }
+  })
+  useEffect(() => {
+    try { localStorage.setItem(CART_KEY, JSON.stringify(cart)) } catch { /* private mode / full */ }
+  }, [cart])
   const [toast, setToast] = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [accountTab, setAccountTab] = useState('orders')

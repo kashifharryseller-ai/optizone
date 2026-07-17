@@ -61,8 +61,10 @@ a:hover { color: var(--accent-strong); }
   transform: rotate(45deg);
 }
 
-/* RTL helper */
+/* RTL helper — Hebrew uses Assistant; Arabic uses an Arabic-capable face.
+   The [lang="ar"] rule follows [dir="rtl"] so it wins for Arabic pages. */
 [dir="rtl"] { font-family: var(--font-hebrew); }
+[lang="ar"] { font-family: var(--font-arabic); }
 
 :focus-visible {
   outline: var(--focus-ring-w) solid var(--focus-ring);

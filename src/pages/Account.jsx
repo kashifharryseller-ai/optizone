@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthProvider.jsx'
 import { api } from '../api.js'
 import { useCountUp } from '../lib/anim.jsx'
 import { canTryMirror } from '../lib/tryMirror.js'
+import { activatable } from '../lib/a11y.js'
 
 function StatCard({ label, value, icon, text }) {
   const n = useCountUp(typeof value === 'number' ? value : 0)
@@ -97,7 +98,7 @@ function AuthCard({ t }) {
           {/* Forgot-password link, on the login screen only */}
           {mode === 'login' && (
             <div style={{ textAlign: 'end', marginTop: -4 }}>
-              <a onClick={() => go('forgot')} style={{ fontSize: 13, color: 'var(--amber-700)', cursor: 'pointer' }}>{rf.forgotLink}</a>
+              <a {...activatable(() => go('forgot'))} style={{ fontSize: 13, color: 'var(--amber-700)', cursor: 'pointer' }}>{rf.forgotLink}</a>
             </div>
           )}
 
@@ -131,7 +132,7 @@ function AuthCard({ t }) {
 
         {(mode === 'forgot' || mode === 'reset') && (
           <div style={{ textAlign: 'center', marginTop: 18 }}>
-            <a onClick={() => go('login')} style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }}>{rf.backToLogin}</a>
+            <a {...activatable(() => go('login'))} style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }}>{rf.backToLogin}</a>
           </div>
         )}
 
@@ -160,7 +161,8 @@ function Dashboard({ go, openCatalog, tab, setTab, t }) {
   const statusColor = (s) => (s === 'Collected' || s === 'Completed' || s === 'Confirmed' ? 'var(--success)' : s === 'Shipped' ? 'var(--info)' : s === 'Cancelled' ? 'var(--danger)' : 'var(--amber-700)')
   const initials = (user.name || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
   const wishProducts = (content.products || []).filter((p) => wishlist.includes(p.id))
-  const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString(lang === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) } catch { return '' } }
+  const dateLocale = lang === 'he' ? 'he-IL' : lang === 'ar' ? 'ar' : 'en-GB'
+  const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' }) } catch { return '' } }
 
   // Settings state
   const [profile, setProfile] = useState({ name: user.name, phone: user.phone || '' })
@@ -272,7 +274,7 @@ function Dashboard({ go, openCatalog, tab, setTab, t }) {
                     <ProductCard image={p.image || undefined} brand={p.brand} name={p.name} amount={p.amount} original={p.original || undefined}
                       rating={p.rating} reviewCount={p.reviews} badge={p.badge ? { variant: p.badge.variant, label: L(p.badge.label) } : undefined}
                       tryMirror={canTryMirror(p)} colors={p.colors} style={{ cursor: 'pointer' }} onClick={() => go('product', p)} />
-                    <button onClick={() => toggleWishlist(p.id)} aria-label="remove from wishlist"
+                    <button onClick={() => toggleWishlist(p.id).catch(() => {})} aria-label="remove from wishlist"
                       style={{ position: 'absolute', top: 10, insetInlineEnd: 10, width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer', background: 'var(--white)', boxShadow: 'var(--shadow-sm)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Icon name="heart" size={17} color="var(--danger)" fill="var(--danger)" />
                     </button>

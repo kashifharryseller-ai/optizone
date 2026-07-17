@@ -208,8 +208,12 @@ const STRINGS = {
       addrVerifiedMsg: 'Address verified',
       addrError: 'Please choose a verified address from the suggestions.',
       addrManualError: 'Please enter your shipping address.',
+      contactError: 'Please enter your name, a valid email, and a phone number.',
+      orderError: 'Sorry — we couldn’t place your order. Please try again.',
+      placing: 'Placing order…',
+      selectBranch: 'Select a branch',
       confirmedH1: 'Order confirmed',
-      confirmedP: (total, id) => `Order ${id ? `#${id}` : ''} · ₪${total}`,
+      confirmedP: (total, id) => `Order${id ? ` #${id}` : ''} · ₪${total}`,
       confirmedNote: 'A tax invoice (חשבונית מס) and tracking link are on the way via email & WhatsApp.',
       thankYou: 'Thank you', trackOrder: 'Track order', continueShopping: 'Continue shopping',
       summary: 'Order summary', qty: (n) => `Qty ${n}`, subtotal: 'Subtotal', shipping: 'Shipping', free: 'Free', total: 'TOTAL',
@@ -414,8 +418,12 @@ const STRINGS = {
       addrVerifiedMsg: 'הכתובת אומתה',
       addrError: 'יש לבחור כתובת מאומתת מרשימת ההצעות.',
       addrManualError: 'נא להזין כתובת למשלוח.',
+      contactError: 'נא להזין שם, אימייל תקין ומספר טלפון.',
+      orderError: 'מצטערים — לא הצלחנו לבצע את ההזמנה. נסו שוב.',
+      placing: 'מבצע הזמנה…',
+      selectBranch: 'בחרו סניף',
       confirmedH1: 'ההזמנה אושרה',
-      confirmedP: (total, id) => `הזמנה ${id ? `#${id}` : ''} · ₪${total}`,
+      confirmedP: (total, id) => `הזמנה${id ? ` #${id}` : ''} · ₪${total}`,
       confirmedNote: 'חשבונית מס וקישור למעקב בדרך אליכם באימייל ובוואטסאפ.',
       thankYou: 'תודה', trackOrder: 'מעקב הזמנה', continueShopping: 'המשך קנייה',
       summary: 'סיכום הזמנה', qty: (n) => `כמות ${n}`, subtotal: 'סכום ביניים', shipping: 'משלוח', free: 'חינם', total: 'סה״כ',
@@ -436,6 +444,175 @@ const STRINGS = {
   },
 }
 
+// ---------------------------------------------------------------------------
+// Arabic UI strings. Authored for the visible chrome; anything not overridden
+// falls back to English via deepMerge below, so the table can never have a
+// missing key (which would crash a component). Admin-entered CONTENT is
+// auto-translated to Arabic separately (server-side), so product/homepage copy
+// shows in Arabic regardless of this table.
+// ---------------------------------------------------------------------------
+const AR_UI = {
+  langLabel: 'العربية',
+  announce: 'شحن مجاني للطلبات فوق ₪400 · أكمل ضبط نظارتك في أي فرع',
+  aria: { search: 'بحث', wishlist: 'المفضلة', account: 'الحساب', cart: 'السلة', menu: 'القائمة' },
+  home: {
+    hero_eyebrow: 'جديد · مجموعة 2026',
+    hero_h1a: 'شاهد العالم', hero_h1b: 'بـ', hero_h1c: 'أناقة',
+    hero_p: 'إطارات مصنوعة يدويًا وبضبط احترافي. جرّب أي نظارة عبر «المرآة الافتراضية» قبل الشراء — دون الحاجة إلى بطاقة للحجز.',
+    cta_shop: 'تسوّق الإطارات', cta_book: 'احجز فحصًا', trusted: 'موثوق منذ 2009',
+    hero_slot: 'أفلت صورة الغلاف هنا', tryReady: 'المرآة الافتراضية جاهزة',
+    services_eyebrow: 'ماذا نقدّم', services_h2: 'رعاية كاملة للعين بأناقة',
+    cat_eyebrow: 'الفئات', cat_h2: 'تسوّق حسب الفئة',
+    cats: [
+      { key: 'eyeglasses', label: 'نظارات طبية', slot: 'أفلت صورة النظارات الطبية' },
+      { key: 'sunglasses', label: 'نظارات شمسية', slot: 'أفلت صورة النظارات الشمسية' },
+      { key: 'contacts', label: 'عدسات لاصقة', slot: 'أفلت صورة العدسات اللاصقة' },
+    ],
+    best_eyebrow: 'الأكثر مبيعًا', best_h2: 'إطارات الموسم', viewall: 'عرض الكل',
+    try_eyebrow: 'المرآة الافتراضية', try_h2: 'جرّبها من المنزل',
+    try_p: 'تجربة افتراضية حيّة على جهازك. قارن الإطارات جنبًا إلى جنب، واحفظ إطلالاتك، وشاركها عبر واتساب. لا يُخزَّن أي شيء.',
+    try_cta: 'ابدأ المرآة الافتراضية',
+  },
+  footer: {
+    blurb: 'نظارات ورعاية عيون فاخرة. جرّب أي إطار قبل الشراء.',
+    cols: [
+      { h: 'تسوّق', items: ['نظارات طبية', 'نظارات شمسية', 'عدسات لاصقة', 'إكسسوارات', 'بطاقات هدايا'] },
+      { h: 'الخدمات', items: ['احجز فحص عيون', 'المرآة الافتراضية', 'دليل العدسات', 'مواقع الفروع', 'مساعدة الوصفة'] },
+      { h: 'OPTIZONE', items: ['قصتنا', 'الفروع', 'الوظائف', 'المدوّنة', 'اتصل بنا'] },
+    ],
+    copyright: '© 2026 OPTIZONE · رؤية وأناقة',
+    legal: ['بيان إمكانية الوصول (IS 5568)', 'الخصوصية', 'الشروط'],
+  },
+  catalog: {
+    home: 'الرئيسية', title: 'نظارات طبية',
+    filters: 'التصفية', clear: 'مسح', tryOnly: 'المرآة الافتراضية فقط',
+    count: (n) => `${n} إطارات`, empty: 'لا توجد إطارات تطابق هذه التصفية.',
+    sort: { popular: 'الترتيب: الأكثر رواجًا', asc: 'السعر: من الأقل للأعلى', desc: 'السعر: من الأعلى للأقل' },
+  },
+  product: {
+    backTo: (l) => `→ العودة إلى ${l}`,
+    inStock: 'متوفّر · نتانيا، تل أبيب',
+    color: 'اللون', lensConfig: 'إعدادات العدسة',
+    addToCart: (total) => `أضف إلى السلة · ₪${total}`, tryMirror: 'المرآة الافتراضية',
+    freeShip: 'شحن مجاني فوق ₪400', reserveFit: 'احجز واضبط في المتجر',
+    tabs: { desc: 'الوصف', specs: 'المواصفات', reviews: 'المراجعات' },
+    notNow: 'ليس الآن', allowCamera: 'السماح بالكاميرا', consentTitle: 'موافقة الكاميرا والتجربة',
+    mirrorSize: 'حجم الإطار', mirrorAdd: 'أضف إلى السلة', mirrorDownload: 'تنزيل الصورة',
+    modeLive: 'مباشر', modePhoto: 'رفع صورة', modeVideo: 'رفع فيديو',
+    specLabels: { brand: 'العلامة', shape: 'الشكل', material: 'المادة', gender: 'الفئة', lensWidth: 'عرض العدسة', bridge: 'الجسر', temple: 'طول الذراع', weight: 'الوزن', colorOpts: 'خيارات الألوان', lensOpts: 'خيارات العدسات', tryMirror: 'المرآة الافتراضية' },
+  },
+  cart: {
+    emptyH1: 'سلتك فارغة', emptyP: 'اعثر على إطار تحبّه — وجرّبه قبل الشراء.', shop: 'تسوّق الإطارات',
+    title: 'سلتك', lineNote: 'إطار + عدسة · مُعدّة',
+    customSize: (v) => `مقاس مخصّص · ${v}`,
+    summary: 'الملخّص', subtotal: 'المجموع الفرعي', shipping: 'الشحن', free: 'مجاني',
+    promo: 'رمز الخصم', apply: 'تطبيق', total: 'الإجمالي',
+    promoApplied: (c) => `الرمز ${c}`, promoInvalid: 'هذا الرمز غير صالح أو منتهي الصلاحية.',
+    checkout: 'إتمام الشراء', reserve: 'احجز واضبط في المتجر',
+  },
+  search: {
+    placeholder: 'ابحث عن إطارات، علامات، عدسات…',
+    popular: 'عمليات بحث رائجة',
+    results: (n) => `${n} ${n === 1 ? 'نتيجة' : 'نتائج'}`,
+    none: (q) => `لا توجد إطارات تطابق «${q}». جرّب علامة أو شكلاً.`,
+  },
+  account: {
+    welcome: 'مرحبًا بعودتك', signinSub: 'سجّل الدخول إلى حساب OPTIZONE',
+    registerTitle: 'أنشئ حسابك', registerSub: 'تابع الطلبات، واحجز أسرع، واحفظ إطاراتك المفضّلة',
+    name: 'الاسم الكامل', email: 'البريد الإلكتروني', phone: 'الهاتف · 05X-XXX-XXXX', password: 'كلمة المرور',
+    pwHint: '6 أحرف على الأقل',
+    signin: 'تسجيل الدخول', signup: 'إنشاء حساب', or: 'أو', google: 'المتابعة عبر Google',
+    toRegister: 'جديد هنا؟ أنشئ حسابًا', toLogin: 'لديك حساب؟ سجّل الدخول',
+    myAccount: 'حسابي', hello: (n) => `مرحبًا، ${n}`,
+    stats: { orders: 'الطلبات', appts: 'المواعيد', wishlist: 'المفضّلة', spent: 'إجمالي الإنفاق' },
+    tabs: { orders: 'طلباتي', appts: 'مواعيدي', wishlist: 'مفضّلتي', settings: 'إعداداتي' },
+    signout: 'تسجيل الخروج',
+    menu: { account: 'حسابي', orders: 'طلباتي', appts: 'مواعيدي', wishlist: 'مفضّلتي', settings: 'إعداداتي', signin: 'تسجيل الدخول', register: 'إنشاء حساب', signout: 'تسجيل الخروج' },
+  },
+  checkout: {
+    title: 'إتمام الشراء', steps: ['التواصل', 'الشحن', 'الدفع'],
+    contactTitle: 'بيانات التواصل', firstName: 'الاسم الأول', lastName: 'اسم العائلة', email: 'البريد الإلكتروني', phone: 'الهاتف · 05X-XXX-XXXX',
+    toShipping: 'المتابعة إلى الشحن', deliveryTitle: 'طريقة التوصيل',
+    homeDelivery: 'توصيل للمنزل', homeFree: 'مجاني · 2–4 أيام عمل', homePaid: '₪30 · 2–4 أيام عمل',
+    pickup: 'الاستلام من الفرع', pickupSub: 'مجاني · جاهز خلال 1–2 يوم',
+    addrTitle: 'عنوان الشحن', street: 'الشارع والرقم', apt: 'شقة / مدخل', city: 'المدينة', postal: 'الرمز البريدي',
+    back: 'رجوع', toPayment: 'المتابعة إلى الدفع', payTitle: 'طريقة الدفع',
+    cod: 'الدفع عند الاستلام', codSub: 'ادفع نقدًا عند وصول طلبك',
+    comingSoon: 'قريبًا', cardSoonNote: 'مدفوعات البطاقة قريبًا.',
+    placeOrder: (total) => `تأكيد الطلب · ₪${total}`,
+    secure: 'لا تمرّ بيانات بطاقتك عبر خوادمنا · PCI-DSS عبر البوابة',
+    addrVerifiedMsg: 'تم التحقق من العنوان',
+    addrError: 'يرجى اختيار عنوان مُتحقّق منه من الاقتراحات.',
+    addrManualError: 'يرجى إدخال عنوان الشحن.',
+    contactError: 'يرجى إدخال اسمك وبريد إلكتروني صحيح ورقم هاتف.',
+    orderError: 'عذرًا — تعذّر تنفيذ طلبك. حاول مرة أخرى.',
+    placing: 'جارٍ تنفيذ الطلب…', selectBranch: 'اختر فرعًا',
+    confirmedH1: 'تم تأكيد الطلب',
+    confirmedP: (total, id) => `الطلب${id ? ` #${id}` : ''} · ₪${total}`,
+    confirmedNote: 'فاتورة ضريبية ورابط تتبّع في الطريق عبر البريد وواتساب.',
+    thankYou: 'شكرًا لك', trackOrder: 'تتبّع الطلب', continueShopping: 'متابعة التسوّق',
+    summary: 'ملخّص الطلب', qty: (n) => `الكمية ${n}`, subtotal: 'المجموع الفرعي', shipping: 'الشحن', free: 'مجاني', total: 'الإجمالي',
+  },
+  booking: {
+    eyebrow: 'احجز موعدًا', h1: 'رعاية العين وفق جدولك',
+    calendlyEyebrow: 'احجز عبر الإنترنت', calendlyH: 'اختر وقتًا يناسبك',
+    calendlySub: 'اختر موعدًا مباشرًا من تقويمنا — تأكيد فوري وإعادة جدولة مجانية.',
+    calendlyLoading: 'جارٍ تحميل المُجدوِل…',
+    calendlyOff: 'الحجز عبر الإنترنت غير متاح مؤقتًا — يرجى الاتصال بنا على',
+    calendlyCta: 'حدّد وقتًا معي',
+    calendlyBadgeHint: 'أو اضغط زر «حدّد وقتًا معي» في الزاوية في أي وقت.',
+  },
+  brands: {
+    eyebrow: 'شركاؤنا', title: 'تسوّق حسب العلامة',
+    sub: 'العلامات التي نوفّرها — أصلية 100% وبضمان الشركة المصنّعة الكامل.',
+    count: (n) => `${n} ${n === 1 ? 'منتج' : 'منتجات'}`,
+  },
+  stores: {
+    eyebrow: 'اعثر علينا', h1: 'فروعنا',
+    branch: 'فرع', bookHere: 'احجز في هذا الفرع', directions: 'الحصول على الاتجاهات',
+  },
+  toast: { added: 'أُضيف إلى السلة' },
+}
+
+// Arabic catalog-attribute translations (mirrors ATTR_HE keys).
+const ATTR_AR = {
+  'Frame Shape': 'شكل الإطار', Material: 'المادة', Gender: 'الفئة',
+  Round: 'دائري', Square: 'مربّع', 'Cat-eye': 'عين القطة', Oval: 'بيضوي', Aviator: 'أفياتور',
+  Acetate: 'أسيتات', Metal: 'معدن', Titanium: 'تيتانيوم',
+  Women: 'نساء', Men: 'رجال', Unisex: 'للجنسين', Kids: 'أطفال',
+  'Eye Exams': 'فحوصات العين', 'Try Mirror': 'المرآة الافتراضية', 'Contact Lenses': 'عدسات لاصقة',
+  'Frame Fitting': 'ضبط الإطار', Multifocal: 'متعدّد البؤر', Keratoconus: 'القرنية المخروطية',
+  'Myopia Control': 'التحكّم في قصر النظر',
+  'In lab': 'في المختبر', Collected: 'تم الاستلام', Shipped: 'تم الشحن',
+  New: 'جديد', Cancelled: 'ملغى', Confirmed: 'مؤكّد', Completed: 'مكتمل',
+  Daily: 'يومية', 'Bi-weekly': 'كل أسبوعين', Monthly: 'شهرية',
+  'Silicone Hydrogel': 'هيدروجيل سيليكون', 'Water Gradient': 'تدرّج مائي',
+}
+
+// Deep-merge Arabic overrides over the English table so any missing Arabic key
+// (or function entry) safely falls back to English — no missing-key crashes.
+function deepMerge(base, over) {
+  if (over === undefined || over === null) return base
+  if (typeof base !== 'object' || base === null || Array.isArray(base) ||
+      typeof over !== 'object' || Array.isArray(over)) return over
+  const out = { ...base }
+  for (const k of Object.keys(over)) out[k] = deepMerge(base[k], over[k])
+  return out
+}
+STRINGS.ar = deepMerge(STRINGS.en, AR_UI)
+
+// Per-language catalog-attribute maps (English passes through when absent).
+const ATTR = { he: ATTR_HE, ar: ATTR_AR }
+
+// The languages offered in the header switcher (order = display order).
+export const LANGUAGES = [
+  { code: 'en', label: 'English', short: 'EN' },
+  { code: 'he', label: 'עברית', short: 'עב' },
+  { code: 'ar', label: 'العربية', short: 'ع' },
+]
+const RTL_LANGS = new Set(['he', 'ar'])
+const isLang = (x) => LANGUAGES.some((l) => l.code === x)
+
 const LangContext = createContext(null)
 
 const LANG_KEY = 'oz_lang'
@@ -447,11 +624,11 @@ export function LangProvider({ children, defaultLang = 'en' }) {
   const [lang, setLang] = useState(() => {
     try {
       const saved = localStorage.getItem(LANG_KEY)
-      if (saved === 'he' || saved === 'en') return saved
+      if (isLang(saved)) return saved
     } catch { /* private mode */ }
-    return defaultLang === 'he' ? 'he' : 'en'
+    return isLang(defaultLang) ? defaultLang : 'en'
   })
-  const dir = lang === 'he' ? 'rtl' : 'ltr'
+  const dir = RTL_LANGS.has(lang) ? 'rtl' : 'ltr'
 
   useEffect(() => {
     document.documentElement.dir = dir
@@ -459,27 +636,33 @@ export function LangProvider({ children, defaultLang = 'en' }) {
     try { localStorage.setItem(LANG_KEY, lang) } catch { /* private mode */ }
   }, [lang, dir])
 
-  // Admin live-preview iframe: the editor's EN/עברית switch drives language.
+  // Admin live-preview iframe: the editor's language switch drives language.
   useEffect(() => {
     if (window.parent === window) return
     const onMsg = (e) => {
       if (e.origin !== window.location.origin) return
-      if (e.data?.type === 'oz-preview-lang' && (e.data.lang === 'en' || e.data.lang === 'he')) setLang(e.data.lang)
+      if (e.data?.type === 'oz-preview-lang' && isLang(e.data.lang)) setLang(e.data.lang)
     }
     window.addEventListener('message', onMsg)
     return () => window.removeEventListener('message', onMsg)
   }, [])
 
   const value = useMemo(() => {
-    const t = STRINGS[lang]
-    // L: pick the right language from a bilingual value ({en,he}) or pass a plain string through.
-    const L = (v) => (v && typeof v === 'object' && ('en' in v || 'he' in v) ? (v[lang] ?? v.en) : v)
-    // A: translate a catalog attribute value.
-    const A = (v) => (lang === 'he' ? ATTR_HE[v] ?? v : v)
+    const t = STRINGS[lang] || STRINGS.en
+    // L: pick the right language from a bilingual value ({en,he,ar}) or pass a
+    // plain string through; falls back to English when the language is missing.
+    const L = (v) => (v && typeof v === 'object' && !Array.isArray(v) && ('en' in v || 'he' in v || 'ar' in v) ? (v[lang] ?? v.en) : v)
+    // A: translate a catalog attribute value (English passes through).
+    const A = (v) => (ATTR[lang] && ATTR[lang][v]) || v
     return {
       lang, dir, t, L, A,
-      setLang,
-      toggle: () => setLang((l) => (l === 'en' ? 'he' : 'en')),
+      languages: LANGUAGES,
+      setLang: (code) => { if (isLang(code)) setLang(code) },
+      // Legacy 2-way callers: cycle through the available languages.
+      toggle: () => setLang((l) => {
+        const i = LANGUAGES.findIndex((x) => x.code === l)
+        return LANGUAGES[(i + 1) % LANGUAGES.length].code
+      }),
     }
   }, [lang])
 

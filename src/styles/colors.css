@@ -5,31 +5,32 @@
  */
 :root {
   /* ---- Pine green (primary brand) ----
-   * Anchored to the OPTIZONE logo/packaging green: lit collateral
-   * samples average ~rgb(48,66,52). --pine-700 is the true brand green. */
-  --pine-950: #0F221A;
-  --pine-900: #163024;
-  --pine-800: #1E3C2D;
-  --pine-700: #274A3B;   /* brand pine — the logo/collateral green */
-  --pine-600: #315846;
-  --pine-500: #3E6B56;
-  --pine-400: #52846D;
-  --pine-300: #7DA894;
-  --pine-200: #B4CEC1;
-  --pine-100: #DCE9E2;
-  --pine-50:  #EFF4F1;
+   * Vivid emerald refresh (brighter & more saturated than the old muted forest)
+   * so the brand green reads boldly next to the amber accent. --pine-700 is the
+   * brand green; it keeps ≥4.5:1 contrast with --cream-100 text (≈5.1:1). */
+  --pine-950: #06170F;
+  --pine-900: #0B2618;
+  --pine-800: #103A26;
+  --pine-700: #157A46;   /* brand pine — vivid emerald (header/hero/buttons) */
+  --pine-600: #1B8E53;
+  --pine-500: #23A362;
+  --pine-400: #46BC80;
+  --pine-300: #7FD3A6;
+  --pine-200: #B4E6CC;
+  --pine-100: #DCF3E7;
+  --pine-50:  #EEF9F2;
 
-  /* ---- Amber orange (accent) ---- */
-  --amber-900: #7E4310;
-  --amber-800: #A85B17;
-  --amber-700: #C6741C;
-  --amber-600: #E08A2A;   /* brand amber — the foil / accent */
-  --amber-500: #E89A45;
-  --amber-400: #EEB06A;
-  --amber-300: #F3C892;
-  --amber-200: #F8DEBC;
-  --amber-100: #FBEDDB;
-  --amber-50:  #FDF6EC;
+  /* ---- Amber / gold (accent) ---- */
+  --amber-900: #7A3D08;
+  --amber-800: #A85A10;
+  --amber-700: #D07E12;
+  --amber-600: #F5A623;   /* brand amber — punchier gold (accent / foil) */
+  --amber-500: #FFB93D;   /* on-green variant — pops against the emerald */
+  --amber-400: #FFC968;
+  --amber-300: #FFD98F;
+  --amber-200: #FCE7BE;
+  --amber-100: #FEF3DC;
+  --amber-50:  #FFFAF0;
 
   /* ---- Cream / kraft neutrals ---- */
   --cream-100: #FBF8F1;
@@ -92,5 +93,5 @@
 
   /* Interactive */
   --focus-ring:     var(--amber-600);
-  --overlay-scrim:  rgba(15,34,26,0.55);
+  --overlay-scrim:  rgba(6,23,15,0.55);
 }

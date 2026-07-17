@@ -105,8 +105,7 @@ if (await heroPanel.getByRole('button', { name: 'Remove', exact: true }).count()
   await page.waitForTimeout(250)
 }
 expect(await page.getByText(/Recommended 1200 × 900 px/).isVisible(), 'hero dropzone shows recommended dimensions + size hint')
-expect(await page.getByLabel('Alt text (for accessibility & SEO) (English)').first().isVisible(), 'alt-text EN field present')
-expect(await page.getByLabel('Alt text (for accessibility & SEO) (Hebrew)').first().isVisible(), 'alt-text HE field present')
+expect(await page.getByLabel('Alt text (for accessibility & SEO) (English)').first().isVisible(), 'alt-text EN field present (English-only; he/ar auto-translated)')
 // choose a file → crop modal appears → apply → uploaded thumb with Replace/Remove
 await page.route('**/api/admin/upload', (route) => route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ url: '/uploads/hero-test.jpg' }) }))
 await page.route('**/uploads/hero-test.jpg', (route) => route.fulfill({ status: 200, contentType: 'image/png', body: png(24, 18) }))

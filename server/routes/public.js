@@ -33,27 +33,71 @@ router.get('/content/version', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
-// Create an order from checkout. If the shopper is signed in, the order is
-// linked to their account (visible under My Orders and in the admin panel).
+// Create an order from checkout. Prices and totals are ALWAYS recomputed on the
+// server from the catalog — the client's amounts/subtotal/total are never
+// trusted. Orders are linked to an account only by the authenticated session
+// (never by matching a checkout email, which anyone could type).
+const qty = (n) => Math.min(20, Math.max(1, Math.round(Number(n) || 1)))
+
 router.post('/orders', optionalUser, async (req, res, next) => {
   try {
     const b = req.body || {}
-    const items = Array.isArray(b.items) ? b.items : []
-    // Link the order to an account: by session when signed in, otherwise by
-    // matching the checkout email to a registered account — so orders always
-    // show up under My Orders and against the right customer in the admin.
-    let userId = req.userId || null
-    if (!userId && b.customer?.email) {
-      try {
-        const u = await store().findUserByEmail(String(b.customer.email).trim().toLowerCase())
-        if (u) userId = u.id
-      } catch { /* keep as guest order */ }
-    }
+    const rawItems = (Array.isArray(b.items) ? b.items : []).slice(0, 50)
+    if (!rawItems.length) return res.status(400).json({ error: 'Your cart is empty' })
+
+    // Only accept products that exist in the live catalog and are active, and
+    // always derive names/brands from the catalog — the client can't fabricate
+    // products. The client amount may legitimately exceed the base price (lens
+    // upgrades), so we floor each line at the catalog price rather than trusting
+    // it; anything below base is bumped up to base. (Note: lens-option pricing is
+    // still client-side, so a shopper could under-declare add-ons above base —
+    // moving that table server-side is a tracked follow-up.)
+    const content = await store().getContent()
+    const catalog = new Map(
+      (content.products || [])
+        .filter((p) => p && p.active !== false)
+        .map((p) => [String(p.id), p]),
+    )
+
+    const items = rawItems
+      .filter((it) => it && typeof it === 'object' && !Array.isArray(it))
+      .map((it) => {
+        const prod = catalog.get(String(it.id))
+        if (!prod) return null // unknown or inactive product → drop the line
+        const base = Number(prod.amount) || 0
+        const clientAmount = Number(it.amount)
+        const amount = Number.isFinite(clientAmount) ? Math.max(base, clientAmount) : base
+        return {
+          id: prod.id,
+          name: String(prod.name || '').slice(0, 160),
+          brand: String(prod.brand || '').slice(0, 80),
+          amount,
+          qty: qty(it.qty),
+          customSize: it.customSize ? String(it.customSize).slice(0, 40) : null,
+        }
+      })
+      .filter((it) => it && it.amount > 0)
+
+    if (!items.length) return res.status(400).json({ error: 'No valid items in cart' })
+
+    const settings = content.settings || {}
+    // Preserve valid zero values (free shipping / zero threshold); only fall back
+    // to defaults when the configured value is missing or invalid.
+    const rawThreshold = Number(settings.shippingThreshold)
+    const rawFee = Number(settings.shippingFee)
+    const threshold = Number.isFinite(rawThreshold) && rawThreshold >= 0 ? rawThreshold : 400
+    const fee = Number.isFinite(rawFee) && rawFee >= 0 ? rawFee : 30
+    const subtotal = items.reduce((s, it) => s + it.amount * it.qty, 0)
+    const fulfilment = String(b.fulfilment || '').slice(0, 40)
+    // Free over threshold or for in-branch pickup; the fee otherwise.
+    const shipping = fulfilment === 'pickup' || subtotal > threshold ? 0 : fee
+    const total = subtotal + shipping
+
     const order = {
       id: 'OZ-' + num(),
       createdAt: new Date().toISOString(),
       status: 'New',
-      userId,
+      userId: req.userId || null,
       customer: {
         name: String(b.customer?.name || '').slice(0, 120),
         email: String(b.customer?.email || '').slice(0, 160),
@@ -70,20 +114,16 @@ router.post('/orders', optionalUser, async (req, res, next) => {
         } : null,
       },
       addressVerified: !!b.addressVerified,
-      items: items.slice(0, 50).map((it) => ({
-        id: it.id, name: String(it.name || '').slice(0, 160), brand: String(it.brand || '').slice(0, 80),
-        amount: Number(it.amount) || 0, qty: Number(it.qty) || 1,
-        // Try Mirror per-line custom frame size (e.g. "110%").
-        customSize: it.customSize ? String(it.customSize).slice(0, 40) : null,
-      })),
-      subtotal: Number(b.subtotal) || 0,
-      shipping: Number(b.shipping) || 0,
-      total: Number(b.total) || 0,
+      items,
+      subtotal,
+      shipping,
+      total,
       payment: String(b.payment || '').slice(0, 40),
-      fulfilment: String(b.fulfilment || '').slice(0, 40),
+      fulfilment,
+      branch: fulfilment === 'pickup' ? String(b.branch || '').slice(0, 120) : null,
     }
     await store().addOrder(order)
-    res.status(201).json({ id: order.id })
+    res.status(201).json({ id: order.id, total: order.total })
   } catch (err) { next(err) }
 })
 

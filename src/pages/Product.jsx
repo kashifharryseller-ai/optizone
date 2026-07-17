@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthProvider.jsx'
 import { ImageSlot } from '../components/ImageSlot.jsx'
 import { TryMirror } from '../components/TryMirror.jsx'
 import { canTryMirror } from '../lib/tryMirror.js'
+import { activatable } from '../lib/a11y.js'
 
 // Thumbnail: real product photo when the admin uploaded one, mark fallback.
 function MarkThumb({ active, onClick, tint, src }) {
@@ -16,6 +17,15 @@ function MarkThumb({ active, onClick, tint, src }) {
         : <GlassesMark size={20} color={tint || 'var(--pine-500)'} />}
     </button>
   )
+}
+
+// First sentence of a description, without RegExp lookbehind (which throws on
+// Safari < 16.4). Returns the text up to and including the first period that is
+// followed by whitespace; otherwise the whole string.
+function firstSentence(str) {
+  const s = String(str)
+  const i = s.search(/\.\s/)
+  return i >= 0 ? s.slice(0, i + 1) : s
 }
 
 function LensRow({ label, children }) {
@@ -33,10 +43,14 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
   const { user, inWishlist, toggleWishlist } = useAuth()
   const t = root.product
   const p = product || (content.products || [])[0] || {}
+  const colors = p.colors || []
   const wished = user ? inWishlist(p.id) : false
   const cat = p.category || 'eyeglasses'
   const catLabel = L((content.categoryPages || {})[cat]?.title) || L((nav.find((n) => n.key === cat) || {}).label) || ''
-  const onHeart = () => { user ? toggleWishlist(p.id) : openAccount && openAccount('wishlist') }
+  const onHeart = () => {
+    if (!user) return openAccount && openAccount('wishlist')
+    toggleWishlist(p.id).catch(() => { /* network/session error — UI stays in sync on next load */ })
+  }
   const [img, setImg] = useState(0)
   const [tab, setTab] = useState('desc')
   const [consent, setConsent] = useState(false)
@@ -62,14 +76,14 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
 
   return (
     <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '28px 28px 72px' }}>
-      <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => openCatalog(p.category || 'eyeglasses')}>{t.backTo(catLabel)}</span>
+      <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', cursor: 'pointer' }} {...activatable(() => openCatalog(p.category || 'eyeglasses'))}>{t.backTo(catLabel)}</span>
 
       <div className="oz-g2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, marginTop: 20, alignItems: 'start' }}>
         {/* GALLERY */}
         <div style={{ display: 'flex', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {(gallery.length ? gallery.slice(0, 4) : [0, 1, 2, 3]).map((g, i) => (
-              <MarkThumb key={i} active={img === i} onClick={() => setImg(i)} src={gallery.length ? g : undefined} tint={p.colors[i % (p.colors.length || 1)]} />
+              <MarkThumb key={i} active={img === i} onClick={() => setImg(i)} src={gallery.length ? g : undefined} tint={colors[i % (colors.length || 1)]} />
             ))}
           </div>
           <div style={{ flex: 1, position: 'relative', aspectRatio: '1', background: 'var(--cream-300)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-hair)', overflow: 'hidden' }}>
@@ -81,7 +95,6 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
                 <Button variant="solid" size="sm" onClick={() => setConsent(true)} startIcon={<Icon name="camera" size={15} color="currentColor" />}>{t.tryMirror}</Button>
               </span>
             )}
-            <IconButton variant="outline" round style={{ position: 'absolute', bottom: 16, insetInlineEnd: 16, background: 'var(--white)', zIndex: 2 }}><Icon name="maximize-2" size={16} /></IconButton>
           </div>
         </div>
 
@@ -96,15 +109,15 @@ export function Product({ product, go, openCatalog, addToCart, openAccount }) {
           </div>
           <Price amount={total} original={p.original ? p.original + lensPrice : undefined} size="lg" />
           <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--text-body)', margin: '18px 0 22px', maxWidth: 460 }}>
-            {richDesc ? `${richDesc.split(/(?<=\.)\s+/)[0]}` : t.desc(p.shape, p.material)}
+            {richDesc ? firstSentence(richDesc) : t.desc(p.shape, p.material)}
           </p>
 
           {/* colors */}
           <div style={{ marginBottom: 22 }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>{t.color}</div>
             <div style={{ display: 'flex', gap: 10 }}>
-              {p.colors.map((c, i) => (
-                <button key={i} onClick={() => setImg(i)} style={{ width: 34, height: 34, borderRadius: 999, background: c, border: `2px solid ${img === i ? 'var(--amber-600)' : 'var(--border-hair)'}`, cursor: 'pointer', outline: img === i ? '2px solid var(--amber-100)' : 'none' }} />
+              {colors.map((c, i) => (
+                <button key={i} onClick={() => setImg(i)} aria-label={`${t.color} ${i + 1}`} style={{ width: 34, height: 34, borderRadius: 999, background: c, border: `2px solid ${img === i ? 'var(--amber-600)' : 'var(--border-hair)'}`, cursor: 'pointer', outline: img === i ? '2px solid var(--amber-100)' : 'none' }} />
               ))}
             </div>
           </div>

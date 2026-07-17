@@ -27,7 +27,7 @@ export function Search({ open, onClose, go }) {
   const pick = (p) => { onClose(); go('product', p) }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', flexDirection: 'column' }}>
+    <div role="dialog" aria-modal="true" aria-label={t.placeholder} style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', flexDirection: 'column' }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'var(--overlay-scrim)', animation: 'oz-fade var(--dur-base) var(--ease-out) both', backdropFilter: 'blur(3px)' }} />
       <div style={{ position: 'relative', background: 'var(--bg-page-alt)', boxShadow: 'var(--shadow-lg)', animation: 'oz-slide-down var(--dur-base) var(--ease-out) both' }}>
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '26px 28px 30px' }}>
@@ -62,7 +62,7 @@ export function Search({ open, onClose, go }) {
                     <button key={p.id} onClick={() => pick(p)}
                       style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 8px', border: 'none', borderBottom: '1px solid var(--border-hair)', background: 'transparent', cursor: 'pointer', textAlign: 'start', animation: 'oz-fade-up var(--dur-base) var(--ease-out) both', animationDelay: `${i * 40}ms` }}>
                       <span style={{ width: 52, height: 52, borderRadius: 'var(--radius-sm)', background: 'var(--cream-300)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
-                        <svg viewBox="0 0 120 46" width="34" fill="none"><g stroke={p.colors[0]} strokeWidth="3" strokeLinecap="round"><circle cx="40" cy="24" r="15" /><circle cx="80" cy="24" r="15" /><path d="M55 17 q5 -5 10 0" /></g></svg>
+                        <svg viewBox="0 0 120 46" width="34" fill="none"><g stroke={(p.colors && p.colors[0]) || 'var(--pine-500)'} strokeWidth="3" strokeLinecap="round"><circle cx="40" cy="24" r="15" /><circle cx="80" cy="24" r="15" /><path d="M55 17 q5 -5 10 0" /></g></svg>
                       </span>
                       <span style={{ flex: 1 }}>
                         <span style={{ display: 'block', fontFamily: 'var(--font-display)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-accent)' }}>{p.brand}</span>
