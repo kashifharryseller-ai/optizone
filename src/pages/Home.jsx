@@ -50,32 +50,13 @@ export function Home({ go, openCatalog, addToCart }) {
               <DiamondRule label={L(hero.trusted)} color="var(--amber-500)" />
             </div>
           </div>
-          <div style={{ ...rise(240), position: 'relative', aspectRatio: '4/3', borderRadius: 'var(--radius-lg)', background: 'linear-gradient(160deg,var(--pine-600),var(--pine-800))', border: '1px solid var(--border-on-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-dark)', overflow: 'hidden' }}>
-            {/* BUG 3: hero is the LCP image — load it eagerly with high fetch
-                priority and a responsive srcset/sizes when the data supplies one.
-                The pine gradient on the parent acts as the lightweight poster
-                shown while the photo decodes. Quality/visuals are unchanged. */}
-            <ImageSlot
-              src={media['hero-photo']}
-              srcSet={media['hero-photo-srcset']}
-              sizes="(max-width: 1100px) 92vw, 520px"
-              alt={L((content.mediaAlt || {})['hero-photo']) || L(hero.slot)}
-              placeholder={L(hero.slot)}
-              priority
-              shape="rounded"
-              radius={14}
-              fit="cover"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-            />
-            <span style={{ position: 'absolute', bottom: 18, insetInlineEnd: 18, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(18,36,26,0.7)', color: 'var(--cream-100)', padding: '8px 14px', borderRadius: 999, fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', backdropFilter: 'blur(4px)', pointerEvents: 'none' }}>
-              <Icon name="camera" size={14} color="var(--amber-500)" /> {L(hero.tryReady)}
-            </span>
+          {/* Hero visual — auto-playing product-film carousel (muted, brand-framed).
+              The pine gradient is the lightweight poster behind the video. */}
+          <div style={{ ...rise(240), position: 'relative', aspectRatio: '4/3', borderRadius: 'var(--radius-lg)', background: 'linear-gradient(160deg,var(--pine-600),var(--pine-950))', border: '1px solid var(--border-on-dark)', boxShadow: 'var(--shadow-dark)', overflow: 'hidden' }}>
+            <VideoShowcase />
           </div>
         </div>
       </section>
-
-      {/* CINEMATIC SHOWCASE — auto + manual video carousel (muted, no audio) */}
-      <VideoShowcase />
 
       {/* SERVICES */}
       <section style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '64px 28px 8px' }}>
