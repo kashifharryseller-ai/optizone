@@ -1,5 +1,6 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
+import { MotionConfig } from 'motion/react'
 
 // Jost — geometric display face (wordmark, headings, all-caps UI labels).
 import '@fontsource/jost/300.css'
@@ -34,16 +35,18 @@ const isAdmin = window.location.pathname.replace(/\/+$/, '').startsWith('/admin'
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {isAdmin ? (
-      <AdminApp />
-    ) : (
-      <LangProvider defaultLang="en">
-        <ContentProvider>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </ContentProvider>
-      </LangProvider>
-    )}
+    <MotionConfig reducedMotion="user">
+      {isAdmin ? (
+        <AdminApp />
+      ) : (
+        <LangProvider defaultLang="en">
+          <ContentProvider>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </ContentProvider>
+        </LangProvider>
+      )}
+    </MotionConfig>
   </React.StrictMode>,
 )
