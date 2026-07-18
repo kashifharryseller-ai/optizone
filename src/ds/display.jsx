@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { motion } from 'motion/react'
 import { Badge as _Badge } from './_badge.jsx'
 
 export { Badge } from './_badge.jsx'
@@ -93,15 +94,16 @@ export function ProductCard({ image, brand, name, amount, original, rating, revi
   const [h, setH] = useState(false)
   const [imgFailed, setImgFailed] = useState(false) // BUG 2: broken photo URL → SVG fallback
   return (
-    <div
+    <motion.div
       onMouseEnter={() => setH(true)}
       onMouseLeave={() => setH(false)}
+      whileHover={{ y: -6 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 22 }}
       style={{
         display: 'flex', flexDirection: 'column', background: 'var(--surface-card)',
         border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-card)', overflow: 'hidden',
         boxShadow: h ? 'var(--shadow-md)' : 'var(--shadow-xs)',
-        transform: h ? 'translateY(-4px)' : 'none',
-        transition: 'transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out)',
+        transition: 'box-shadow var(--dur-base) var(--ease-out)',
         ...style,
       }}
       {...rest}
@@ -116,7 +118,7 @@ export function ProductCard({ image, brand, name, amount, original, rating, revi
             loading="lazy"
             decoding="async"
             onError={() => setImgFailed(true)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transform: h ? 'scale(1.06)' : 'scale(1)', transition: 'transform 600ms var(--ease-out)' }}
           />
         ) : (
           <svg viewBox="0 0 120 46" width="46%" fill="none" style={{ opacity: 0.35 }}>
@@ -159,10 +161,12 @@ export function ProductCard({ image, brand, name, amount, original, rating, revi
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 8 }}>
           <Price amount={amount} original={original} size="md" />
           {onQuickAdd && (
-            <button
+            <motion.button
               type="button"
               onClick={(e) => { e.stopPropagation(); onQuickAdd(e) }}
               aria-label={quickAddLabel}
+              whileTap={{ scale: 0.88 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
               style={{
                 width: 40, height: 40, borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
                 background: h ? 'var(--amber-600)' : 'var(--pine-700)', color: h ? 'var(--pine-950)' : 'var(--cream-100)',
@@ -175,11 +179,11 @@ export function ProductCard({ image, brand, name, amount, original, rating, revi
                 <path d="M3 6h18" />
                 <path d="M16 10a4 4 0 0 1-8 0" />
               </svg>
-            </button>
+            </motion.button>
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
