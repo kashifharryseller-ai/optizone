@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import './admin.css'
 import { Icon } from '../ds/index.js'
 import { api, getToken, setToken } from '../api.js'
 import Login from './Login.jsx'
@@ -200,7 +201,7 @@ export default function AdminApp() {
       />
 
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <header style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg-page-alt)', borderBottom: '1px solid var(--border-hair)', padding: '12px 28px', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <header className="oz-admin-header" style={{ position: 'sticky', top: 0, zIndex: 20, background: 'rgba(251,248,241,0.82)', borderBottom: '1px solid var(--border-hair)', boxShadow: '0 1px 0 rgba(6,23,15,0.02), 0 6px 20px -18px rgba(6,23,15,0.5)', padding: '12px 28px', display: 'flex', alignItems: 'center', gap: 16 }}>
           {mobile && (
             <button type="button" aria-label="Open menu" onClick={() => setMobileNav(true)} style={{ border: '1px solid var(--border-hair)', background: 'var(--white)', borderRadius: 'var(--radius-sm)', width: 38, height: 38, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: '0 0 auto' }}>
               <Icon name="menu" size={18} color="var(--text-strong)" />

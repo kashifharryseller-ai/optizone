@@ -82,7 +82,7 @@ export function Sidebar({
   const activeStyle = (on) => ({
     // amber left border + tinted background for the selected item
     boxShadow: on ? 'inset 3px 0 0 0 var(--amber-500)' : 'none',
-    background: on ? 'rgba(224,138,42,0.14)' : 'transparent',
+    background: on ? 'rgba(245,166,35,0.16)' : 'transparent',
     color: on ? 'var(--cream-100)' : 'var(--pine-200)',
   })
 
@@ -122,6 +122,7 @@ export function Sidebar({
         <button
           type="button"
           data-navitem
+          className="oz-navrow"
           onClick={onClick}
           onMouseEnter={() => setHovered(item.id)}
           onMouseLeave={() => setHovered((h) => (h === item.id ? null : h))}
@@ -153,6 +154,7 @@ export function Sidebar({
                   <button
                     type="button"
                     data-navitem
+                    className="oz-navrow"
                     onClick={() => navigate({ ...c, parent: item.id })}
                     aria-current={on ? 'page' : undefined}
                     style={{ ...rowBase, padding: '9px 14px 9px 46px', fontSize: 13.5, ...activeStyle(on) }}
@@ -171,12 +173,12 @@ export function Sidebar({
 
   // ── the aside itself ────────────────────────────────────────────────────────
   const asideStyle = {
-    width: railW, flex: '0 0 auto', background: 'var(--pine-800)', color: 'var(--cream-100)',
+    width: railW, flex: '0 0 auto', background: 'linear-gradient(180deg, var(--pine-800) 0%, var(--pine-900) 60%, var(--pine-950) 100%)', color: 'var(--cream-100)',
     display: 'flex', flexDirection: 'column', height: '100vh',
     transition: 'width var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out)',
     ...(mobile
       ? { position: 'fixed', top: 0, insetInlineStart: 0, zIndex: 70, width: 260, transform: mobileOpen ? 'none' : (dir === 'rtl' ? 'translateX(100%)' : 'translateX(-100%)'), boxShadow: mobileOpen ? 'var(--shadow-lg)' : 'none' }
-      : { position: 'sticky', top: 0 }),
+      : { position: 'sticky', top: 0, boxShadow: '1px 0 0 rgba(6,23,15,0.4), 8px 0 24px -20px rgba(6,23,15,0.6)' }),
   }
 
   return (
@@ -207,7 +209,7 @@ export function Sidebar({
         </div>
 
         {/* nav */}
-        <nav aria-label="Sections" ref={navRef} onKeyDown={onNavKeyDown} style={{ flex: 1, overflowY: 'auto', overflowX: 'visible', padding: isCollapsed ? '10px 8px' : '12px 12px' }}>
+        <nav aria-label="Sections" ref={navRef} onKeyDown={onNavKeyDown} className="oz-adminnav" style={{ flex: 1, overflowY: 'auto', overflowX: 'visible', padding: isCollapsed ? '10px 8px' : '12px 12px' }}>
           <ul style={{ margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
             {menu.map(renderItem)}
           </ul>
@@ -215,7 +217,7 @@ export function Sidebar({
 
         {/* footer: language/RTL toggle + profile chip */}
         <div style={{ borderTop: '1px solid var(--border-on-dark)', padding: isCollapsed ? '10px 8px' : '12px' }}>
-          <button type="button" data-navitem onClick={onToggleDir} title={isCollapsed ? 'Language / RTL' : undefined}
+          <button type="button" data-navitem className="oz-navrow" onClick={onToggleDir} title={isCollapsed ? 'Language / RTL' : undefined}
             aria-label={`Switch layout direction (currently ${dir === 'rtl' ? 'right-to-left' : 'left-to-right'})`}
             onMouseEnter={() => setHovered('dir')} onMouseLeave={() => setHovered((h) => (h === 'dir' ? null : h))}
             style={{ ...rowBase, marginBottom: 6, color: 'var(--pine-200)' }}>

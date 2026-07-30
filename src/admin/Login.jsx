@@ -56,11 +56,18 @@ export default function Login({ onAuthed }) {
   })
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--pine-800)', padding: 24 }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, position: 'relative', overflow: 'hidden', background: 'linear-gradient(160deg, var(--pine-700) 0%, var(--pine-900) 55%, var(--pine-950) 100%)' }}>
+      {/* brand aurora */}
+      <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'radial-gradient(52% 46% at 20% 12%, rgba(35,163,98,0.5), transparent 60%), radial-gradient(46% 42% at 88% 90%, rgba(245,166,35,0.18), transparent 62%)', pointerEvents: 'none' }} />
       <form onSubmit={step === 'creds' ? submitCreds : step === 'otp' ? submitOtp : step === 'forgot' ? submitForgot : submitReset}
-        style={{ width: 410, maxWidth: '100%', background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: '38px 34px' }}>
+        className="oz-login-card"
+        style={{ position: 'relative', width: 420, maxWidth: '100%', background: 'var(--surface-card)', borderRadius: 'var(--radius-xl)', boxShadow: '0 30px 70px -24px rgba(6,23,15,0.75)', border: '1px solid var(--border-hair)', overflow: 'hidden', padding: '40px 36px 36px' }}>
+        {/* amber top accent */}
+        <div aria-hidden style={{ position: 'absolute', top: 0, insetInlineStart: 0, insetInlineEnd: 0, height: 4, background: 'linear-gradient(90deg, var(--amber-600), var(--amber-400))' }} />
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <GlassesMark size={44} color="var(--pine-700)" />
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, borderRadius: 'var(--radius-lg)', background: 'var(--pine-50)', border: '1px solid var(--pine-100)' }}>
+            <GlassesMark size={38} color="var(--pine-700)" />
+          </span>
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 24, color: 'var(--text-strong)', margin: '12px 0 2px' }}>
             {step === 'creds' && 'OPTIZONE Admin'}
             {step === 'otp' && 'Check your email'}
@@ -80,13 +87,13 @@ export default function Login({ onAuthed }) {
           {step === 'creds' && (
             <>
               <Field label="Owner email"><Text value={email} onChange={setEmail} placeholder="info@optizone.co.il" autoFocus /></Field>
-              <Field label="Password"><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={pwStyle} /></Field>
+              <Field label="Password"><input className="oz-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={pwStyle} /></Field>
             </>
           )}
 
           {(step === 'otp' || step === 'reset') && (
             <Field label="6-digit code">
-              <input inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} placeholder="••••••" style={codeStyle} autoFocus />
+              <input className="oz-input" inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} placeholder="••••••" style={codeStyle} autoFocus />
             </Field>
           )}
 
@@ -96,7 +103,7 @@ export default function Login({ onAuthed }) {
 
           {step === 'reset' && (
             <Field label="New password" hint="At least 8 characters">
-              <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="••••••••" style={pwStyle} />
+              <input className="oz-input" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="••••••••" style={pwStyle} />
             </Field>
           )}
 

@@ -4,7 +4,7 @@ import { api } from '../api.js'
 // --- Layout ----------------------------------------------------------------
 export function Panel({ title, desc, actions, children, style }) {
   return (
-    <section style={{ background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)', padding: 22, ...style }}>
+    <section className="oz-panel" style={{ background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-md)', padding: 22, ...style }}>
       {(title || actions) && (
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
           <div>
@@ -24,7 +24,7 @@ export function Row({ children, cols, gap = 12, style }) {
 }
 
 // --- Buttons ----------------------------------------------------------------
-export function Btn({ variant = 'primary', size = 'md', children, style, ...rest }) {
+export function Btn({ variant = 'primary', size = 'md', children, style, className = '', ...rest }) {
   const v = {
     primary: { background: 'var(--pine-700)', color: 'var(--cream-100)', border: '1px solid var(--pine-700)' },
     accent: { background: 'var(--amber-600)', color: 'var(--pine-950)', border: '1px solid var(--amber-600)' },
@@ -35,7 +35,7 @@ export function Btn({ variant = 'primary', size = 'md', children, style, ...rest
   const pad = size === 'sm' ? '6px 12px' : '9px 18px'
   const fs = size === 'sm' ? 12 : 13
   return (
-    <button type="button" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: pad, borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontFamily: 'var(--font-display)', fontSize: fs, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 500, ...v, ...style }} {...rest}>
+    <button type="button" className={`oz-abtn ${className}`.trim()} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: pad, borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontFamily: 'var(--font-display)', fontSize: fs, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 500, ...v, ...style }} {...rest}>
       {children}
     </button>
   )
@@ -58,7 +58,7 @@ const inputStyle = {
 }
 
 export function Text({ value, onChange, dir, ...rest }) {
-  return <input value={value ?? ''} dir={dir} onChange={(e) => onChange(e.target.value)} style={inputStyle} {...rest} />
+  return <input className="oz-input" value={value ?? ''} dir={dir} onChange={(e) => onChange(e.target.value)} style={inputStyle} {...rest} />
 }
 
 // Auto-growing textarea — grows with the content so nothing is ever truncated.
@@ -70,7 +70,7 @@ export function Area({ value, onChange, dir, rows = 2, ...rest }) {
     el.style.height = 'auto'
     el.style.height = `${el.scrollHeight + 2}px`
   }, [value])
-  return <textarea ref={ref} value={value ?? ''} dir={dir} rows={rows} onChange={(e) => onChange(e.target.value)} style={{ ...inputStyle, height: 'auto', padding: 12, resize: 'none', overflow: 'hidden', lineHeight: 1.5 }} {...rest} />
+  return <textarea ref={ref} className="oz-input" value={value ?? ''} dir={dir} rows={rows} onChange={(e) => onChange(e.target.value)} style={{ ...inputStyle, height: 'auto', padding: 12, resize: 'none', overflow: 'hidden', lineHeight: 1.5 }} {...rest} />
 }
 
 // Character counter under a constrained input; turns amber near the limit.
@@ -84,12 +84,12 @@ function Counter({ len, max }) {
 }
 
 export function Num({ value, onChange, ...rest }) {
-  return <input type="number" value={value ?? 0} onChange={(e) => onChange(e.target.value === '' ? 0 : Number(e.target.value))} style={inputStyle} {...rest} />
+  return <input type="number" className="oz-input" value={value ?? 0} onChange={(e) => onChange(e.target.value === '' ? 0 : Number(e.target.value))} style={inputStyle} {...rest} />
 }
 
 export function SelectField({ value, onChange, options }) {
   return (
-    <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+    <select className="oz-input" value={value ?? ''} onChange={(e) => onChange(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
       {options.map((o) => (typeof o === 'string' ? <option key={o} value={o}>{o}</option> : <option key={o.value} value={o.value}>{o.label}</option>))}
     </select>
   )

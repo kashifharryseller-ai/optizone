@@ -1,0 +1,48 @@
+/* OPTIZONE Admin — visual polish layer.
+   Pure styling (hover/focus/depth) hooked onto the existing markup via class
+   names. No layout, logic, or palette changes — only the brand tokens. */
+
+/* Buttons — hover lift + depth, crisp active, amber focus ring. */
+.oz-abtn {
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out),
+    filter var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.oz-abtn:not(:disabled):hover { transform: translateY(-1px); filter: brightness(1.04); box-shadow: var(--shadow-sm); }
+.oz-abtn:not(:disabled):active { transform: translateY(0); filter: brightness(0.98); box-shadow: none; }
+.oz-abtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.oz-abtn:focus-visible { outline: 2px solid var(--amber-500); outline-offset: 2px; }
+
+/* Inputs / selects / textareas — amber focus ring. */
+.oz-input { transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out); }
+.oz-input:focus, .oz-input:focus-visible {
+  border-color: var(--amber-600);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
+}
+
+/* Panels / cards — soft depth. */
+.oz-panel {
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--dur-base) var(--ease-out);
+}
+.oz-panel:hover { box-shadow: var(--shadow-sm); }
+
+/* Sidebar nav rows — hover tint + keyboard ring. */
+.oz-navrow { transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+.oz-navrow:hover { background: rgba(251, 248, 241, 0.07); color: var(--cream-100); }
+.oz-navrow:focus-visible { outline: 2px solid var(--amber-500); outline-offset: -2px; }
+
+/* Sidebar scrollbar — slim, on-brand. */
+.oz-adminnav { scrollbar-width: thin; scrollbar-color: rgba(251, 248, 241, 0.18) transparent; }
+.oz-adminnav::-webkit-scrollbar { width: 8px; }
+.oz-adminnav::-webkit-scrollbar-thumb { background: rgba(251, 248, 241, 0.16); border-radius: 999px; }
+.oz-adminnav::-webkit-scrollbar-track { background: transparent; }
+
+/* Sticky header — subtle glass so content scrolls softly beneath it. */
+.oz-admin-header {
+  backdrop-filter: saturate(1.25) blur(8px);
+  -webkit-backdrop-filter: saturate(1.25) blur(8px);
+}
+
+/* Login — gentle float-in of the card. */
+@keyframes oz-admin-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.oz-login-card { animation: oz-admin-rise var(--dur-slow) var(--ease-out) both; }
