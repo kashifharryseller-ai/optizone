@@ -86,6 +86,17 @@ img, svg, video, canvas { max-width: 100%; }
   .oz-lang-toggle { padding: 3px 6px !important; letter-spacing: 0.04em !important; }
 }
 
+/* --- Brand showcase carousel --------------------------------------------- */
+/* Hide the horizontal scrollbar on the brand strip (still scrollable by
+   touch/drag/arrows). Firefox uses scrollbar-width via inline style. */
+.oz-brand-track::-webkit-scrollbar { display: none; }
+.oz-brand-track { -ms-overflow-style: none; }
+/* Phones: narrow the brand cards so ~1.15 show (peek the next), and let the
+   grid auto-columns shrink. Desktop/tablet keep the inline 230px minimum. */
+@media (max-width: 640px) {
+  .oz-brand-track { grid-auto-columns: minmax(78%, 1fr) !important; gap: 14px !important; }
+}
+
 /* The mobile drop-down menu (matches the pine header) */
 .oz-mobile-nav a {
   display: block;

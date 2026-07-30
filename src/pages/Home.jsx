@@ -1,4 +1,5 @@
 import React from 'react'
+import { motion, useMotionValue, useSpring } from 'motion/react'
 import { Button, Icon, DiamondRule, ProductCard, GlassesMark } from '../ds/index.js'
 import { useLang } from '../i18n/index.jsx'
 import { useContent } from '../content/ContentProvider.jsx'
@@ -7,6 +8,7 @@ import { ImageSlot } from '../components/ImageSlot.jsx'
 import { canTryMirror } from '../lib/tryMirror.js'
 import { activatable } from '../lib/a11y.js'
 import { VideoShowcase } from '../components/VideoShowcase.jsx'
+import { BrandCarousel } from '../components/BrandShowcase.jsx'
 
 function ServiceTile({ s, L }) {
   return (
@@ -28,6 +30,18 @@ export function Home({ go, openCatalog, addToCart }) {
   const media = content.media || {}
   const rise = (d) => ({ animation: 'oz-fade-up var(--dur-slow) var(--ease-out) both', animationDelay: `${d}ms` })
   const he = dir === 'rtl' // flip directional arrows for any RTL language (he/ar)
+  // Hero visual — gentle pointer-driven 3D parallax tilt (desktop pointer only;
+  // touch devices get the static panel). Springs keep it smooth; max ~7deg.
+  const hrx = useMotionValue(0)
+  const hry = useMotionValue(0)
+  const shrx = useSpring(hrx, { stiffness: 120, damping: 14, mass: 0.5 })
+  const shry = useSpring(hry, { stiffness: 120, damping: 14, mass: 0.5 })
+  const onHeroMove = (e) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    hry.set(((e.clientX - r.left) / r.width - 0.5) * 7)
+    hrx.set(-((e.clientY - r.top) / r.height - 0.5) * 7)
+  }
+  const onHeroLeave = () => { hrx.set(0); hry.set(0) }
   const badgeOf = (p) => (p.badge ? { variant: p.badge.variant, label: L(p.badge.label) } : undefined)
   const cardLabels = { tryMirrorLabel: 'Try Mirror', quickAddLabel: root.toast.added }
 
@@ -50,11 +64,17 @@ export function Home({ go, openCatalog, addToCart }) {
               <DiamondRule label={L(hero.trusted)} color="var(--amber-500)" />
             </div>
           </div>
-          {/* Hero visual — auto-playing product-film carousel (muted, brand-framed).
-              The pine gradient is the lightweight poster behind the video. */}
-          <div style={{ ...rise(240), position: 'relative', aspectRatio: '4/3', borderRadius: 'var(--radius-lg)', background: 'linear-gradient(160deg,var(--pine-600),var(--pine-950))', border: '1px solid var(--border-on-dark)', boxShadow: 'var(--shadow-dark)', overflow: 'hidden' }}>
+          {/* Hero visual — auto-playing product-film carousel (muted, brand-framed)
+              on a 3D pointer-parallax panel. The pine gradient is the lightweight
+              poster behind the video. */}
+          <motion.div
+            onMouseMove={onHeroMove} onMouseLeave={onHeroLeave}
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: 'easeOut', delay: 0.24 }}
+            style={{ position: 'relative', aspectRatio: '4/3', borderRadius: 'var(--radius-lg)', background: 'linear-gradient(160deg,var(--pine-600),var(--pine-950))', border: '1px solid var(--border-on-dark)', boxShadow: 'var(--shadow-dark)', overflow: 'hidden', transformStyle: 'preserve-3d', transformPerspective: 1100, rotateX: shrx, rotateY: shry }}
+          >
             <VideoShowcase />
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -109,6 +129,9 @@ export function Home({ go, openCatalog, addToCart }) {
           ))}
         </div>
       </section>
+
+      {/* HOUSE OF BRANDS — premium 3D-tilt brand carousel */}
+      <BrandCarousel openCatalog={openCatalog} />
 
       {/* TRY MIRROR BANNER */}
       <section style={{ maxWidth: 'var(--container-max)', margin: '0 auto 72px', padding: '0 28px' }}>

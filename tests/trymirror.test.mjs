@@ -66,7 +66,7 @@ await page.addInitScript(MOCK)
 // Give the opened product a transparent-PNG try-on asset.
 await page.route('**/api/content', async (route) => {
   const res = await route.fetch(); const json = await res.json()
-  const prod = (json.products || []).find((p) => p.name === 'Round Metal RB3447') || json.products[0]
+  const prod = (json.products || []).find((p) => p.name === 'Aviator Classic') || json.products[0]
   if (prod) { prod.tryMirrorImg = MAGENTA_FRAME; prod.tryMirror = true }
   // Force a CONTACTS product ON to prove the category gate ignores the flag.
   const contact = (json.products || []).find((p) => p.category === 'contacts')
@@ -79,17 +79,17 @@ await page.goto(BASE, { waitUntil: 'networkidle' })
 // Contacts category page: even with tryMirror forced ON in the mock, no Try
 // Mirror badge/filter is offered (the category gate ignores the flag).
 await page.getByRole('navigation').getByText('Contact Lenses').first().click()
-await page.getByText(/Acuvue|Dailies|Biofinity/).first().waitFor({ timeout: 5000 })
+await page.getByText(/Biofinity|MyDay|Oasys/).first().waitFor({ timeout: 5000 })
 // Scope to <main> so the site-wide footer "Try Mirror" promo link is ignored.
 expect(await page.locator('main').getByText('Try Mirror').count() === 0, 'contacts category shows no Try Mirror (badge/filter absent)')
 // Open a contacts product → no Try Mirror button on the PDP.
-await page.getByText(/Acuvue|Dailies|Biofinity/).first().click()
+await page.getByText(/Biofinity|MyDay|Oasys/).first().click()
 await page.getByRole('button', { name: /Add to cart/i }).first().waitFor({ timeout: 5000 })
 expect(await page.locator('main').getByRole('button', { name: 'Try Mirror' }).count() === 0, 'contacts product page has no Try Mirror button')
 
 console.log('\n== Try Mirror — model init + modal ==')
 await page.goto(BASE, { waitUntil: 'networkidle' })
-await page.getByText('Round Metal RB3447').first().click()
+await page.getByText('Aviator Classic').first().click()
 // Eyewear product DOES offer Try Mirror (the button we click next).
 ok('glasses product page offers Try Mirror')
 await page.locator('main').getByRole('button', { name: 'Try Mirror' }).first().click()
@@ -108,12 +108,12 @@ const cards = page.getByRole('option')
 expect(await cards.count() >= 2, `carousel lists multiple frames with prices (${await cards.count()})`)
 expect(await page.locator('[role="option"]').first().getByText('₪', { exact: false }).count() > 0, 'carousel cards show a price')
 // switching a card changes the tried-on frame (modal header updates)
-await cards.filter({ hasText: 'Persol' }).first().click()
-await page.getByText(/· Persol/).first().waitFor({ timeout: 4000 })
+await cards.filter({ hasText: 'Tom Ford' }).first().click()
+await page.getByText(/· Tom Ford/).first().waitFor({ timeout: 4000 })
 ok('clicking a carousel card switches the active frame (header updated)')
 // back to the opened frame for the rest of the flow
-await cards.filter({ hasText: 'Round Metal RB3447' }).first().click()
-await page.getByText(/· .*Round Metal RB3447/).first().waitFor({ timeout: 4000 })
+await cards.filter({ hasText: 'Aviator Classic' }).first().click()
+await page.getByText(/· .*Aviator Classic/).first().waitFor({ timeout: 4000 })
 
 console.log('\n== Mode 2: Upload photo renders an overlay ==')
 await page.getByRole('button', { name: 'Upload photo', exact: true }).click()
@@ -167,12 +167,12 @@ async function openTryon(pg, mutate) {
   await pg.addInitScript(MOCK)
   await pg.route('**/api/content', async (route) => {
     const res = await route.fetch(); const json = await res.json()
-    const prod = (json.products || []).find((p) => p.name === 'Round Metal RB3447') || json.products[0]
+    const prod = (json.products || []).find((p) => p.name === 'Aviator Classic') || json.products[0]
     if (prod) { prod.tryMirror = true; mutate(prod) }
     await route.fulfill({ response: res, body: JSON.stringify(json) })
   })
   await pg.goto(BASE, { waitUntil: 'networkidle' })
-  await pg.getByText('Round Metal RB3447').first().click()
+  await pg.getByText('Aviator Classic').first().click()
   await pg.locator('main').getByRole('button', { name: 'Try Mirror' }).first().click()
   await pg.getByRole('button', { name: 'Allow camera' }).click()
   await pg.getByRole('button', { name: 'Upload photo', exact: true }).click()
@@ -244,7 +244,7 @@ console.log('\n== Auto-apply on a REAL studio JPEG (soft edges — the live-site
   // leaks through them and eats the frame (live bug). The adaptive ladder must
   // keep the aviator's green lenses + gold rims and put them on the face.
   const pr = await (await browser.newContext({ viewport: { width: 1280, height: 950 } })).newPage()
-  await openTryon(pr, (prod) => { delete prod.tryMirrorImg; delete prod.tryMirrorModel; prod.image = '/products/rayban-rb3025-aviator.jpg' })
+  await openTryon(pr, (prod) => { delete prod.tryMirrorImg; delete prod.tryMirrorModel; prod.image = '/products/rayban-aviator-sun.webp' })
   await pr.waitForFunction(() => {
     const c = document.querySelector('canvas'); if (!c) return false
     const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data

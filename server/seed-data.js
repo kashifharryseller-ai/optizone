@@ -53,23 +53,50 @@ function defaultContent() {
       { key: 'contacts', label: { en: 'Contact Lenses', he: 'עדשות מגע' }, slot: { en: 'Drop contact-lens photo', he: 'גררו תמונה' } },
     ],
 
+    // Catalog is built around the houses OPTIZONE carries. Product names are
+    // descriptive (no counterfeit logos); imagery is a cohesive studio set.
+    // he/ar for badge labels ship inline; PDP copy is English and auto-translated.
     products: [
-      { id: 1, category: 'eyeglasses', brand: 'Ray-Ban', name: 'Round Metal RB3447', amount: 390, original: 490, rating: 4.5, reviews: 128, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#22402F', '#3A342A', '#E08A2A'], shape: 'Round', material: 'Metal', gender: 'Unisex', image: '/products/rayban-rb3447-round.jpg' },
-      { id: 2, category: 'eyeglasses', brand: 'Persol', name: 'PO3092 Havana', amount: 720, original: 0, rating: 5, reviews: 64, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#6B4423', '#1A1A17'], shape: 'Square', material: 'Acetate', gender: 'Men', image: '/products/persol-po3092-havana.jpg' },
-      // Try-on assets demo (see TRYON_NOTES.md): the black variant is wired to a
-      // placeholder 3D frame so the engine can be seen working; the brown variant
-      // has no asset yet and falls back to the drawn frame. Replace demo-frame
-      // with real per-colour .glb models (and/or transparent PNGs in tryMirrorImg).
-      { id: 3, category: 'eyeglasses', brand: 'Prada', name: 'PR 17WS Symbole', amount: 1290, original: 0, rating: 4.5, reviews: 41, badge: { variant: 'bestseller', label: { en: 'Bestseller', he: 'רב מכר' } }, tryMirror: true, colors: ['#1A1A17', '#7E4310'], shape: 'Cat-eye', material: 'Acetate', gender: 'Women', image: '/products/prada-17ws-cateye.jpg', tryMirrorModel: { '#1A1A17': '/tryon/models/demo-frame.glb' }, tryMirrorMeta: { modelForwardAxis: 'z', scaleMultiplier: 1.0, bridgeYOffset: 0, frameRealWidthMm: 118 } },
-      { id: 4, category: 'eyeglasses', brand: 'Tiffany & Co.', name: 'TF2233B', amount: 980, original: 0, rating: 4, reviews: 22, badge: null, tryMirror: false, colors: ['#22402F', '#B4CEC0'], shape: 'Oval', material: 'Metal', gender: 'Women', image: '/products/tiffany-tf2233b-oval.jpg' },
-      { id: 5, category: 'eyeglasses', brand: 'Versace', name: 'VE4361 Medusa', amount: 860, original: 1050, rating: 4.5, reviews: 77, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#1A1A17', '#E08A2A'], shape: 'Square', material: 'Acetate', gender: 'Men', image: '/products/versace-ve4361-square.jpg' },
-      { id: 6, category: 'eyeglasses', brand: 'Dolce & Gabbana', name: 'DG4416 Print', amount: 690, original: 0, rating: 4, reviews: 18, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#6B4423', '#3A342A'], shape: 'Round', material: 'Acetate', gender: 'Women', image: '/products/dg-dg4416-round.jpg' },
-      { id: 7, category: 'sunglasses', brand: 'Ray-Ban', name: 'Aviator Classic RB3025', amount: 520, original: 620, rating: 4.5, reviews: 214, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#3A342A', '#E08A2A'], shape: 'Aviator', material: 'Metal', gender: 'Unisex', image: '/products/rayban-rb3025-aviator.jpg' },
-      { id: 8, category: 'sunglasses', brand: 'Persol', name: 'PO0714 Folding', amount: 1150, original: 0, rating: 5, reviews: 89, badge: { variant: 'bestseller', label: { en: 'Bestseller', he: 'רב מכר' } }, tryMirror: true, colors: ['#6B4423', '#1A1A17'], shape: 'Square', material: 'Acetate', gender: 'Men', image: '/products/persol-po0714-fold.jpg' },
-      { id: 9, category: 'sunglasses', brand: 'Versace', name: 'VE2199 Shield', amount: 890, original: 0, rating: 4, reviews: 33, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#1A1A17'], shape: 'Aviator', material: 'Metal', gender: 'Women', image: '/products/versace-ve2199-shield.jpg' },
-      { id: 10, category: 'contacts', brand: 'Acuvue', name: 'Oasys · 6 pack', amount: 145, original: 0, rating: 4.5, reviews: 320, badge: { variant: 'bestseller', label: { en: 'Bestseller', he: 'רב מכר' } }, tryMirror: false, colors: [], shape: 'Bi-weekly', material: 'Silicone Hydrogel', gender: 'Unisex', image: '/products/acuvue-oasys-box.jpg' },
-      { id: 11, category: 'contacts', brand: 'Dailies', name: 'TOTAL1 · 30 pack', amount: 210, original: 0, rating: 4.5, reviews: 187, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: false, colors: [], shape: 'Daily', material: 'Water Gradient', gender: 'Unisex', image: '/products/dailies-total1-box.jpg' },
-      { id: 12, category: 'contacts', brand: 'Biofinity', name: 'Monthly · 6 pack', amount: 165, original: 0, rating: 4, reviews: 141, badge: null, tryMirror: false, colors: [], shape: 'Monthly', material: 'Silicone Hydrogel', gender: 'Unisex', image: '/products/biofinity-monthly-box.jpg' },
+      // Tom Ford
+      { id: 1, category: 'sunglasses', brand: 'Tom Ford', name: 'Nadia Oversized', amount: 1290, original: 0, rating: 4.5, reviews: 34, badge: { variant: 'bestseller', label: { en: 'Bestseller', he: 'רב מכר' } }, tryMirror: true, colors: ['#1A1A17', '#C9A227'], shape: 'Square', material: 'Acetate', gender: 'Women', image: '/products/tomford-square-sun.webp' },
+      { id: 2, category: 'eyeglasses', brand: 'Tom Ford', name: 'Jensen Optical', amount: 1150, original: 0, rating: 5, reviews: 21, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#6B4423', '#1A1A17'], shape: 'Rectangle', material: 'Acetate', gender: 'Men', image: '/products/tomford-havana-optical.webp' },
+      { id: 3, category: 'sunglasses', brand: 'Tom Ford', name: 'Marko Aviator', amount: 1190, original: 1390, rating: 4.5, reviews: 40, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#C9A227', '#3A342A'], shape: 'Aviator', material: 'Metal', gender: 'Men', image: '/products/tomford-aviator-sun.webp' },
+      // Ray-Ban
+      { id: 4, category: 'sunglasses', brand: 'Ray-Ban', name: 'Aviator Classic', amount: 520, original: 620, rating: 5, reviews: 214, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#C9A227', '#2E4034'], shape: 'Aviator', material: 'Metal', gender: 'Unisex', image: '/products/rayban-aviator-sun.webp' },
+      // Try-on demo (see TRYON_NOTES.md): black variant wired to a placeholder 3D
+      // frame so the engine can be seen working; replace with a real per-colour .glb.
+      { id: 5, category: 'sunglasses', brand: 'Ray-Ban', name: 'Wayfarer Original', amount: 480, original: 0, rating: 4.5, reviews: 189, badge: { variant: 'bestseller', label: { en: 'Bestseller', he: 'רב מכר' } }, tryMirror: true, colors: ['#1A1A17', '#2E4034'], shape: 'Square', material: 'Acetate', gender: 'Unisex', image: '/products/rayban-wayfarer.webp', tryMirrorModel: { '#1A1A17': '/tryon/models/demo-frame.glb' }, tryMirrorMeta: { modelForwardAxis: 'z', scaleMultiplier: 1.0, bridgeYOffset: 0, frameRealWidthMm: 140 } },
+      { id: 6, category: 'eyeglasses', brand: 'Ray-Ban', name: 'Round Metal Optical', amount: 420, original: 490, rating: 4.5, reviews: 128, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#4A4E52', '#1A1A17'], shape: 'Round', material: 'Metal', gender: 'Unisex', image: '/products/rayban-round-optical.webp' },
+      // Tommy Hilfiger
+      { id: 7, category: 'eyeglasses', brand: 'Tommy Hilfiger', name: 'TH Rectangular Optical', amount: 390, original: 0, rating: 4.5, reviews: 76, badge: null, tryMirror: true, colors: ['#1E2A44', '#B22234'], shape: 'Rectangle', material: 'Acetate', gender: 'Men', image: '/products/tommy-rect-optical.webp' },
+      { id: 8, category: 'sunglasses', brand: 'Tommy Hilfiger', name: 'TH Pilot', amount: 430, original: 0, rating: 4, reviews: 52, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#9AA0A6', '#1E2A44'], shape: 'Aviator', material: 'Metal', gender: 'Men', image: '/products/tommy-pilot-sun.webp' },
+      { id: 9, category: 'eyeglasses', brand: 'Tommy Hilfiger', name: 'TH Round Optical', amount: 360, original: 0, rating: 4, reviews: 41, badge: null, tryMirror: true, colors: ['#6B4423', '#C9A227'], shape: 'Round', material: 'Acetate', gender: 'Women', image: '/products/tommy-round-optical.webp' },
+      // Guess
+      { id: 10, category: 'sunglasses', brand: 'Guess', name: 'Guess Cat-Eye', amount: 410, original: 0, rating: 4.5, reviews: 63, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#6B4423', '#C9A227'], shape: 'Cat-eye', material: 'Acetate', gender: 'Women', image: '/products/guess-cateye-sun.webp' },
+      { id: 11, category: 'sunglasses', brand: 'Guess', name: 'Guess Oversized', amount: 390, original: 460, rating: 4, reviews: 38, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#1A1A17', '#C9A227'], shape: 'Square', material: 'Acetate', gender: 'Women', image: '/products/guess-oversized-sun.webp' },
+      { id: 12, category: 'eyeglasses', brand: 'Guess', name: 'Guess Optical', amount: 340, original: 0, rating: 4, reviews: 27, badge: null, tryMirror: true, colors: ['#5E2028', '#C9A227'], shape: 'Cat-eye', material: 'Acetate', gender: 'Women', image: '/products/guess-burgundy-optical.webp' },
+      // Carrera
+      { id: 13, category: 'sunglasses', brand: 'Carrera', name: 'Carrera Sport Wrap', amount: 380, original: 0, rating: 4.5, reviews: 88, badge: { variant: 'bestseller', label: { en: 'Bestseller', he: 'רב מכר' } }, tryMirror: true, colors: ['#1A1A17', '#2A2A2A'], shape: 'Wraparound', material: 'Nylon', gender: 'Men', image: '/products/carrera-sport-sun.webp' },
+      { id: 14, category: 'sunglasses', brand: 'Carrera', name: 'Carrera Pilot', amount: 360, original: 420, rating: 4, reviews: 55, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#C9A227', '#3A342A'], shape: 'Aviator', material: 'Metal', gender: 'Unisex', image: '/products/carrera-pilot-sun.webp' },
+      { id: 15, category: 'eyeglasses', brand: 'Carrera', name: 'Carrera Optical', amount: 320, original: 0, rating: 4, reviews: 33, badge: null, tryMirror: true, colors: ['#4A4E52', '#1A1A17'], shape: 'Rectangle', material: 'Acetate', gender: 'Men', image: '/products/carrera-grey-optical.webp' },
+      // Boss
+      { id: 16, category: 'eyeglasses', brand: 'Boss', name: 'BOSS Titanium', amount: 520, original: 0, rating: 5, reviews: 47, badge: { variant: 'bestseller', label: { en: 'Bestseller', he: 'רב מכר' } }, tryMirror: true, colors: ['#4A4E52', '#2A2A2A'], shape: 'Rectangle', material: 'Titanium', gender: 'Men', image: '/products/boss-titanium-optical.webp' },
+      { id: 17, category: 'eyeglasses', brand: 'Boss', name: 'BOSS Rimless', amount: 560, original: 0, rating: 4.5, reviews: 29, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#9AA0A6', '#4A4E52'], shape: 'Rimless', material: 'Titanium', gender: 'Men', image: '/products/boss-rimless-optical.webp' },
+      { id: 18, category: 'sunglasses', brand: 'Boss', name: 'BOSS Pilot', amount: 470, original: 0, rating: 4.5, reviews: 44, badge: null, tryMirror: true, colors: ['#3A342A', '#C9A227'], shape: 'Aviator', material: 'Metal', gender: 'Men', image: '/products/boss-pilot-sun.webp' },
+      // Gant
+      { id: 19, category: 'eyeglasses', brand: 'Gant', name: 'GANT Round', amount: 300, original: 0, rating: 4, reviews: 22, badge: null, tryMirror: true, colors: ['#6B4423', '#3A342A'], shape: 'Round', material: 'Acetate', gender: 'Unisex', image: '/products/gant-round-optical.webp' },
+      { id: 20, category: 'eyeglasses', brand: 'Gant', name: 'GANT Rectangular', amount: 290, original: 340, rating: 4, reviews: 19, badge: { variant: 'sale', label: { en: 'Sale', he: 'מבצע' } }, tryMirror: true, colors: ['#5A3A22', '#1A1A17'], shape: 'Rectangle', material: 'Acetate', gender: 'Men', image: '/products/gant-rect-optical.webp' },
+      { id: 21, category: 'sunglasses', brand: 'Gant', name: 'GANT Browline', amount: 340, original: 0, rating: 4.5, reviews: 31, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#6B4423', '#C9A227'], shape: 'Browline', material: 'Metal', gender: 'Men', image: '/products/gant-clubmaster-sun.webp' },
+      // Alvero
+      { id: 22, category: 'eyeglasses', brand: 'Alvero', name: 'Alvero Rose-Gold', amount: 330, original: 0, rating: 4.5, reviews: 26, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: true, colors: ['#B76E79', '#C9A227'], shape: 'Rectangle', material: 'Metal', gender: 'Women', image: '/products/alvero-semirimless-optical.webp' },
+      { id: 23, category: 'eyeglasses', brand: 'Alvero', name: 'Alvero Cat-Eye', amount: 310, original: 0, rating: 4, reviews: 18, badge: null, tryMirror: true, colors: ['#C9822A', '#6B4423'], shape: 'Cat-eye', material: 'Acetate', gender: 'Women', image: '/products/alvero-cateye-optical.webp' },
+      { id: 24, category: 'sunglasses', brand: 'Alvero', name: 'Alvero Aviator', amount: 350, original: 0, rating: 4, reviews: 24, badge: null, tryMirror: true, colors: ['#8C6A3F', '#3A342A'], shape: 'Aviator', material: 'Metal', gender: 'Unisex', image: '/products/alvero-aviator-sun.webp' },
+      // Johnson & Johnson (contact lenses)
+      { id: 25, category: 'contacts', brand: 'Johnson & Johnson', name: '1-Day Moist · 30 pack', amount: 170, original: 0, rating: 4.5, reviews: 210, badge: { variant: 'bestseller', label: { en: 'Bestseller', he: 'רב מכר' } }, tryMirror: false, colors: [], shape: 'Daily', material: 'Silicone Hydrogel', gender: 'Unisex', image: '/products/jj-daily-30.webp' },
+      { id: 26, category: 'contacts', brand: 'Johnson & Johnson', name: 'Oasys · 6 pack', amount: 150, original: 0, rating: 4.5, reviews: 320, badge: null, tryMirror: false, colors: [], shape: 'Bi-weekly', material: 'Silicone Hydrogel', gender: 'Unisex', image: '/products/jj-biweekly-6.webp' },
+      // CooperVision (contact lenses)
+      { id: 27, category: 'contacts', brand: 'CooperVision', name: 'Biofinity Monthly · 6 pack', amount: 165, original: 0, rating: 4, reviews: 141, badge: null, tryMirror: false, colors: [], shape: 'Monthly', material: 'Silicone Hydrogel', gender: 'Unisex', image: '/products/coopervision-monthly-6.webp' },
+      { id: 28, category: 'contacts', brand: 'CooperVision', name: 'MyDay · 30 pack', amount: 210, original: 0, rating: 4.5, reviews: 96, badge: { variant: 'new', label: { en: 'New', he: 'חדש' } }, tryMirror: false, colors: [], shape: 'Daily', material: 'Water Gradient', gender: 'Unisex', image: '/products/coopervision-daily-30.webp' },
     ],
 
     // Editable header for each category page (title + subtitle, bilingual).
@@ -89,12 +116,12 @@ function defaultContent() {
     },
 
     filters: {
-      'Frame Shape': ['Round', 'Square', 'Cat-eye', 'Oval', 'Aviator'],
-      Material: ['Acetate', 'Metal', 'Titanium'],
+      'Frame Shape': ['Aviator', 'Square', 'Round', 'Cat-eye', 'Rectangle', 'Browline', 'Rimless', 'Wraparound'],
+      Material: ['Acetate', 'Metal', 'Titanium', 'Nylon'],
       Gender: ['Women', 'Men', 'Unisex', 'Kids'],
     },
 
-    brands: ['Ray-Ban', 'Prada', 'Versace', 'Dolce & Gabbana', 'Tiffany & Co.', 'Persol', 'Acuvue', 'Dailies', 'Biofinity'],
+    brands: ['Tom Ford', 'Ray-Ban', 'Tommy Hilfiger', 'Guess', 'Carrera', 'Boss', 'Gant', 'Alvero', 'Johnson & Johnson', 'CooperVision'],
 
     bookingServices: [
       { en: 'Eye Exam', he: 'בדיקת ראייה' },
@@ -107,11 +134,11 @@ function defaultContent() {
 
     popularSearches: [
       { en: 'Ray-Ban', he: 'ריי-באן' },
-      { en: 'Blue-light glasses', he: 'משקפי סינון אור כחול' },
+      { en: 'Tom Ford', he: 'טום פורד' },
+      { en: 'Carrera', he: 'קררה' },
       { en: 'Sunglasses', he: 'משקפי שמש' },
-      { en: 'Progressive lenses', he: 'עדשות פרוגרסיביות' },
+      { en: 'Contact lenses', he: 'עדשות מגע' },
       { en: 'Titanium frames', he: 'מסגרות טיטניום' },
-      { en: 'Kids', he: 'ילדים' },
     ],
 
     stores: [
@@ -136,92 +163,40 @@ function defaultContent() {
 // Per-product PDP content (rich description + structured specs), editable in
 // Admin → Products. Keyed by product id; merged into existing stores by
 // migrateContent so every product ships with unique, professional copy.
+// English source copy; Hebrew + Arabic are auto-translated on the server and
+// cached (see server/translate.js). Keyed by product id.
 function productDetails() {
+  const spec = (lensWidth, bridge, temple, weight, lensOpts) => ({ lensWidth, bridge, temple, weight, lensOpts: { en: lensOpts } })
+  const d = (en) => ({ desc: { en } })
   return {
-    1: {
-      desc: {
-        en: 'The Round Metal RB3447 is Ray-Ban’s tribute to the counter-culture icons of the 1960s. Fully round crystal lenses sit in a feather-light gold-tone metal chassis with adjustable plastic-tipped nose pads and slender temples that curl comfortably behind the ear. A timeless choice that suits narrow and mid-width faces, and takes prescription lenses beautifully.',
-        he: 'ה-Round Metal RB3447 הוא מחווה של Ray-Ban לאייקונים של שנות ה-60. עדשות עגולות לחלוטין במסגרת מתכת קלה כנוצה בגוון זהב, עם אפי אף מתכווננים וזרועות דקות שמתעגלות בנוחות מאחורי האוזן. בחירה על-זמנית שמתאימה לפנים צרות ובינוניות ומקבלת עדשות אופטיות בצורה מושלמת.',
-      },
-      specs: { lensWidth: '50 mm', bridge: '21 mm', temple: '145 mm', weight: '24 g', lensOpts: { en: 'Single-vision · Progressive · Blue-light', he: 'חד-מוקד · פרוגרסיב · סינון אור כחול' } },
-    },
-    2: {
-      desc: {
-        en: 'Hand-finished in Italy, the Persol PO3092 wears the house’s celebrated Havana acetate — warm tortoise tones polished to a deep gloss. The Meflecto flexible temple system removes pressure at the sides of the head, while the signature Supreme Arrow hinges add a flash of steel. A square silhouette with true heritage character.',
-        he: 'ה-Persol PO3092 מיוצר בגימור יד באיטליה מאצטט Havana המהולל של הבית — גווני צב חמים בליטוש עמוק. מערכת הזרועות הגמישות Meflecto מסירה לחץ מצידי הראש, וצירי ה-Supreme Arrow האיקוניים מוסיפים נגיעת פלדה. צללית מרובעת עם אופי מורשת אמיתי.',
-      },
-      specs: { lensWidth: '50 mm', bridge: '19 mm', temple: '145 mm', weight: '29 g', lensOpts: { en: 'Single-vision · Progressive · Photochromic', he: 'חד-מוקד · פרוגרסיב · פוטוכרומי' } },
-    },
-    3: {
-      desc: {
-        en: 'The Prada Symbole PR 17WS is a statement cat-eye carved from thick, glossy acetate with the triangle logo inlaid in enamel at each temple. Sharp modernist lines soften around the lens for all-day wearability, and the generous fit flatters medium to wide faces. Runway presence, engineered for daily life.',
-        he: 'ה-Prada Symbole PR 17WS הוא הצהרת חתול-עין מאצטט עבה ומבריק, עם לוגו המשולש משובץ אמייל בכל זרוע. קווים מודרניסטיים חדים מתרככים סביב העדשה לנוחות לאורך כל היום, וההתאמה הנדיבה מחמיאה לפנים בינוניות עד רחבות. נוכחות מסלול, מהונדסת לחיי היומיום.',
-      },
-      specs: { lensWidth: '49 mm', bridge: '20 mm', temple: '140 mm', weight: '34 g', lensOpts: { en: 'Single-vision · Progressive · Blue-light', he: 'חד-מוקד · פרוגרסיב · סינון אור כחול' } },
-    },
-    4: {
-      desc: {
-        en: 'Tiffany & Co.’s TF2233B pairs a refined oval front with the maison’s jewelled sensibility — a delicate Tiffany Blue® enamel accent and crystal detailing at the hinges. The slim metal frame all but disappears on the face, letting the craftsmanship speak in close-up. Elegant, feminine, unmistakably Tiffany.',
-        he: 'ה-TF2233B של Tiffany & Co. משלב חזית אובלית מעודנת עם חוש התכשיטנות של הבית — נגיעת אמייל בגוון Tiffany Blue® ועיטורי קריסטל בצירים. מסגרת המתכת הדקה כמעט נעלמת על הפנים ומניחה לאומנות לדבר מקרוב. אלגנטי, נשי, טיפאני ללא ספק.',
-      },
-      specs: { lensWidth: '52 mm', bridge: '16 mm', temple: '140 mm', weight: '27 g', lensOpts: { en: 'Single-vision · Progressive', he: 'חד-מוקד · פרוגרסיב' } },
-    },
-    5: {
-      desc: {
-        en: 'Bold and unapologetic, the Versace VE4361 fronts a strong square acetate frame with the golden Medusa medallion commanding each temple. The deep profile and saturated finishes give it real presence, while sprung hinges keep the fit secure through long days. For wearers who treat eyewear as jewellery.',
-        he: 'נועז וללא התנצלויות — ה-Versace VE4361 מציג מסגרת אצטט מרובעת וחזקה עם מדליון המדוזה הזהוב בכל זרוע. הפרופיל העמוק והגימורים הרוויים מעניקים נוכחות אמיתית, וצירים קפיציים שומרים על התאמה יציבה לאורך ימים ארוכים. למי שרואים במשקפיים תכשיט.',
-      },
-      specs: { lensWidth: '53 mm', bridge: '18 mm', temple: '140 mm', weight: '38 g', lensOpts: { en: 'Single-vision · Progressive · Blue-light', he: 'חד-מוקד · פרוגרסיב · סינון אור כחול' } },
-    },
-    6: {
-      desc: {
-        en: 'The Dolce & Gabbana DG4416 rounds a Sicilian-print acetate into a soft, artistic silhouette. Each frame’s pattern falls differently across the front, making every pair subtly one-of-a-kind. Lightweight construction and a neutral bridge make it an easy everyday companion with a couture accent.',
-        he: 'ה-DG4416 של Dolce & Gabbana מעגל אצטט בהדפס סיציליאני לצללית רכה ואמנותית. הדוגמה נופלת אחרת על כל מסגרת, כך שכל זוג הוא ייחודי בעדינות. מבנה קל וגשר ניטרלי הופכים אותו לבן לוויה יומיומי עם נגיעת קוטור.',
-      },
-      specs: { lensWidth: '51 mm', bridge: '20 mm', temple: '140 mm', weight: '31 g', lensOpts: { en: 'Single-vision · Blue-light', he: 'חד-מוקד · סינון אור כחול' } },
-    },
-    7: {
-      desc: {
-        en: 'The original pilot’s sunglass since 1937, the Ray-Ban Aviator Classic RB3025 needs no introduction. Teardrop crystal lenses block 100% UVA/UVB, the gold-tone frame stays featherweight, and the bayonet temples slide cleanly under a cap or headset. Offered here with G-15 green and gradient lens options.',
-        he: 'משקפי הטייסים המקוריים מאז 1937 — ה-Ray-Ban Aviator Classic RB3025 לא זקוק להקדמות. עדשות קריסטל בצורת טיפה חוסמות 100% UVA/UVB, המסגרת בגוון זהב נשארת קלה במיוחד, והזרועות הישרות מחליקות בקלות מתחת לכובע. זמין עם עדשות G-15 ירוקות או מדורגות.',
-      },
-      specs: { lensWidth: '58 mm', bridge: '14 mm', temple: '135 mm', weight: '31 g', lensOpts: { en: 'G-15 · Gradient · Polarized · Prescription sun', he: 'G-15 · מדורג · מקוטב · שמש אופטי' } },
-    },
-    8: {
-      desc: {
-        en: 'A masterpiece of engineering, the Persol PO0714 is the world’s first folding sunglass — collapsing at the bridge and temples to pocket size without a single compromise in stability. Steve McQueen made it legend; the Havana acetate and crystal lenses keep it timeless. Supplied with a dedicated folding case.',
-        he: 'יצירת מופת הנדסית — ה-Persol PO0714 הוא משקף השמש המתקפל הראשון בעולם, מתקפל בגשר ובזרועות לגודל כיס ללא שום פשרה ביציבות. סטיב מקווין הפך אותו לאגדה; אצטט ה-Havana ועדשות הקריסטל שומרים עליו על-זמני. מגיע עם נרתיק קיפול ייעודי.',
-      },
-      specs: { lensWidth: '54 mm', bridge: '21 mm', temple: '140 mm', weight: '36 g', lensOpts: { en: 'Crystal · Polarized', he: 'קריסטל · מקוטב' } },
-    },
-    9: {
-      desc: {
-        en: 'The Versace VE2199 is a sculpted metal shield with the Medusa Biggie motif studding the browline. A single sweeping lens delivers full coverage and a fashion-forward stance, backed by adjustable nose pads for a precise fit. Statement sun protection, Milan style.',
-        he: 'ה-Versace VE2199 הוא מגן מתכת מפוסל עם מוטיב Medusa Biggie לאורך קו הגבות. עדשה אחת רחבה מעניקה כיסוי מלא ועמדה אופנתית, עם אפי אף מתכווננים להתאמה מדויקת. הגנת שמש הצהרתית, בסגנון מילאנו.',
-      },
-      specs: { lensWidth: '38 mm', bridge: '125 mm shield', temple: '145 mm', weight: '42 g', lensOpts: { en: 'Grey shield · Gold mirror', he: 'מגן אפור · מראה זהב' } },
-    },
-    10: {
-      desc: {
-        en: 'ACUVUE OASYS bi-weekly lenses with HYDRACLEAR® PLUS keep eyes comfortable in demanding, screen-heavy environments. Class-1 UV blocking (the highest available in a contact lens) and a smooth wetting agent woven through the material make dry, tired eyes a rarity. Six lenses per box.',
-        he: 'עדשות ACUVUE OASYS דו-שבועיות עם HYDRACLEAR® PLUS שומרות על נוחות גם בסביבות מסך תובעניות. הגנת UV Class-1 (הגבוהה ביותר בעדשות מגע) וחומר הרטבה חלק הארוג בחומר הופכים עיניים יבשות ועייפות לנדירות. שש עדשות באריזה.',
-      },
-      specs: { lensWidth: '14.0 mm diameter', bridge: '8.4 base curve', temple: '—', weight: '38% water', lensOpts: { en: 'Spherical · Astigmatism · Multifocal', he: 'ספרי · אסטיגמציה · מולטיפוקל' } },
-    },
-    11: {
-      desc: {
-        en: 'DAILIES TOTAL1® is the first water-gradient daily lens: nearly 100% water at the surface, a breathable silicone-hydrogel core inside. The result feels like wearing nothing at all, from the first blink to the end of the day — then you simply throw the pair away. Thirty fresh lenses per box.',
-        he: 'DAILIES TOTAL1® היא עדשת היומיום הראשונה עם מפל מים: כמעט 100% מים על פני השטח וליבת סיליקון-הידרוג׳ל נושמת בפנים. התוצאה מרגישה כאילו אין כלום על העין — מהמצמוץ הראשון עד סוף היום, ואז פשוט זורקים. שלושים עדשות טריות באריזה.',
-      },
-      specs: { lensWidth: '14.1 mm diameter', bridge: '8.5 base curve', temple: '—', weight: '33–80% water gradient', lensOpts: { en: 'Spherical · Multifocal', he: 'ספרי · מולטיפוקל' } },
-    },
-    12: {
-      desc: {
-        en: 'Biofinity® monthly lenses use Aquaform® Technology to lock moisture into a naturally wettable silicone hydrogel — no surface treatments, no additives. High oxygen transmissibility keeps eyes white and healthy across a full month of daily wear, at an everyday price. Six lenses per box.',
-        he: 'עדשות Biofinity® החודשיות משתמשות בטכנולוגיית Aquaform® שנועלת לחות בסיליקון-הידרוג׳ל רטיב טבעית — בלי ציפויים ובלי תוספים. חדירות חמצן גבוהה שומרת על עיניים לבנות ובריאות לאורך חודש שלם של שימוש יומי, במחיר נגיש. שש עדשות באריזה.',
-      },
-      specs: { lensWidth: '14.0 mm diameter', bridge: '8.6 base curve', temple: '—', weight: '48% water', lensOpts: { en: 'Spherical · Toric · Multifocal', he: 'ספרי · טורי · מולטיפוקל' } },
-    },
+    1: { ...d('The Tom Ford Nadia is an oversized square statement carved from thick, glossy black acetate, with slim gold-tone metal accents at the temples and a soft green gradient lens. Generous coverage and a confident silhouette flatter medium to wide faces — red-carpet presence for everyday wear.'), specs: spec('55 mm', '18 mm', '140 mm', '36 g', 'Gradient · Polarized · Prescription sun') },
+    2: { ...d('Hand-finished in rich havana tortoiseshell acetate, the Tom Ford Jensen is a refined rectangular optical frame with subtle gold rivet detailing and a deep, warm gloss. Balanced proportions and sprung hinges make it an easy all-day companion that takes prescription lenses beautifully.'), specs: spec('52 mm', '19 mm', '145 mm', '31 g', 'Single-vision · Progressive · Blue-light') },
+    3: { ...d('The Tom Ford Marko is a classic double-bridge pilot in polished gold metal with brown gradient lenses and sculpted temple tips. Featherlight yet substantial, it delivers full UVA/UVB protection with unmistakable luxury character.'), specs: spec('58 mm', '14 mm', '140 mm', '33 g', 'Gradient · Polarized · Prescription sun') },
+    4: { ...d('The original pilot’s sunglass, reborn. Teardrop lenses block 100% UVA/UVB in a featherweight gold-tone frame with G-15 green lenses and bayonet temples that slide cleanly under a cap or headset. A timeless icon that suits almost every face.'), specs: spec('58 mm', '14 mm', '135 mm', '31 g', 'G-15 · Gradient · Polarized · Prescription sun') },
+    5: { ...d('The frame that defined a generation. Glossy black acetate, dark green crystal lenses and a bold trapezoidal front give the Wayfarer its unmistakable stance. 100% UV protection and a comfortable, secure fit make it the everyday go-to — and it looks just as good with prescription lenses.'), specs: spec('52 mm', '18 mm', '145 mm', '30 g', 'Crystal · Gradient · Polarized · Prescription sun') },
+    6: { ...d('A tribute to the counter-culture icons of the 1960s. Fully round lenses sit in a feather-light gunmetal chassis with adjustable nose pads and a slender keyhole bridge. A timeless choice that suits narrow and mid-width faces and takes prescription lenses effortlessly.'), specs: spec('50 mm', '21 mm', '145 mm', '24 g', 'Single-vision · Progressive · Blue-light') },
+    7: { ...d('A modern rectangular optical frame in deep navy-blue acetate, finished with the house’s signature red-and-white stripe along the temple. Clean lines and a comfortable medium fit make it a sharp, versatile everyday choice for work and weekends alike.'), specs: spec('53 mm', '17 mm', '145 mm', '28 g', 'Single-vision · Progressive · Blue-light') },
+    8: { ...d('A refined pilot in brushed silver metal with cool blue gradient lenses. Lightweight, double-bridge construction and adjustable nose pads deliver a precise fit and full UV protection — sporty polish with a preppy edge.'), specs: spec('57 mm', '15 mm', '140 mm', '30 g', 'Gradient · Polarized · Prescription sun') },
+    9: { ...d('A warm, approachable round optical frame in tortoiseshell acetate with a slim gold temple accent. Soft curves and a light build make it easy to wear all day, flattering to most face shapes and ready for any prescription.'), specs: spec('49 mm', '20 mm', '140 mm', '26 g', 'Single-vision · Progressive · Blue-light') },
+    10: { ...d('A glamorous cat-eye in honey tortoiseshell acetate with gold metal temple detailing and brown gradient lenses. The upswept silhouette lifts the face and turns heads, while full UV protection keeps eyes safe in the sun.'), specs: spec('54 mm', '17 mm', '140 mm', '29 g', 'Gradient · Polarized · Prescription sun') },
+    11: { ...d('An oversized square sunglass in glossy black acetate with a decorative gold temple accent and smooth grey gradient lenses. Bold coverage, a fashion-forward stance and 100% UV protection — a confident finishing touch to any look.'), specs: spec('55 mm', '18 mm', '140 mm', '34 g', 'Gradient · Polarized · Prescription sun') },
+    12: { ...d('A striking cat-eye optical frame in glossy burgundy acetate with a slim gold temple accent. Feminine lines and a comfortable fit make it a distinctive everyday frame that pairs effortlessly with any prescription.'), specs: spec('52 mm', '16 mm', '140 mm', '28 g', 'Single-vision · Progressive · Blue-light') },
+    13: { ...d('A sporty wraparound in matte black with bold thick temples and a subtle rubberized finish. Built for movement, it stays put during activity and delivers full-coverage smoke lenses with 100% UV protection — racing attitude, everyday durability.'), specs: spec('62 mm', '13 mm', '125 mm', '28 g', 'Smoke · Polarized · Mirror') },
+    14: { ...d('A double-bridge pilot in warm gold metal with brown lenses and bold sporty temples. Lightweight and confident, it balances heritage aviator lines with a modern, athletic edge and full UV protection.'), specs: spec('60 mm', '14 mm', '140 mm', '31 g', 'Gradient · Polarized · Prescription sun') },
+    15: { ...d('A rectangular optical frame in matte transparent smoke-grey acetate with bold sporty temples. Understated but modern, its light build and neutral tone make it an easy everyday frame for any prescription.'), specs: spec('54 mm', '16 mm', '145 mm', '27 g', 'Single-vision · Progressive · Blue-light') },
+    16: { ...d('A refined minimalist rectangular frame in brushed gunmetal titanium — light, hypoallergenic and virtually indestructible. Thin, sophisticated lines make it the executive’s choice, comfortable through the longest days and ready for any prescription.'), specs: spec('54 mm', '17 mm', '145 mm', '18 g', 'Single-vision · Progressive · Blue-light') },
+    17: { ...d('An elegant rimless optical frame in polished silver titanium, where lightweight strength meets near-invisible styling. With no rims to distract, the focus stays on you — a quietly premium choice that disappears on the face.'), specs: spec('53 mm', '18 mm', '145 mm', '15 g', 'Single-vision · Progressive · Blue-light') },
+    18: { ...d('A sophisticated pilot in gold-brown metal with brown gradient lenses and slim temples. Executive polish meets full UV protection in a lightweight frame that flatters and performs from boardroom to boulevard.'), specs: spec('59 mm', '15 mm', '145 mm', '30 g', 'Gradient · Polarized · Prescription sun') },
+    19: { ...d('A classic round optical frame in warm tortoiseshell acetate with a keyhole bridge and understated American-heritage character. Light, comfortable and endlessly versatile, it suits most faces and any prescription.'), specs: spec('49 mm', '21 mm', '145 mm', '25 g', 'Single-vision · Progressive · Blue-light') },
+    20: { ...d('A clean rectangular optical frame in warm chestnut-brown acetate. Understated and preppy, its balanced proportions and light build make it a dependable everyday frame that works with any prescription.'), specs: spec('53 mm', '17 mm', '145 mm', '27 g', 'Single-vision · Progressive · Blue-light') },
+    21: { ...d('A browline sunglass with a tortoiseshell brow, gold metal lower rim and dark green lenses. Retro-intellectual character meets full UV protection — a heritage silhouette that never goes out of style.'), specs: spec('51 mm', '19 mm', '145 mm', '28 g', 'Green · Gradient · Prescription sun') },
+    22: { ...d('An elegant semi-rimless optical frame in warm rose-gold metal with soft amber-tinted lenses. Refined and contemporary, its delicate build and warm tone flatter the face while taking any prescription with ease.'), specs: spec('52 mm', '17 mm', '140 mm', '20 g', 'Single-vision · Progressive · Blue-light') },
+    23: { ...d('A modern cat-eye optical frame in translucent amber acetate with slim gold temples. Warm, luminous and light on the face, it brings a contemporary lift to any look and any prescription.'), specs: spec('51 mm', '16 mm', '140 mm', '26 g', 'Single-vision · Progressive · Blue-light') },
+    24: { ...d('A modern aviator in brushed bronze metal with amber-brown gradient lenses. Warm-toned and lightweight, it softens the classic pilot silhouette with a contemporary finish and full UV protection.'), specs: spec('58 mm', '14 mm', '140 mm', '29 g', 'Gradient · Polarized · Prescription sun') },
+    25: { ...d('Premium 1-day contact lenses that stay fresh and comfortable from morning to night, then get thrown away — no cleaning, no cases. A smooth, moisture-rich surface and Class-1 UV blocking keep eyes bright through long, screen-heavy days. Thirty single-use lenses per box.'), specs: spec('14.2 mm diameter', '8.5 base curve', '—', '58% water', 'Spherical · Astigmatism · Multifocal') },
+    26: { ...d('Bi-weekly lenses engineered for demanding, screen-heavy environments. A silky wetting technology woven through the material and Class-1 UV blocking — the highest available in a contact lens — make dry, tired eyes a rarity. Six lenses per box.'), specs: spec('14.0 mm diameter', '8.4 base curve', '—', '38% water', 'Spherical · Astigmatism · Multifocal') },
+    27: { ...d('Naturally wettable monthly lenses that lock moisture into a breathable silicone hydrogel — no surface treatments, no additives. High oxygen transmissibility keeps eyes white and healthy across a full month of daily wear, at an everyday price. Six lenses per box.'), specs: spec('14.0 mm diameter', '8.6 base curve', '—', '48% water', 'Spherical · Toric · Multifocal') },
+    28: { ...d('Smart-material daily lenses that adapt to your eyes, balancing moisture and oxygen for effortless all-day comfort. Ultra-thin edges make them easy to forget you’re wearing — then simply throw the pair away. Thirty single-use lenses per box.'), specs: spec('14.2 mm diameter', '8.4 base curve', '—', '54% water gradient', 'Spherical · Toric · Multifocal') },
   }
 }
 
