@@ -15,13 +15,27 @@ Total time: ~15 minutes.
 3. Note down: **database name**, **username**, **password**, and **host**
    (usually `localhost`). Names look like `u123456789_optizone`.
 
-## 2. Upload the code
+> **You do NOT need to create any tables.** The app creates them automatically on
+> first boot and seeds the storefront catalog. If you'd rather pre-create them
+> (or just want to see the structure), open **phpMyAdmin → your database → SQL**
+> and paste the contents of [`database.sql`](./database.sql). Don't add a
+> `CREATE DATABASE`/`USE` line — you're already inside the database Hostinger made.
 
-Use whichever you prefer:
+## 2. Connect the code with GitHub (hPanel → Git)
 
-- **Git (recommended):** hPanel → **Git** → deploy this repository into your app folder.
-- **File Manager / SFTP:** upload the whole project **except** `node_modules/` and `dist/`
-  (those are built on the server).
+1. hPanel → **Advanced → Git** → **Create a new repository**.
+2. Paste your GitHub repository URL and the branch you deploy from
+   (e.g. `main`), and choose the install path (your app folder, e.g. `optizone`).
+   For a private repo, add hPanel's SSH deploy key to GitHub first (**Repo →
+   Settings → Deploy keys**).
+3. Click **Create**. Hostinger clones the repo into that folder.
+4. (Optional) enable **Auto-Deployment**: copy the webhook URL Hostinger shows
+   and add it in **GitHub → repo → Settings → Webhooks**. Every push then pulls
+   the new code automatically. *Auto-deploy only pulls files — you still rebuild
+   the frontend after frontend changes; see step 5 and "Updating after a push".*
+
+> Prefer not to use Git? Upload the whole project via **File Manager / SFTP**
+> **except** `node_modules/` and `dist/` (both are built on the server).
 
 ## 3. Create the Node.js application (hPanel)
 
@@ -64,16 +78,25 @@ DB_PASSWORD=your-db-password
 
 ## 5. Install dependencies & build the frontend
 
-In the Node.js app panel use **Run NPM install**, then open the app's terminal
-(or hPanel's terminal) in the app root and run the production build:
+Open the app's terminal (Node.js app panel → **Terminal**, or hPanel → **Advanced
+→ Terminal**) in the app root and run **one command**:
 
 ```bash
-npm install        # if not already run by the panel
-npm run build      # compiles the React app into dist/
+npm run deploy:build
 ```
 
-`npm run build` must be run whenever you change frontend code. The server serves
-the compiled `dist/` folder.
+This installs dependencies **including the build tools** and compiles the React
+app into `dist/`. Use it instead of the panel's "Run NPM install" button.
+
+> **Why not just `npm install`?** You set `NODE_ENV=production` in step 4, which
+> makes a plain `npm install` skip devDependencies — and Vite (the build tool)
+> is one of them, so `npm run build` would fail with "vite: not found". The
+> `deploy:build` script runs `npm install --include=dev && vite build`, which
+> installs Vite and builds in one go. (If you ever see "vite: not found", this is
+> the fix.)
+
+`npm run deploy:build` must be run whenever you change **frontend** code. The
+server serves the compiled `dist/` folder.
 
 ## 6. Start / restart
 
@@ -86,6 +109,22 @@ On first boot the app creates its tables and seeds the default catalog/content.
 Everything you then change in the admin panel is saved to MySQL.
 
 ---
+
+## Updating the site after a GitHub push
+
+Every time you push new code to the deploy branch:
+
+1. **Pull the code** — if you enabled Auto-Deployment (step 2) it pulls itself;
+   otherwise open hPanel → **Git** and click **Deploy / Pull**.
+2. **Rebuild + restart** — in the app terminal run `npm run deploy:build`, then
+   click **Restart** in the Node.js app panel.
+   - Backend-only change (files under `server/`)? You can skip the rebuild and
+     just **Restart**.
+   - Frontend change (anything under `src/`, `public/`, styles)? Run
+     `npm run deploy:build` so `dist/` is regenerated.
+
+Your MySQL data (products you edited in the admin, orders, bookings, accounts)
+is untouched by deploys — it lives in the database, not in the code.
 
 ## Notes
 

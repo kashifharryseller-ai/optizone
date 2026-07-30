@@ -8,6 +8,7 @@
     "dev:server": "node server/index.js",
     "dev:all": "concurrently -n web,api -c cyan,magenta \"npm:dev\" \"npm:dev:server\"",
     "build": "vite build",
+    "deploy:build": "npm install --include=dev && vite build",
     "start": "node app.js",
     "preview": "vite preview --host",
     "seed": "node server/seed-cli.js",
