@@ -12,26 +12,31 @@ const media = computed(() => content.value?.media || {})
 
 <template>
   <div>
-    <!-- HERO — full-section Higgsfield video carousel with overlaid copy -->
-    <section class="relative min-h-[92svh] w-full overflow-hidden bg-pine-900 text-cream-100">
+    <!-- HERO — full-section Higgsfield video carousel with overlaid copy.
+         Responsive: on phones it's shorter and the copy is anchored to the lower
+         third over a strong scrim (so the video's product shows above it); from
+         md up it becomes a tall, centred, left-aligned cinematic hero. -->
+    <section class="relative min-h-[78svh] w-full overflow-hidden bg-pine-900 text-cream-100 md:min-h-[92svh]">
       <!-- immersive video carousel fills the whole section -->
       <HeroVideo full />
-      <!-- side + top scrims keep the overlaid copy legible over motion -->
-      <div aria-hidden class="pointer-events-none absolute inset-0 z-[5]" style="background: linear-gradient(to right, rgba(6,23,15,0.85), rgba(6,23,15,0.4) 46%, rgba(6,23,15,0.05) 78%);" />
-      <div aria-hidden class="pointer-events-none absolute inset-0 z-[5]" style="background: linear-gradient(to top, rgba(6,23,15,0.55), transparent 42%);" />
-      <!-- overlaid copy; pointer-events-none so the carousel arrows/dots stay clickable -->
-      <div class="pointer-events-none relative z-20 mx-auto flex min-h-[92svh] max-w-container items-center px-7">
-        <div class="max-w-2xl py-28">
+      <!-- desktop: left scrim for the centred copy. hidden on phones. -->
+      <div aria-hidden class="pointer-events-none absolute inset-0 z-[5] hidden md:block" style="background: linear-gradient(to right, rgba(6,23,15,0.85), rgba(6,23,15,0.4) 46%, rgba(6,23,15,0.05) 78%);" />
+      <!-- bottom scrim: strong on phones (copy sits here), lighter on desktop. -->
+      <div aria-hidden class="pointer-events-none absolute inset-0 z-[5] md:hidden" style="background: linear-gradient(to top, rgba(6,23,15,0.94), rgba(6,23,15,0.72) 26%, rgba(6,23,15,0.15) 62%, transparent 82%);" />
+      <div aria-hidden class="pointer-events-none absolute inset-0 z-[5] hidden md:block" style="background: linear-gradient(to top, rgba(6,23,15,0.5), transparent 42%);" />
+      <!-- overlaid copy; pointer-events-none so the carousel dots stay clickable -->
+      <div class="pointer-events-none relative z-20 mx-auto flex min-h-[78svh] max-w-container items-end px-6 pb-12 sm:px-7 md:min-h-[92svh] md:items-center md:pb-0">
+        <div class="max-w-2xl md:py-28">
           <Reveal :y="14" :duration="0.5">
-            <span class="font-display text-[13px] uppercase tracking-[0.2em] text-amber-400">{{ L(hero.eyebrow) }}</span>
+            <span class="font-display text-[12px] uppercase tracking-[0.2em] text-amber-400 sm:text-[13px]">{{ L(hero.eyebrow) }}</span>
           </Reveal>
-          <Reveal as="h1" blur :y="22" :delay="0.06" :duration="0.8" class="mt-4 font-display text-5xl font-medium leading-[1.02] sm:text-6xl md:text-7xl" style="text-shadow: 0 2px 30px rgba(6,23,15,0.5)">
+          <Reveal as="h1" blur :y="22" :delay="0.06" :duration="0.8" class="mt-3 font-display text-[2.6rem] font-medium leading-[1.05] sm:mt-4 sm:text-6xl md:text-7xl" style="text-shadow: 0 2px 30px rgba(6,23,15,0.55)">
             {{ L(hero.titleA) }} {{ L(hero.titleB) }}<span class="text-amber-400">{{ L(hero.titleC) }}</span>.
           </Reveal>
-          <Reveal as="p" :y="18" :delay="0.18" class="mt-6 max-w-lg text-lg leading-relaxed text-cream-100/90 sm:text-xl">{{ L(hero.subtitle) }}</Reveal>
-          <Reveal :y="18" :delay="0.28" class="pointer-events-auto mt-9 flex flex-wrap gap-3">
-            <NuxtLink to="/eyeglasses" class="rounded-sm bg-amber-500 px-7 py-3.5 font-display text-sm uppercase tracking-wide text-pine-950 shadow-lg transition hover:brightness-105">{{ L(hero.ctaShop) }}</NuxtLink>
-            <NuxtLink to="/booking" class="inline-flex items-center gap-2 rounded-sm border border-cream-100/80 bg-pine-950/20 px-7 py-3.5 font-display text-sm uppercase tracking-wide backdrop-blur-sm transition hover:border-amber-400 hover:text-amber-400"><Calendar :size="16" />{{ L(hero.ctaBook) }}</NuxtLink>
+          <Reveal as="p" :y="18" :delay="0.18" class="mt-4 max-w-lg text-[15px] leading-relaxed text-cream-100/90 sm:mt-6 sm:text-lg lg:text-xl">{{ L(hero.subtitle) }}</Reveal>
+          <Reveal :y="18" :delay="0.28" class="pointer-events-auto mt-6 flex flex-wrap gap-3 sm:mt-9">
+            <NuxtLink to="/eyeglasses" class="rounded-sm bg-amber-500 px-6 py-3 font-display text-[13px] uppercase tracking-wide text-pine-950 shadow-lg transition hover:brightness-105 sm:px-7 sm:py-3.5 sm:text-sm">{{ L(hero.ctaShop) }}</NuxtLink>
+            <NuxtLink to="/booking" class="inline-flex items-center gap-2 rounded-sm border border-cream-100/80 bg-pine-950/20 px-6 py-3 font-display text-[13px] uppercase tracking-wide backdrop-blur-sm transition hover:border-amber-400 hover:text-amber-400 sm:px-7 sm:py-3.5 sm:text-sm"><Calendar :size="16" />{{ L(hero.ctaBook) }}</NuxtLink>
           </Reveal>
         </div>
       </div>
