@@ -53,10 +53,27 @@ const sp = computed(() => p.value?.specs || {})
 const fmt = (n: number) => Number(n).toLocaleString('he-IL')
 
 const addedNote = ref(false)
-const addToCart = () => {
-  add({ id: p.value.id, name: L(p.value.name) || p.value.name, brand: p.value.brand, amount: total.value, image: gallery.value[0], colors: colors.value })
+const addToCart = (customSize?: string) => {
+  add({ id: p.value.id, name: L(p.value.name) || p.value.name, brand: p.value.brand, amount: total.value, image: gallery.value[0], colors: colors.value }, { customSize: customSize || null })
   addedNote.value = true
   setTimeout(() => (addedNote.value = false), 1600)
+}
+
+// Try Mirror — consent gate → live modal. The mirror carousel spans every
+// Try-Mirror-eligible frame so shoppers can switch without leaving the modal.
+const consent = ref(false)
+const mirror = ref(false)
+const mirrorCatalog = computed(() =>
+  (content.value?.products || []).filter((x: any) => !!x?.tryMirror && ['eyeglasses', 'sunglasses'].includes(String(x.category || '').toLowerCase())),
+)
+const onMirrorAdd = (sizePct: string, chosen: any) => {
+  const prod = chosen || p.value
+  // The opened product keeps its lens-option total; a carousel-picked frame is
+  // added at its own base price.
+  add(
+    { id: prod.id, name: L(prod.name) || prod.name, brand: prod.brand, amount: prod.id === p.value.id ? total.value : prod.amount, image: prod.image, colors: prod.colors },
+    { customSize: sizePct },
+  )
 }
 
 const specRows = computed(() => ([
@@ -102,6 +119,7 @@ useHead(() => ({ title: found.value ? `${p.value.brand} ${L(p.value.name) || p.v
           <div class="relative flex flex-1 items-center justify-center overflow-hidden rounded-lg border border-hair bg-cream-300" style="aspect-ratio:1">
             <img v-if="mainSrc" :src="mainSrc" :alt="`${p.brand} ${L(p.name) || p.name}`" class="absolute inset-0 h-full w-full object-cover" />
             <span v-if="canTry" class="absolute start-4 top-4 z-10 rounded-pill bg-pine-800/90 px-3 py-1 font-display text-[11px] uppercase tracking-wide text-cream-100">{{ tp.tryMirror }}</span>
+            <button v-if="canTry" @click="consent = true" class="absolute bottom-4 start-4 z-10 inline-flex items-center gap-2 rounded-sm bg-amber-500 px-4 py-2 font-display text-xs uppercase tracking-wide text-pine-950 shadow-lg transition hover:brightness-105"><Camera :size="15" /> {{ tp.tryMirror }}</button>
           </div>
         </div>
 
@@ -163,8 +181,11 @@ useHead(() => ({ title: found.value ? `${p.value.brand} ${L(p.value.name) || p.v
 
           <!-- actions -->
           <div class="flex flex-wrap items-center gap-3">
-            <button @click="addToCart" class="inline-flex flex-1 items-center justify-center gap-2 rounded-sm bg-pine-700 px-6 py-3.5 font-display text-sm uppercase tracking-wide text-cream-100 transition-colors hover:bg-amber-600 hover:text-pine-950">
+            <button @click="addToCart()" class="inline-flex flex-1 items-center justify-center gap-2 rounded-sm bg-pine-700 px-6 py-3.5 font-display text-sm uppercase tracking-wide text-cream-100 transition-colors hover:bg-amber-600 hover:text-pine-950">
               <ShoppingBag :size="18" /> {{ tp.addToCart(total) }}
+            </button>
+            <button v-if="canTry" @click="consent = true" class="inline-flex items-center justify-center gap-2 rounded-sm bg-amber-500 px-5 py-3.5 font-display text-sm uppercase tracking-wide text-pine-950 transition hover:brightness-105">
+              <Camera :size="18" /> {{ tp.tryMirror }}
             </button>
             <button aria-label="wishlist" class="inline-flex h-12 w-12 items-center justify-center rounded-sm border border-hair text-pine-700 transition-colors hover:border-pine-400">
               <Heart :size="20" />
@@ -199,6 +220,25 @@ useHead(() => ({ title: found.value ? `${p.value.brand} ${L(p.value.name) || p.v
           <p v-else class="text-ink-500">{{ tp.reviewsLine(p.reviews, p.rating) }}</p>
         </div>
       </div>
+
+      <!-- Try Mirror consent gate -->
+      <Teleport to="body">
+        <div v-if="consent" class="fixed inset-0 z-[1090] flex items-center justify-center bg-pine-950/70 p-5 backdrop-blur-sm" @click.self="consent = false">
+          <div class="max-w-md rounded-xl bg-white p-7 shadow-2xl">
+            <span class="font-display text-[12px] uppercase tracking-[0.14em] text-amber-700">{{ tp.tryMirror }}</span>
+            <h3 class="mb-3 mt-1.5 font-display text-2xl text-ink-900">{{ L({ en: 'Camera & try-on consent', he: 'הסכמה למצלמה ולמדידה', ar: 'موافقة الكاميرا والتجربة' }) }}</h3>
+            <p class="text-[15px] leading-relaxed text-ink-700">{{ L({ en: "OPTIZONE's Try Mirror uses your camera on-device to place frames on your face in real time. No image or biometric data is stored. You can also upload a photo instead.", he: 'ה-Try Mirror של OPTIZONE משתמש במצלמה שלך במכשיר עצמו כדי להציב מסגרות על הפנים בזמן אמת. שום תמונה או מידע ביומטרי אינם נשמרים. ניתן גם להעלות תמונה במקום.', ar: 'تستخدم مرآة OPTIZONE كاميرتك على جهازك لوضع الإطارات على وجهك في الوقت الحقيقي. لا تُخزَّن أي صورة أو بيانات حيوية. يمكنك أيضًا رفع صورة.' }) }}</p>
+            <div class="mt-6 flex justify-end gap-3">
+              <button @click="consent = false" class="rounded-sm px-5 py-2.5 font-display text-sm text-ink-600 hover:text-pine-700">{{ L({ en: 'Not now', he: 'לא עכשיו', ar: 'ليس الآن' }) }}</button>
+              <button @click="consent = false; mirror = true" class="rounded-sm bg-pine-700 px-5 py-2.5 font-display text-sm text-cream-100 hover:bg-amber-600 hover:text-pine-950">{{ L({ en: 'Allow camera', he: 'אישור מצלמה', ar: 'السماح بالكاميرا' }) }}</button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- Try Mirror modal (mounted only while open) -->
+      <TryMirror v-if="mirror" :product="p" :catalog="mirrorCatalog" @close="mirror = false" @add="onMirrorAdd" />
     </template>
   </div>
 </template>
+
