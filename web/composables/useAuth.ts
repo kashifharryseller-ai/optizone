@@ -51,6 +51,23 @@ export function useAuth() {
   }
   function logout() { persist(null); user.value = null }
 
+  // Password reset: request a code, then complete with the code + new password
+  // (the server signs the user straight in on success).
+  async function forgotPassword(email: string) {
+    return $fetch<any>('/api/auth/forgot', { method: 'POST', body: { email } })
+  }
+  async function resetPassword(email: string, code: string, password: string) {
+    const r: any = await $fetch('/api/auth/reset', { method: 'POST', body: { email, code, password } })
+    persist(r.token); user.value = r.user
+    return r.user
+  }
+
+  // Google OAuth: the callback redirects to /#gtoken=<jwt>; adopt it + hydrate.
+  async function adoptToken(tk: string) {
+    persist(tk)
+    return me()
+  }
+
   async function updateProfile(patch: { name?: string; phone?: string }) {
     const r: any = await $fetch('/api/account/profile', { method: 'PUT', headers: authHeaders(), body: patch })
     user.value = r.user
@@ -70,5 +87,5 @@ export function useAuth() {
   }
 
   const isAuthed = computed(() => !!user.value)
-  return { token, user, isAuthed, register, login, me, logout, updateProfile, changePassword, orders, bookings, inWishlist, toggleWishlist, authHeaders }
+  return { token, user, isAuthed, register, login, me, logout, forgotPassword, resetPassword, adoptToken, updateProfile, changePassword, orders, bookings, inWishlist, toggleWishlist, authHeaders }
 }
