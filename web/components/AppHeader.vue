@@ -4,6 +4,7 @@ import { useWindowScroll } from '@vueuse/core'
 
 const { L, lang, setLang, languages } = useLang()
 const { content } = useContent()
+const { count } = useCart()
 const { y } = useWindowScroll()
 const scrolled = computed(() => y.value > 6)
 const langOpen = ref(false)
@@ -43,9 +44,12 @@ const to = (k: string) => (k === 'book' ? '/booking' : '/' + k)
 
         <div class="ms-auto flex items-center gap-2">
           <button aria-label="Search" class="p-2 transition-colors hover:text-amber-400"><Search :size="18" /></button>
-          <button aria-label="Wishlist" class="hidden p-2 transition-colors hover:text-amber-400 sm:inline-flex"><Heart :size="18" /></button>
-          <button aria-label="Account" class="hidden p-2 transition-colors hover:text-amber-400 sm:inline-flex"><User :size="18" /></button>
-          <button aria-label="Cart" class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-amber-600 text-pine-950"><ShoppingBag :size="17" /></button>
+          <NuxtLink to="/account" aria-label="Wishlist" class="hidden p-2 transition-colors hover:text-amber-400 sm:inline-flex"><Heart :size="18" /></NuxtLink>
+          <NuxtLink to="/account" aria-label="Account" class="hidden p-2 transition-colors hover:text-amber-400 sm:inline-flex"><User :size="18" /></NuxtLink>
+          <NuxtLink to="/cart" aria-label="Cart" class="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-amber-600 text-pine-950">
+            <ShoppingBag :size="17" />
+            <span v-if="count" class="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-pine-950 px-1 text-[10px] font-semibold text-cream-100">{{ count }}</span>
+          </NuxtLink>
 
           <div class="relative">
             <button class="inline-flex items-center gap-1 rounded-pill border border-cream-100/40 px-3 py-1.5 font-display text-xs" @click="langOpen = !langOpen">

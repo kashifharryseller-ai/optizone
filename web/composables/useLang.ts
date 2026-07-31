@@ -9,6 +9,28 @@ const RTL = new Set<Lang>(['he', 'ar'])
 const lang = ref<Lang>('en')
 let hydrated = false
 
+// Catalog-attribute vocabulary (Frame Shape / Material / Gender values, order &
+// booking statuses, contact-lens types). English passes through when a key is
+// absent. Ported from the React i18n ATTR maps.
+const ATTR: Record<'he' | 'ar', Record<string, string>> = {
+  he: {
+    'Frame Shape': 'צורת מסגרת', Material: 'חומר', Gender: 'מגדר',
+    Round: 'עגול', Square: 'מרובע', 'Cat-eye': 'עין חתול', Oval: 'אובלי', Aviator: 'טייסים',
+    Acetate: 'אצטט', Metal: 'מתכת', Titanium: 'טיטניום',
+    Women: 'נשים', Men: 'גברים', Unisex: 'יוניסקס', Kids: 'ילדים',
+    Daily: 'יומיות', 'Bi-weekly': 'דו-שבועיות', Monthly: 'חודשיות',
+    'Silicone Hydrogel': 'סיליקון הידרוג׳ל', 'Water Gradient': 'גרדיאנט מים',
+  },
+  ar: {
+    'Frame Shape': 'شكل الإطار', Material: 'المادة', Gender: 'الفئة',
+    Round: 'دائري', Square: 'مربّع', 'Cat-eye': 'عين القطة', Oval: 'بيضوي', Aviator: 'أفياتور',
+    Acetate: 'أسيتات', Metal: 'معدن', Titanium: 'تيتانيوم',
+    Women: 'نساء', Men: 'رجال', Unisex: 'للجنسين', Kids: 'أطفال',
+    Daily: 'يومية', 'Bi-weekly': 'كل أسبوعين', Monthly: 'شهرية',
+    'Silicone Hydrogel': 'هيدروجيل سيليكون', 'Water Gradient': 'تدرّج مائي',
+  },
+}
+
 export function useLang() {
   if (import.meta.client && !hydrated) {
     hydrated = true
@@ -22,11 +44,17 @@ export function useLang() {
   }
   const dir = computed(() => (RTL.has(lang.value) ? 'rtl' : 'ltr'))
   const L = (v: any): string => (v == null ? '' : typeof v === 'string' ? v : (v[lang.value] ?? v.en ?? ''))
+  // Translate a fixed catalog-attribute value; English passes through.
+  const A = (v: any): string => {
+    if (v == null) return ''
+    const s = String(v)
+    return lang.value === 'en' ? s : (ATTR[lang.value]?.[s] || s)
+  }
   const setLang = (l: Lang) => { lang.value = l }
   const languages = [
     { code: 'en' as Lang, label: 'English' },
     { code: 'he' as Lang, label: 'עברית' },
     { code: 'ar' as Lang, label: 'العربية' },
   ]
-  return { lang, dir, L, setLang, languages }
+  return { lang, dir, L, A, setLang, languages }
 }
