@@ -17,6 +17,31 @@ const p = computed(() => {
 })
 const found = computed(() => !!p.value?.id)
 
+// Recently-viewed tracking + "You may also like" (same category, then brand).
+const { ids: recentIds, record } = useRecentlyViewed()
+watchEffect(() => { if (import.meta.client && p.value?.id) record(p.value.id) })
+const allProducts = computed<any[]>(() => (content.value?.products || []).filter((x: any) => x.active !== false))
+const related = computed(() => {
+  const cur = p.value
+  if (!cur?.id) return []
+  const pool = allProducts.value.filter((x) => String(x.id) !== String(cur.id))
+  const sameCat = pool.filter((x) => (x.category || 'eyeglasses') === (cur.category || 'eyeglasses'))
+  const sameBrand = pool.filter((x) => x.brand && x.brand === cur.brand)
+  // Prefer same brand within the category, then fill from the category, deduped.
+  const seen = new Set<string>()
+  const out: any[] = []
+  for (const x of [...sameBrand, ...sameCat]) { const k = String(x.id); if (!seen.has(k)) { seen.add(k); out.push(x) } }
+  return out.slice(0, 4)
+})
+const recentlyViewed = computed(() => {
+  const cur = String(p.value?.id)
+  return recentIds.value
+    .filter((id) => String(id) !== cur)
+    .map((id) => allProducts.value.find((x) => String(x.id) === String(id)))
+    .filter(Boolean)
+    .slice(0, 4)
+})
+
 const canTry = computed(() => !!p.value?.tryMirror && ['eyeglasses', 'sunglasses'].includes(String(p.value.category || '').toLowerCase()))
 const colors = computed(() => p.value?.colors || [])
 const cat = computed(() => p.value?.category || 'eyeglasses')
@@ -231,6 +256,26 @@ useHead(() => ({ title: found.value ? `${p.value.brand} ${L(p.value.name) || p.v
           <p v-else class="text-ink-500">{{ tp.reviewsLine(p.reviews, p.rating) }}</p>
         </div>
       </div>
+
+      <!-- You may also like -->
+      <section v-if="related.length" class="mt-16">
+        <Reveal as="h2" blur :y="16" class="mb-6 font-display text-2xl text-ink-900">{{ L({ en: 'You may also like', he: 'אולי גם יעניין אותך', ar: 'قد يعجبك أيضًا' }) }}</Reveal>
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <Reveal v-for="(rp, i) in related" :key="rp.id" :y="24" :delay="i * 0.06">
+            <ProductCard :product="rp" />
+          </Reveal>
+        </div>
+      </section>
+
+      <!-- Recently viewed -->
+      <section v-if="recentlyViewed.length" class="mt-14">
+        <Reveal as="h2" blur :y="16" class="mb-6 font-display text-2xl text-ink-900">{{ L({ en: 'Recently viewed', he: 'נצפו לאחרונה', ar: 'شوهدت مؤخرًا' }) }}</Reveal>
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <Reveal v-for="(rp, i) in recentlyViewed" :key="rp.id" :y="24" :delay="i * 0.06">
+            <ProductCard :product="rp" />
+          </Reveal>
+        </div>
+      </section>
 
       <!-- Try Mirror consent gate -->
       <Teleport to="body">
