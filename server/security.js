@@ -2,14 +2,47 @@
 // layered rate limiting (defence against DoS / brute-force / spam).
 const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
+const crypto = require('crypto')
+const fs = require('fs')
+const path = require('path')
 const config = require('./config')
+
+// Compute CSP sha256 hashes for the inline <script> tags the Nuxt SPA shell
+// emits (its window.__NUXT__ bootstrap). Hashing them lets us drop
+// 'unsafe-inline' from script-src while still allowing our own first-party
+// inline scripts — strict CSP with no XSS-injection foothold. External <script
+// src> stays covered by 'self'; application/json data blocks are not executable
+// and need no hash. Returns [] when the build isn't present (dev), so the caller
+// can fall back safely.
+function inlineScriptHashes(distPath) {
+  try {
+    const html = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8')
+    const hashes = new Set()
+    const re = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi
+    let m
+    while ((m = re.exec(html))) {
+      const attrs = m[1] || ''
+      if (/\bsrc=/i.test(attrs)) continue
+      const type = (attrs.match(/\btype=["']([^"']+)["']/i) || [])[1] || ''
+      // Only executable scripts (no type, module, or js). Skip application/json etc.
+      if (type && !/^(module|text\/javascript|application\/javascript)$/i.test(type)) continue
+      if (!m[2]) continue
+      hashes.add(`'sha256-${crypto.createHash('sha256').update(m[2], 'utf8').digest('base64')}'`)
+    }
+    return [...hashes]
+  } catch { return [] }
+}
 
 // ---- Security headers (helmet) ---------------------------------------------
 // CSP is tuned for the app: bundled self scripts, inline styles (React style
 // attributes + the design-system <style> keyframes), data/blob images
 // (favicon + uploaded photos), and same-origin XHR. Google sign-in is a
 // top-level redirect from a same-origin endpoint, so it needs no CSP allowance.
-function securityHeaders() {
+function securityHeaders({ scriptHashes = [] } = {}) {
+  // Prefer strict per-build hashes for our inline bootstrap. Only if the build
+  // shell can't be read (e.g. local dev before a generate) do we fall back to
+  // 'unsafe-inline' so the app still boots — production always ships hashes.
+  const inlineScript = scriptHashes.length ? scriptHashes : ["'unsafe-inline'"]
   return helmet({
     contentSecurityPolicy: {
       useDefaults: true,
@@ -22,11 +55,9 @@ function securityHeaders() {
         //  - 'wasm-unsafe-eval': MediaPipe compiles its WASM module in-browser
         //  - assets.calendly.com: Calendly booking widget script/styles/fonts
         //  - calendly.com (frameSrc): the Calendly scheduling iframe
-        //  - 'unsafe-inline': the Nuxt SPA emits a tiny inline bootstrap
-        //    (window.__NUXT__.config with a per-build id) that has no stable
-        //    hash; external script SOURCES stay locked to self + the pinned
-        //    CDNs above, so this only permits our own first-party inline shell.
-        scriptSrc: ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", 'https://maps.googleapis.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com', 'https://assets.calendly.com'],
+        //  - inlineScript: sha256 hashes of the Nuxt SPA's own inline bootstrap
+        //    (strict — no 'unsafe-inline' in production).
+        scriptSrc: ["'self'", ...inlineScript, "'wasm-unsafe-eval'", 'https://maps.googleapis.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com', 'https://assets.calendly.com'],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://assets.calendly.com'],
         imgSrc: ["'self'", 'data:', 'blob:', 'https://maps.googleapis.com', 'https://maps.gstatic.com', 'https://assets.calendly.com', 'https://*.calendly.com'],
         fontSrc: ["'self'", 'data:', 'https://assets.calendly.com'],
@@ -99,4 +130,4 @@ const authLimiter = mk(10 * 60 * 1000, Number(process.env.RL_AUTH) || 25,
 const writeLimiter = mk(10 * 60 * 1000, Number(process.env.RL_WRITE) || 40,
   'Too many submissions — please try again shortly.')
 
-module.exports = { securityHeaders, corsMiddleware, globalApiLimiter, authLimiter, writeLimiter }
+module.exports = { securityHeaders, inlineScriptHashes, corsMiddleware, globalApiLimiter, authLimiter, writeLimiter }

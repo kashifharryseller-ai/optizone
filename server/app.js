@@ -4,7 +4,7 @@ const fs = require('fs')
 const path = require('path')
 const config = require('./config')
 const { initStore } = require('./store')
-const { securityHeaders, corsMiddleware, globalApiLimiter, authLimiter, writeLimiter } = require('./security')
+const { securityHeaders, inlineScriptHashes, corsMiddleware, globalApiLimiter, authLimiter, writeLimiter } = require('./security')
 const publicRoutes = require('./routes/public')
 const adminRoutes = require('./routes/admin')
 const accountRoutes = require('./routes/account')
@@ -29,7 +29,11 @@ function createApp({ serveStatic = true } = {}) {
   // limiting and OAuth redirect detection see the real client IP / protocol.
   app.set('trust proxy', 1)
 
-  app.use(securityHeaders())
+  // Strict CSP: hash the SPA shell's inline bootstrap so we can drop
+  // 'unsafe-inline' from script-src (production). Falls back safely in dev.
+  const frontendDir = fs.existsSync(config.paths.webDist) ? config.paths.webDist : config.paths.dist
+  const scriptHashes = serveStatic ? inlineScriptHashes(frontendDir) : []
+  app.use(securityHeaders({ scriptHashes }))
   app.use(corsMiddleware())
   app.use(express.json({ limit: '1mb' }))
   app.use(express.urlencoded({ extended: true, limit: '1mb' }))
