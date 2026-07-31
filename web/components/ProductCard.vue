@@ -3,6 +3,7 @@ import { ShoppingBag, Heart } from 'lucide-vue-next'
 const props = defineProps<{ product: any }>()
 const { L } = useLang()
 const { add } = useCart()
+const { openCart } = useCartDrawer()
 const { isAuthed, inWishlist, toggleWishlist } = useAuth()
 const router = useRouter()
 const p = props.product
@@ -23,6 +24,7 @@ let timer: ReturnType<typeof setTimeout> | null = null
 const quickAdd = () => {
   add({ id: p.id, name: L(p.name) || p.name, brand: p.brand, amount: p.amount, image: p.image, colors: p.colors })
   added.value = true
+  openCart()
   if (timer) clearTimeout(timer)
   timer = setTimeout(() => (added.value = false), 1400)
 }

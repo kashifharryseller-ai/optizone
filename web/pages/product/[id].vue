@@ -8,6 +8,7 @@ const { t } = useT()
 const tp = computed(() => t('product'))
 const { content } = useContent()
 const { add } = useCart()
+const { openCart } = useCartDrawer()
 const { isAuthed, inWishlist, toggleWishlist } = useAuth()
 
 const p = computed(() => {
@@ -58,6 +59,7 @@ const addedNote = ref(false)
 const addToCart = (customSize?: string) => {
   add({ id: p.value.id, name: L(p.value.name) || p.value.name, brand: p.value.brand, amount: total.value, image: gallery.value[0], colors: colors.value }, { customSize: customSize || null })
   addedNote.value = true
+  openCart()
   setTimeout(() => (addedNote.value = false), 1600)
 }
 

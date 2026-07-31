@@ -16,6 +16,7 @@ onMounted(() => {
       </main>
       <AppFooter />
       <SearchOverlay />
+      <CartDrawer />
     </div>
   </VueLenis>
 </template>
