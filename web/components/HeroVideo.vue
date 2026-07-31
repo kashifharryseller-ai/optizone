@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 const { L, dir } = useLang()
+// `full` = immersive full-section hero (the page overlays its own copy, so the
+// small per-slide caption is hidden). Default keeps the compact panel caption.
+const props = withDefaults(defineProps<{ full?: boolean }>(), { full: false })
 
 const slides = [
   { src: '/site/showcase.mp4', poster: '/site/showcase-poster.jpg', eyebrow: { en: 'The Signature Edit', he: 'הקולקציה החתומה', ar: 'المجموعة المميّزة' }, title: { en: 'Crafted to be seen', he: 'נועדו להיראות', ar: 'صُمّمت لتُرى' } },
@@ -39,14 +42,16 @@ watch(paused, tick)
     <div v-for="(s, i) in slides" :key="s.src" class="absolute inset-0 transition-opacity duration-700" :style="{ opacity: i === idx ? 1 : 0, pointerEvents: i === idx ? 'auto' : 'none' }">
       <video :ref="(el) => { if (el) videos[i] = el as HTMLVideoElement }" :src="s.src" :poster="s.poster" muted loop playsinline :preload="i === 0 ? 'metadata' : 'none'" class="absolute inset-0 h-full w-full object-cover" />
       <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(6,23,15,0.9), rgba(6,23,15,0.15) 55%, transparent);" />
-      <div class="absolute bottom-0 start-0 max-w-[85%] p-6 pb-10">
+      <div v-if="!full" class="absolute bottom-0 start-0 max-w-[85%] p-6 pb-10">
         <div class="font-display text-[11px] uppercase tracking-[0.16em] text-amber-500">{{ L(s.eyebrow) }}</div>
         <div class="font-display text-2xl leading-tight text-cream-100">{{ L(s.title) }}</div>
       </div>
     </div>
-    <button class="hero-arrow start-2" aria-label="Previous slide" @click="go(idx - 1)"><component :is="rtl ? ChevronRight : ChevronLeft" :size="18" /></button>
-    <button class="hero-arrow end-2" aria-label="Next slide" @click="go(idx + 1)"><component :is="rtl ? ChevronLeft : ChevronRight" :size="18" /></button>
-    <div class="absolute inset-x-0 bottom-4 z-10 flex justify-center gap-2">
+    <template v-if="!full">
+      <button class="hero-arrow start-2" aria-label="Previous slide" @click="go(idx - 1)"><component :is="rtl ? ChevronRight : ChevronLeft" :size="18" /></button>
+      <button class="hero-arrow end-2" aria-label="Next slide" @click="go(idx + 1)"><component :is="rtl ? ChevronLeft : ChevronRight" :size="18" /></button>
+    </template>
+    <div class="absolute inset-x-0 z-10 flex justify-center gap-2" :class="full ? 'bottom-7' : 'bottom-4'">
       <button v-for="(s, i) in slides" :key="i" :aria-label="`Go to slide ${i + 1}`" class="h-[7px] rounded-full transition-all" :class="i === idx ? 'w-6 bg-amber-500' : 'w-[7px] bg-cream-100/50'" @click="go(i)" />
     </div>
   </div>

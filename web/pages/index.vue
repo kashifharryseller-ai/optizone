@@ -12,27 +12,30 @@ const media = computed(() => content.value?.media || {})
 
 <template>
   <div>
-    <!-- HERO (Inspira Aurora + video carousel) -->
-    <AuroraBackground class="bg-pine-800 text-cream-100">
-      <div class="mx-auto grid max-w-container items-center gap-10 px-7 py-20 md:grid-cols-[1.1fr_0.9fr]">
-        <div>
+    <!-- HERO — full-section Higgsfield video carousel with overlaid copy -->
+    <section class="relative min-h-[92svh] w-full overflow-hidden bg-pine-900 text-cream-100">
+      <!-- immersive video carousel fills the whole section -->
+      <HeroVideo full />
+      <!-- side + top scrims keep the overlaid copy legible over motion -->
+      <div aria-hidden class="pointer-events-none absolute inset-0 z-[5]" style="background: linear-gradient(to right, rgba(6,23,15,0.85), rgba(6,23,15,0.4) 46%, rgba(6,23,15,0.05) 78%);" />
+      <div aria-hidden class="pointer-events-none absolute inset-0 z-[5]" style="background: linear-gradient(to top, rgba(6,23,15,0.55), transparent 42%);" />
+      <!-- overlaid copy; pointer-events-none so the carousel arrows/dots stay clickable -->
+      <div class="pointer-events-none relative z-20 mx-auto flex min-h-[92svh] max-w-container items-center px-7">
+        <div class="max-w-2xl py-28">
           <Reveal :y="14" :duration="0.5">
-            <span class="font-display text-[13px] uppercase tracking-[0.18em] text-amber-500">{{ L(hero.eyebrow) }}</span>
+            <span class="font-display text-[13px] uppercase tracking-[0.2em] text-amber-400">{{ L(hero.eyebrow) }}</span>
           </Reveal>
-          <Reveal as="h1" blur :y="20" :delay="0.06" :duration="0.7" class="mt-4 font-display text-5xl font-medium leading-[1.02] md:text-6xl">
-            {{ L(hero.titleA) }} {{ L(hero.titleB) }}<span class="text-amber-500">{{ L(hero.titleC) }}</span>.
+          <Reveal as="h1" blur :y="22" :delay="0.06" :duration="0.8" class="mt-4 font-display text-5xl font-medium leading-[1.02] sm:text-6xl md:text-7xl" style="text-shadow: 0 2px 30px rgba(6,23,15,0.5)">
+            {{ L(hero.titleA) }} {{ L(hero.titleB) }}<span class="text-amber-400">{{ L(hero.titleC) }}</span>.
           </Reveal>
-          <Reveal as="p" :y="18" :delay="0.16" class="mt-5 max-w-md text-lg leading-relaxed text-pine-100">{{ L(hero.subtitle) }}</Reveal>
-          <Reveal :y="18" :delay="0.26" class="mt-8 flex flex-wrap gap-3">
-            <NuxtLink to="/eyeglasses" class="rounded-sm bg-amber-600 px-6 py-3 font-display text-sm uppercase tracking-wide text-pine-950 transition hover:brightness-105">{{ L(hero.ctaShop) }}</NuxtLink>
-            <NuxtLink to="/booking" class="inline-flex items-center gap-2 rounded-sm border border-cream-100 px-6 py-3 font-display text-sm uppercase tracking-wide transition hover:border-amber-400 hover:text-amber-400"><Calendar :size="16" />{{ L(hero.ctaBook) }}</NuxtLink>
+          <Reveal as="p" :y="18" :delay="0.18" class="mt-6 max-w-lg text-lg leading-relaxed text-cream-100/90 sm:text-xl">{{ L(hero.subtitle) }}</Reveal>
+          <Reveal :y="18" :delay="0.28" class="pointer-events-auto mt-9 flex flex-wrap gap-3">
+            <NuxtLink to="/eyeglasses" class="rounded-sm bg-amber-500 px-7 py-3.5 font-display text-sm uppercase tracking-wide text-pine-950 shadow-lg transition hover:brightness-105">{{ L(hero.ctaShop) }}</NuxtLink>
+            <NuxtLink to="/booking" class="inline-flex items-center gap-2 rounded-sm border border-cream-100/80 bg-pine-950/20 px-7 py-3.5 font-display text-sm uppercase tracking-wide backdrop-blur-sm transition hover:border-amber-400 hover:text-amber-400"><Calendar :size="16" />{{ L(hero.ctaBook) }}</NuxtLink>
           </Reveal>
         </div>
-        <Reveal :y="24" :delay="0.12" :duration="0.8" class="relative aspect-[4/3] overflow-hidden rounded-lg border border-white/10 shadow-dark">
-          <HeroVideo />
-        </Reveal>
       </div>
-    </AuroraBackground>
+    </section>
 
     <!-- SERVICES -->
     <section class="mx-auto max-w-container px-7 py-16">
