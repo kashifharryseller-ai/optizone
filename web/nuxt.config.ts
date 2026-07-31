@@ -29,11 +29,14 @@ export default defineNuxtConfig({
   // OZ_API to match). Nitro's devProxy strips the matched prefix before hitting
   // the target, so each target must re-include its own prefix (as /api does) or
   // the path segment is dropped and the request falls through to the SPA shell.
+  //
+  // NOTE: /brands is deliberately NOT proxied — it's also a page route, and the
+  // proxy would swallow it. Brand images are served from web/public/brands
+  // instead (real files win over the page route, and they ship with the build).
   nitro: {
     devProxy: {
       '/api': { target: (process.env.OZ_API || 'http://127.0.0.1:5090') + '/api', changeOrigin: true },
       '/products': { target: (process.env.OZ_API || 'http://127.0.0.1:5090') + '/products', changeOrigin: true },
-      '/brands': { target: (process.env.OZ_API || 'http://127.0.0.1:5090') + '/brands', changeOrigin: true },
       '/site': { target: (process.env.OZ_API || 'http://127.0.0.1:5090') + '/site', changeOrigin: true },
       '/uploads': { target: (process.env.OZ_API || 'http://127.0.0.1:5090') + '/uploads', changeOrigin: true },
     },

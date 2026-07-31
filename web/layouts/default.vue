@@ -15,6 +15,7 @@ onMounted(() => {
         <slot />
       </main>
       <AppFooter />
+      <SearchOverlay />
     </div>
   </VueLenis>
 </template>
