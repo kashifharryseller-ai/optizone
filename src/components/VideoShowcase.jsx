@@ -16,19 +16,19 @@ const SLIDES = [
     title: { en: 'Crafted to be seen', he: 'נועדו להיראות', ar: 'صُمّمت لتُرى' },
   },
   {
-    src: '/site/showcase-2.mp4', poster: '/site/showcase-2-poster.jpg',
+    src: '/site/showcase-2.mp4', poster: '/site/showcase-2-poster.webp',
     eyebrow: { en: 'Timeless Icons', he: 'איקונים על-זמניים', ar: 'أيقونات خالدة' },
     title: { en: 'Rounded in character', he: 'עגול באופיו', ar: 'دائريّ الطابع' },
   },
   {
-    src: '/site/showcase-3.mp4', poster: '/site/showcase-3-poster.jpg',
+    src: '/site/showcase-3.mp4', poster: '/site/showcase-3-poster.webp',
     eyebrow: { en: 'Bold & Black', he: 'נועז ושחור', ar: 'جريء وأسود' },
     title: { en: 'Made to stand out', he: 'נבנו לבלוט', ar: 'صُنعت لتتميّز' },
   },
   {
-    src: '/site/showcase-4.mp4', poster: '/site/showcase-4-poster.jpg',
+    src: '/site/showcase-4.mp4', poster: '/site/showcase-4-poster.webp',
     eyebrow: { en: 'Heritage Tortoise', he: 'מסורת מנומרת', ar: 'أصالة نمشيّة' },
-    title: { en: 'Detail in every curve', he: 'פרט בכל עקומה', ar: 'تفصيل في كلّ انحناءة' },
+    title: { en: 'Detail in every curve', he: 'פרט בכל עקומة', ar: 'تفصيل في كلّ انحناءة' },
   },
 ]
 const INTERVAL = 6000
