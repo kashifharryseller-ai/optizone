@@ -70,10 +70,21 @@ function createApp({ serveStatic = true } = {}) {
   app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }))
 
   // Static frontend + SPA fallback (storefront and /admin share one build).
+  // Prefer the Nuxt build (web/.output/public); fall back to the legacy React
+  // dist until the Nuxt build exists. Media assets (products, hero videos,
+  // brand imagery) are served from the repo `public/` dir alongside either
+  // build, so a request for /products/*.webp or /site/*.mp4 always resolves.
   if (serveStatic) {
-    if (fs.existsSync(config.paths.dist)) {
-      app.use(express.static(config.paths.dist, { index: false, maxAge: '1h' }))
-      app.get('*', (req, res) => res.sendFile(path.join(config.paths.dist, 'index.html')))
+    const frontend = fs.existsSync(config.paths.webDist) ? config.paths.webDist : config.paths.dist
+    if (fs.existsSync(frontend)) {
+      // Long-cached media assets. index:false + redirect:false so a bare
+      // directory that collides with a page route (e.g. /brands) falls through
+      // to the SPA fallback instead of 301-redirecting to a trailing slash.
+      if (fs.existsSync(config.paths.assets)) {
+        app.use(express.static(config.paths.assets, { index: false, redirect: false, maxAge: '7d' }))
+      }
+      app.use(express.static(frontend, { index: false, redirect: false, maxAge: '1h' }))
+      app.get('*', (req, res) => res.sendFile(path.join(frontend, 'index.html')))
     } else {
       app.get('*', (req, res) => res.status(503).send('Frontend not built yet. Run `npm run build`.'))
     }

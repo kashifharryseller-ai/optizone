@@ -34,6 +34,10 @@ export default defineNuxtConfig({
   // proxy would swallow it. Brand images are served from web/public/brands
   // instead (real files win over the page route, and they ship with the build).
   nitro: {
+    // SPA (ssr:false): emit only the app shell (index.html / 200.html). Express
+    // serves every route via its SPA fallback, so we don't want per-route
+    // directories (they'd 301 on the trailing slash).
+    prerender: { crawlLinks: false, routes: ['/'] },
     devProxy: {
       '/api': { target: (process.env.OZ_API || 'http://127.0.0.1:5090') + '/api', changeOrigin: true },
       '/products': { target: (process.env.OZ_API || 'http://127.0.0.1:5090') + '/products', changeOrigin: true },

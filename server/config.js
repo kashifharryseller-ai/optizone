@@ -61,6 +61,13 @@ const config = {
     const dataDir = onServerless ? '/tmp/oz-data' : path.join(__dirname, 'data')
     return {
       dist: path.join(__dirname, '..', 'dist'),
+      // Nuxt storefront build (SPA) — preferred static root once built. Express
+      // serves this if present, falling back to the legacy React `dist`.
+      webDist: path.join(__dirname, '..', 'web', '.output', 'public'),
+      // Image/video assets (product shots, hero videos, brand imagery) live in
+      // the repo `public/` dir and are served alongside whichever frontend build
+      // is active, so the Nuxt bundle stays lean (no large media duplicated in it).
+      assets: path.join(__dirname, '..', 'public'),
       dataDir,
       dataFile: path.join(dataDir, 'db.json'),
       uploads: path.join(dataDir, 'uploads'),

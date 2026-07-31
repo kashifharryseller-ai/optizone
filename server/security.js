@@ -22,7 +22,11 @@ function securityHeaders() {
         //  - 'wasm-unsafe-eval': MediaPipe compiles its WASM module in-browser
         //  - assets.calendly.com: Calendly booking widget script/styles/fonts
         //  - calendly.com (frameSrc): the Calendly scheduling iframe
-        scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'https://maps.googleapis.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com', 'https://assets.calendly.com'],
+        //  - 'unsafe-inline': the Nuxt SPA emits a tiny inline bootstrap
+        //    (window.__NUXT__.config with a per-build id) that has no stable
+        //    hash; external script SOURCES stay locked to self + the pinned
+        //    CDNs above, so this only permits our own first-party inline shell.
+        scriptSrc: ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", 'https://maps.googleapis.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com', 'https://assets.calendly.com'],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://assets.calendly.com'],
         imgSrc: ["'self'", 'data:', 'blob:', 'https://maps.googleapis.com', 'https://maps.gstatic.com', 'https://assets.calendly.com', 'https://*.calendly.com'],
         fontSrc: ["'self'", 'data:', 'https://assets.calendly.com'],

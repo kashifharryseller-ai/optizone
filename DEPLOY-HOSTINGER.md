@@ -35,7 +35,8 @@ Total time: ~15 minutes.
    the frontend after frontend changes; see step 5 and "Updating after a push".*
 
 > Prefer not to use Git? Upload the whole project via **File Manager / SFTP**
-> **except** `node_modules/` and `dist/` (both are built on the server).
+> **except** `node_modules/`, `web/node_modules/`, `dist/` and
+> `web/.output/` (all are built on the server).
 
 ## 3. Create the Node.js application (hPanel)
 
@@ -85,18 +86,29 @@ Open the app's terminal (Node.js app panel → **Terminal**, or hPanel → **Adv
 npm run deploy:build
 ```
 
-This installs dependencies **including the build tools** and compiles the React
-app into `dist/`. Use it instead of the panel's "Run NPM install" button.
+This installs dependencies **including the build tools** (for both the Express
+server and the Nuxt app in `web/`) and generates the storefront into
+`web/.output/public`. Use it instead of the panel's "Run NPM install" button.
 
 > **Why not just `npm install`?** You set `NODE_ENV=production` in step 4, which
-> makes a plain `npm install` skip devDependencies — and Vite (the build tool)
-> is one of them, so `npm run build` would fail with "vite: not found". The
-> `deploy:build` script runs `npm install --include=dev && vite build`, which
-> installs Vite and builds in one go. (If you ever see "vite: not found", this is
-> the fix.)
+> makes a plain `npm install` skip devDependencies — and the build tools (Nuxt,
+> Vite) are devDependencies, so a plain build would fail with "not found". The
+> `deploy:build` script runs `npm install --include=dev`, then installs the
+> `web/` app's dev deps and runs `npm --prefix web run generate`, producing the
+> static storefront in one go.
 
-`npm run deploy:build` must be run whenever you change **frontend** code. The
-server serves the compiled `dist/` folder.
+`npm run deploy:build` must be run whenever you change **frontend** code (the
+Nuxt app in `web/`). The server (`node app.js`) serves the generated
+`web/.output/public` folder — the storefront and `/admin` share that one build —
+plus the media assets in `public/` (product photos, hero videos, brand imagery)
+and the API under `/api`. All from a single Node process, exactly as before.
+
+> **Frontend:** the storefront is a **Nuxt 3 SPA** (Vue 3 + Tailwind + Inspira UI
+> + Lenis) with a full-screen video hero, the Try Mirror virtual try-on, and a
+> Vue admin panel. It replaced the earlier React build; `npm run
+> deploy:build:react` still builds the legacy React app into `dist/` if ever
+> needed (the server prefers the Nuxt build when present, else falls back to
+> `dist/`).
 
 ## 6. Start / restart
 
@@ -120,8 +132,8 @@ Every time you push new code to the deploy branch:
    click **Restart** in the Node.js app panel.
    - Backend-only change (files under `server/`)? You can skip the rebuild and
      just **Restart**.
-   - Frontend change (anything under `src/`, `public/`, styles)? Run
-     `npm run deploy:build` so `dist/` is regenerated.
+   - Frontend change (anything under `web/`, or media in `public/`)? Run
+     `npm run deploy:build` so `web/.output/public` is regenerated.
 
 Your MySQL data (products you edited in the admin, orders, bookings, accounts)
 is untouched by deploys — it lives in the database, not in the code.
@@ -137,6 +149,6 @@ is untouched by deploys — it lives in the database, not in the code.
 - **Change the admin password** any time by updating `ADMIN_PASSWORD` and
   restarting. For extra safety you can set `ADMIN_PASSWORD_HASH` to a bcrypt hash
   instead of a plaintext password.
-- **Seeing a “Frontend not built yet” message?** Run `npm run build` and restart.
+- **Seeing a “Frontend not built yet” message?** Run `npm run deploy:build` and restart.
 - **Reset content to defaults:** `npm run seed` (leaves orders/bookings intact).
 - **Health check:** `GET /api/health` returns `{ ok: true, store: "mysql" | "file" }`.
