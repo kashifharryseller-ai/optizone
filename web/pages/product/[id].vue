@@ -2,11 +2,13 @@
 import { ShoppingBag, Heart, Truck, Store, ChevronDown, ChevronUp, Info, Camera } from 'lucide-vue-next'
 
 const route = useRoute()
+const router = useRouter()
 const { L, A, dir } = useLang()
 const { t } = useT()
 const tp = computed(() => t('product'))
 const { content } = useContent()
 const { add } = useCart()
+const { isAuthed, inWishlist, toggleWishlist } = useAuth()
 
 const p = computed(() => {
   const list = content.value?.products || []
@@ -66,6 +68,13 @@ const mirror = ref(false)
 const mirrorCatalog = computed(() =>
   (content.value?.products || []).filter((x: any) => !!x?.tryMirror && ['eyeglasses', 'sunglasses'].includes(String(x.category || '').toLowerCase())),
 )
+// Wishlist — guests are sent to sign in; the heart reflects saved state.
+const wished = computed(() => isAuthed.value && inWishlist(p.value.id))
+const onHeart = () => {
+  if (!isAuthed.value) { router.push('/account'); return }
+  toggleWishlist(p.value.id).catch(() => { /* stays in sync on next load */ })
+}
+
 const onMirrorAdd = (sizePct: string, chosen: any) => {
   const prod = chosen || p.value
   // The opened product keeps its lens-option total; a carousel-picked frame is
@@ -187,8 +196,8 @@ useHead(() => ({ title: found.value ? `${p.value.brand} ${L(p.value.name) || p.v
             <button v-if="canTry" @click="consent = true" class="inline-flex items-center justify-center gap-2 rounded-sm bg-amber-500 px-5 py-3.5 font-display text-sm uppercase tracking-wide text-pine-950 transition hover:brightness-105">
               <Camera :size="18" /> {{ tp.tryMirror }}
             </button>
-            <button aria-label="wishlist" class="inline-flex h-12 w-12 items-center justify-center rounded-sm border border-hair text-pine-700 transition-colors hover:border-pine-400">
-              <Heart :size="20" />
+            <button @click="onHeart" aria-label="wishlist" class="inline-flex h-12 w-12 items-center justify-center rounded-sm border transition-colors" :class="wished ? 'border-red-300 text-red-500' : 'border-hair text-pine-700 hover:border-pine-400'">
+              <Heart :size="20" :fill="wished ? 'currentColor' : 'none'" />
             </button>
           </div>
           <p v-if="addedNote" class="mt-3 text-sm font-medium text-emerald-700">✓ Added to cart</p>
